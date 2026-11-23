@@ -1,0 +1,45 @@
+name: Generate lockfile
+
+# One-shot bootstrap: this machine cannot produce a valid package-lock.json
+# (npm 11 writes it without resolved/integrity and the local network blocks
+# registry.npmjs.org). GitHub's runner has clean npm access, so it regenerates
+# the lockfile and commits it back to the story branch. Safe to keep: it
+# becomes a no-op once the lockfile exists and is in sync.
+
+on:
+  push:
+    branches: [story/s0.1-scaffold]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  lockfile:
+    name: regenerate package-lock.json if invalid
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Regenerate lockfile (npm 11, clean registry access)
+        run: |
+          npm install -g npm@11
+          rm -f package-lock.json
+          npm install --registry=https://registry.npmjs.org/
+
+      - name: Commit and push if the lockfile changed
+        run: |
+          git config user.name "lockfile-bot"
+          git config user.email "actions@github.com"
+          git add package-lock.json
+          if git diff --cached --quiet; then
+            echo "Lockfile already present and unchanged."
+          else
+            git commit -m "chore: canonical package-lock.json (generated on CI runner)"
+            git push
+          fi

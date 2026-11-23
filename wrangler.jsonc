@@ -1,0 +1,48 @@
+{
+  // One Worker serves the API, /healthz and the SPA (static assets) from one origin.
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "bolt-club-hq",
+  "main": "src/worker/index.ts",
+  "compatibility_date": "2026-08-22",
+  "compatibility_flags": ["nodejs_compat"],
+  "observability": { "enabled": true },
+
+  "assets": {
+    "directory": "./dist/client",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/healthz", "/api/*"],
+  },
+
+  // Cron Triggers: two entries (PLAN §11.3 budget), in UTC. See docs/DECISIONS.md (S0.1) on the Stockholm DST offset.
+  "triggers": {
+    "crons": ["*/10 5-21 * * *", "0 * * * *"],
+  },
+
+  "kv_namespaces": [
+    // OG preview cache and next_due_at scheduler state (PLAN §11.2).
+    {
+      "binding": "KV",
+      "id": "REPLACE_WITH_KV_NAMESPACE_ID",
+      "preview_id": "REPLACE_WITH_KV_PREVIEW_ID",
+    },
+  ],
+
+  "r2_buckets": [
+    // Poll images, member-only (PLAN §11.1).
+    { "binding": "MEDIA", "bucket_name": "bolt-club-hq-media" },
+  ],
+
+  "hyperdrive": [
+    // Pooled Postgres. The id is set after `wrangler hyperdrive create`; local dev uses localConnectionString.
+    {
+      "binding": "HYPERDRIVE",
+      "id": "REPLACE_WITH_HYPERDRIVE_ID",
+      "localConnectionString": "postgres://postgres:postgres@localhost:5432/club_dev",
+    },
+  ],
+
+  "vars": {
+    "ENV": "dev",
+  },
+}

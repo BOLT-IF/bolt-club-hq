@@ -4,6 +4,7 @@ on:
   push:
     branches: [main]
   pull_request:
+  workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -52,3 +53,9 @@ jobs:
       - name: Test
         if: hashFiles('package.json') != ''
         run: npm test
+      - name: Install Playwright browsers
+        if: hashFiles('package.json') != ''
+        run: npx playwright install --with-deps chromium webkit
+      - name: E2E (Playwright)
+        if: hashFiles('package.json') != ''
+        run: npm run test:e2e

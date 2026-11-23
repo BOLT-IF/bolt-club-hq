@@ -73,6 +73,12 @@ Run against `postgres:17` (PostgreSQL 17.12) in the `s02-postgres-1` container, 
 - `npm run lint`: clean, including prettier.
 - `npm test`: 21 files, 99 tests, all passing. Of these, 4 files (the DB suites) run in the `db` project against Postgres and 17 run in the other projects.
 
+## Production reference
+
+- Production is Neon, PostgreSQL 18.7, EU-central. Local Postgres is pinned to `postgres:18` in `docker-compose.yml` for major-version parity.
+- The dev machine reaches Neon only over its HTTPS endpoint (raw port 5432 is network-blocked there). The `@neondatabase/serverless` driver connects and runs `SELECT version()`. Production access from CI and Cloudflare is unaffected.
+- The Neon connection string lives in the gitignored `.env.local`. It must never be copied into a committed file.
+
 ## Open items
 
 - Hyperdrive id in `wrangler.jsonc` is still the placeholder `REPLACE_WITH_HYPERDRIVE_ID`. It is set after `wrangler hyperdrive create` (manual step above).

@@ -1,7 +1,16 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 
-import { allocate, claimOffer, promote, waitlistInsert, type AllocationMode, type Candidate, type Roster } from "./index";
+import {
+  allocate,
+  claimOffer,
+  promote,
+  waitlistInsert,
+  type AllocationMode,
+  type Candidate,
+  type Roster,
+} from "./index";
+import { sortCandidates } from "./order";
 import { member, guest } from "./test-helpers";
 
 /**
@@ -31,43 +40,32 @@ const scenarioArb = fc
     ),
   })
   .map(({ capacity, members, guests }) => {
-    const memberCandidates: Candidate[] = members.map((m, i) => member(`m${i}`, m.tier, m.requestedAt));
+    const memberCandidates: Candidate[] = members.map((m, i) =>
+      member(`m${String(i)}`, m.tier, m.requestedAt),
+    );
     // hostIndex maps onto the members, plus one slot that points at a host who is not a candidate.
     const guestCandidates: Candidate[] = guests.map((g, i) => {
       const slot = g.hostIndex % (members.length + 1);
-      const hostId = slot < members.length ? `m${slot}` : "ghost";
-      return guest(`g${i}`, hostId, g.requestedAt);
+      const hostId = slot < members.length ? `m${String(slot)}` : "ghost";
+      return guest(`g${String(i)}`, hostId, g.requestedAt);
     });
     return { capacity, candidates: [...memberCandidates, ...guestCandidates] };
   });
 
 const scenarioWithOrderArb = scenarioArb.chain(({ capacity, candidates }) =>
-  fc.shuffledSubarray(candidates, { minLength: candidates.length, maxLength: candidates.length }).map((shuffled) => ({
-    capacity,
-    candidates,
-    shuffled,
-  })),
+  fc
+    .shuffledSubarray(candidates, { minLength: candidates.length, maxLength: candidates.length })
+    .map((shuffled) => ({
+      capacity,
+      candidates,
+      shuffled,
+    })),
 );
 
 const modeArb = fc.constantFrom<AllocationMode>("tiered", "instant");
 
 function tierOf(c: Candidate): number {
   return c.tier;
-}
-
-function compareTiered(a: Candidate, b: Candidate): number {
-  if (a.tier !== b.tier) return a.tier - b.tier;
-  if (a.requestedAt !== b.requestedAt) return a.requestedAt - b.requestedAt;
-  return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
-}
-
-function compareInstant(a: Candidate, b: Candidate): number {
-  if (a.requestedAt !== b.requestedAt) return a.requestedAt - b.requestedAt;
-  return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
-}
-
-function compareFor(mode: AllocationMode): (a: Candidate, b: Candidate) => number {
-  return mode === "tiered" ? compareTiered : compareInstant;
 }
 
 function confirmedMemberIds(roster: Roster): Set<string> {
@@ -149,7 +147,10 @@ describe("allocation properties", () => {
     fc.assert(
       fc.property(scenarioArb, modeArb, ({ capacity, candidates }, mode) => {
         const roster = allocate({ mode, capacity, candidates });
-        const sorted = [...roster.waitlist].sort(compareFor(mode));
+        const sorted = sortCandidates(mode, roster.waitlist, [
+          ...roster.confirmed,
+          ...roster.waitlist,
+        ]);
         expect(roster.waitlist).toEqual(sorted);
       }),
       { numRuns: RUNS },
@@ -161,7 +162,7 @@ describe("allocation properties", () => {
       fc.property(scenarioArb, ({ capacity, candidates }) => {
         const members = candidates.filter((c) => c.kind === "member");
         const roster = allocate({ mode: "instant", capacity, candidates: members });
-        const expected = [...members].sort(compareInstant).slice(0, capacity);
+        const expected = sortCandidates("instant", members).slice(0, capacity);
         expect(roster.confirmed).toEqual(expected);
       }),
       { numRuns: RUNS },
@@ -173,12 +174,19 @@ describe("allocation properties", () => {
       fc.property(
         scenarioArb,
         modeArb,
-        fc.record({ tier: fc.constantFrom(1 as const, 2 as const), requestedAt: fc.integer({ min: 0, max: 60 }) }),
+        fc.record({
+          tier: fc.constantFrom(1 as const, 2 as const),
+          requestedAt: fc.integer({ min: 0, max: 60 }),
+        }),
         ({ capacity, candidates }, mode, late) => {
           const roster = allocate({ mode, capacity, candidates });
           const result = waitlistInsert(roster, member("late", late.tier, late.requestedAt), mode);
-          expect(result.confirmed).toEqual(roster.confirmed);
-          expect(result.waitlist).toEqual([...result.waitlist].sort(compareFor(mode)));
+          // Nobody already confirmed is bumped; a free seat may go to the late RSVP.
+          expect(result.confirmed.slice(0, roster.confirmed.length)).toEqual(roster.confirmed);
+          expect(result.confirmed.length).toBeLessThanOrEqual(capacity);
+          expect(result.waitlist).toEqual(
+            sortCandidates(mode, result.waitlist, [...result.confirmed, ...result.waitlist]),
+          );
         },
       ),
       { numRuns: RUNS },
@@ -199,7 +207,13 @@ describe("allocation properties", () => {
           confirmed: closed.confirmed.slice(0, closed.confirmed.length - freed),
           waitlist: closed.waitlist,
         };
-        const result = promote({ roster, now: cutoffAt - 1, startsAt: START, cutoffMinutes: CUTOFF_MIN });
+        const result = promote({
+          mode: "tiered",
+          roster,
+          now: cutoffAt - 1,
+          startsAt: START,
+          cutoffMinutes: CUTOFF_MIN,
+        });
         expect(result.phase).toBe("auto");
         if (result.phase !== "auto") return;
         expect(result.roster.confirmed.length).toBeLessThanOrEqual(capacity);
@@ -220,7 +234,11 @@ describe("allocation properties", () => {
     fc.assert(
       fc.property(scenarioArb, modeArb, ({ capacity, candidates }, mode) => {
         // Everyone is waitlisted with all seats free; claim them one after another.
-        let roster: Roster = { capacity, confirmed: [], waitlist: [...candidates].sort(compareFor(mode)) };
+        let roster: Roster = {
+          capacity,
+          confirmed: [],
+          waitlist: sortCandidates(mode, candidates),
+        };
         for (const c of candidates) {
           const claim = claimOffer({ roster, candidateId: c.id });
           if (claim.status !== "claimed") continue;

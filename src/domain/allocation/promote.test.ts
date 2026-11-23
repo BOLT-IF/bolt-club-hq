@@ -16,7 +16,13 @@ describe("promote (A6): automatic before the cutoff", () => {
   it("fills freed seats from the top of the waitlist, guests included when their host is confirmed", () => {
     const roster: Roster = { capacity: 3, confirmed: [P1, N1], waitlist: [N2, GA] };
 
-    const result = promote({ roster, now: CUTOFF - 1, startsAt: START, cutoffMinutes: CUTOFF_MIN });
+    const result = promote({
+      mode: "tiered",
+      roster,
+      now: CUTOFF - 1,
+      startsAt: START,
+      cutoffMinutes: CUTOFF_MIN,
+    });
 
     expect(result.phase).toBe("auto");
     if (result.phase !== "auto") return;
@@ -32,7 +38,13 @@ describe("promote (A6): automatic before the cutoff", () => {
       waitlist: [guest("GX", "X", 1), N2],
     };
 
-    const result = promote({ roster, now: CUTOFF - 1, startsAt: START, cutoffMinutes: CUTOFF_MIN });
+    const result = promote({
+      mode: "tiered",
+      roster,
+      now: CUTOFF - 1,
+      startsAt: START,
+      cutoffMinutes: CUTOFF_MIN,
+    });
 
     expect(result.phase).toBe("auto");
     if (result.phase !== "auto") return;
@@ -45,7 +57,13 @@ describe("promote (A6): offers at and after the cutoff", () => {
   const roster: Roster = { capacity: 3, confirmed: [P1, N1], waitlist: [N2, GA] };
 
   it("switches to offers exactly at the cutoff, offering the free seat to everyone eligible", () => {
-    const result = promote({ roster, now: CUTOFF, startsAt: START, cutoffMinutes: CUTOFF_MIN });
+    const result = promote({
+      mode: "tiered",
+      roster,
+      now: CUTOFF,
+      startsAt: START,
+      cutoffMinutes: CUTOFF_MIN,
+    });
 
     expect(result.phase).toBe("offer");
     if (result.phase !== "offer") return;
@@ -57,7 +75,13 @@ describe("promote (A6): offers at and after the cutoff", () => {
   it("offers nothing when there is no free seat", () => {
     const full: Roster = { capacity: 2, confirmed: [P1, N1], waitlist: [N2] };
 
-    const result = promote({ roster: full, now: CUTOFF + 1, startsAt: START, cutoffMinutes: CUTOFF_MIN });
+    const result = promote({
+      mode: "tiered",
+      roster: full,
+      now: CUTOFF + 1,
+      startsAt: START,
+      cutoffMinutes: CUTOFF_MIN,
+    });
 
     expect(result.phase).toBe("offer");
     if (result.phase !== "offer") return;

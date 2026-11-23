@@ -6,8 +6,8 @@ import { guest, ids, member } from "./test-helpers";
 describe("allocate: tiered worked example (PLAN 6.2)", () => {
   // 16 spots; 10 prepaid members (tier 1), 9 non-prepaid members (tier 2),
   // 2 guests (tier 3) hosted by prepaid members. Input order is deliberately scrambled.
-  const prepaid = Array.from({ length: 10 }, (_, i) => member(`P${i + 1}`, 1, 1000 + i));
-  const nonPrepaid = Array.from({ length: 9 }, (_, i) => member(`N${i + 1}`, 2, 2000 + i));
+  const prepaid = Array.from({ length: 10 }, (_, i) => member(`P${String(i + 1)}`, 1, 1000 + i));
+  const nonPrepaid = Array.from({ length: 9 }, (_, i) => member(`N${String(i + 1)}`, 2, 2000 + i));
   const guestA = guest("GA", "P1", 3000);
   const guestB = guest("GB", "P2", 3001);
 

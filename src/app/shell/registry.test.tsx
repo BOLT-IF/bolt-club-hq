@@ -1,9 +1,9 @@
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 
-import { registeredFrontendRoutes } from "./registry";
+import { registeredFrontendRoutes } from "../routes/registry";
 import { FeatureFlagsProvider } from "../lib/flags";
-import { AppShell } from "../shell/AppShell";
+import { AppShell } from "./AppShell";
 
 afterEach(() => {
   cleanup();

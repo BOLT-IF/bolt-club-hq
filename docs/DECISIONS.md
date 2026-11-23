@@ -4,7 +4,7 @@ Decisions made after `PLAN.md` (v3) was written. Newest first. Every entry gives
 
 ## 2026-11-23: S0.4 frontend foundation resolutions (ambiguities)
 
-- **Scope exception (approved by the user):** `src/app/main.tsx` now mounts `AppRoot` (the shell, flags and toasts), and `tests/e2e/shell.spec.ts` was added. `src/app/routes/registry.test.tsx` was added under `routes/` because it tests probe registration inside the shell. All other edits stay within the story's Owns paths.
+- **Scope exception (approved by the user):** `src/app/main.tsx` now mounts `AppRoot` (the shell, flags and toasts), and `tests/e2e/shell.spec.ts` was added. All other edits stay within the story's Owns paths. The probe-in-shell test lives in `src/app/shell/registry.test.tsx`.
 - **Shell owns the chrome, not the pages:** Home, Events, Money, Inbox and the More targets are registry entries. Their pages are owned by later stories, so an unregistered path shows an empty state.
 - **Bottom nav:** Home · Events · Money · Inbox · More. More opens a bottom sheet (a button, not a route), so the 5th item is never a dead link. Events, Money and Inbox are hidden unless their flag is on. Flags fail closed: if `/api/v1/config` fails, every flag is off.
 - **Back control:** a visible Back button on every non-root screen. It uses `history.back()` only when the previous entry was pushed by the app, and otherwise goes to the parent route, so deep links never leave the user stranded.

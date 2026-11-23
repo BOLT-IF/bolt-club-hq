@@ -11,7 +11,7 @@
     "directory": "./dist/client",
     "binding": "ASSETS",
     "not_found_handling": "single-page-application",
-    "run_worker_first": ["/healthz", "/api/*"],
+    "run_worker_first": ["/healthz", "/healthz/*", "/api/*"],
   },
 
   // Cron Triggers: two entries (PLAN §11.3 budget), in UTC. See docs/DECISIONS.md (S0.1) on the Stockholm DST offset.

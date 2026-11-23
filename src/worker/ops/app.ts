@@ -2,12 +2,12 @@ import { Hono } from "hono";
 
 import { systemClock } from "../core/clock";
 import { createHealthHandler, readLastTick, type DbStatus } from "./health";
-import { requestIdMiddleware, type OpsEnv } from "./logging";
+import type { OpsEnv } from "./logging";
 
 /**
  * Ops bindings. KV holds `ops:last_tick_at`. The DB probe and queue depth are
- * injected: S0.2 supplies the database client and the outbox queue, and until
- * then both report "unknown" or null without degrading health.
+ * injected; until a story supplies them they report "unknown" or null, which
+ * does not degrade readiness.
  */
 export interface OpsBindings {
   KV: KVNamespace;
@@ -18,11 +18,18 @@ export interface OpsProbes {
   queueDepth?: () => Promise<number | null>;
 }
 
-/** Builds the `/healthz` app. Mount it at the Worker root, outside `/api/v1`. */
+/**
+ * Ops routes, mounted at the Worker root (outside `/api/v1`):
+ * - `/healthz`: liveness. 200 whenever the Worker runs. Used by the deploy smoke
+ *   test and Playwright's startup wait, which run before any cron tick exists.
+ * - `/healthz/ready`: readiness. The strict S0.7 verdict (DB, cron tick, queue),
+ *   503 when degraded. For monitoring and alerts.
+ * Request IDs are added by the parent app (`src/worker/app.ts`), for every route.
+ */
 export function createOpsApp(probes: OpsProbes = {}): Hono<OpsEnv & { Bindings: OpsBindings }> {
   const app = new Hono<OpsEnv & { Bindings: OpsBindings }>();
-  app.use("*", requestIdMiddleware({ now: () => systemClock.now().getTime() }));
-  app.get("/healthz", (c) =>
+  app.get("/healthz", (c) => c.json({ status: "ok" }));
+  app.get("/healthz/ready", (c) =>
     createHealthHandler({
       clock: systemClock,
       probeDb: probes.probeDb ?? (() => Promise.resolve("unknown")),

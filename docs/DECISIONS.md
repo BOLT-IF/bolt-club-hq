@@ -2,6 +2,14 @@
 
 Decisions made after `PLAN.md` (v3) was written. Newest first. Every entry gives the decision, the reason, and what it changes.
 
+## 2026-11-23: Repo audit: ops wiring (Ashok chose the liveness/readiness split)
+
+- **Found by the audit:** S0.7's ops app, request IDs and Sentry reporting were built and tested but never wired. `/healthz` was a hard-coded `{"status":"ok"}` and the Worker had no `scheduled()` handler, so the cron tick was never recorded.
+- **`/healthz` is liveness, `/healthz/ready` is readiness.** `/healthz` returns 200 whenever the Worker runs. The deploy smoke test, Playwright's startup wait and `wrangler dev` use it, and all of them run before any cron tick exists. `/healthz/ready` is the strict S0.7 verdict (DB, tick, queue; 503 when degraded) for monitoring and the S6.x healthchecks.io alert. Rejected: one strict endpoint (fails smoke and e2e on every fresh deploy) and "missing tick = healthy" (hides a cron that never starts).
+- **`scheduled()`** records the tick first, then runs every hook registered for that cron with `Promise.allSettled`. One failing hook does not stop the others; the first error is rethrown so Cloudflare marks the run failed.
+- **Request IDs on every route.** `requestIdMiddleware` runs on the whole Worker app, so `/api/v1` handlers get `c.var.logger` and `c.var.requestId` (`AppEnv` includes `OpsEnv`).
+- **Uncaught errors** go to Sentry through `app.onError` and `waitUntil`, only when the `SENTRY_DSN` secret is set, and return a JSON 500.
+
 ## 2026-11-23: Repo audit cleanup (integrator)
 
 - **One `Clock`.** `src/worker/ops/clock.ts` was a stand-in until S0.2 landed (see S0.7 below). It is deleted. Ops code uses `src/worker/core/clock.ts` and converts with `.getTime()` where it needs epoch milliseconds.

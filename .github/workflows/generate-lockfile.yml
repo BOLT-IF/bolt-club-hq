@@ -8,7 +8,7 @@ name: Generate lockfile
 
 on:
   push:
-    branches: [story/s0.1-scaffold]
+    branches: [story/s0.1-scaffold, story/s0.2-core-contracts]
   workflow_dispatch:
 
 permissions:

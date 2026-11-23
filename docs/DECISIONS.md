@@ -4,7 +4,7 @@ Decisions made after `PLAN.md` (v3) was written. Newest first. Every entry gives
 
 ## 2026-11-23: S0.4 frontend foundation resolutions (ambiguities)
 
-- **Scope exception (approved by the user):** `src/app/main.tsx` now mounts `AppRoot` (the shell, flags and toasts), and `tests/e2e/shell.spec.ts` was added. All other edits stay within the story's Owns paths. The probe-in-shell test lives in `src/app/shell/registry.test.tsx`.
+- **Scope exception (approved by the user and sanctioned by the integrator):** `src/app/main.tsx` now mounts `AppRoot` (the shell, flags and toasts), and `tests/e2e/shell.spec.ts` was added. The integrator confirmed both as approved. All other edits stay within the story's Owns paths. The probe-in-shell test lives in `src/app/shell/registry.test.tsx`.
 - **Shell owns the chrome, not the pages:** Home, Events, Money, Inbox and the More targets are registry entries. Their pages are owned by later stories, so an unregistered path shows an empty state.
 - **Bottom nav:** Home · Events · Money · Inbox · More. More opens a bottom sheet (a button, not a route), so the 5th item is never a dead link. Events, Money and Inbox are hidden unless their flag is on. Flags fail closed: if `/api/v1/config` fails, every flag is off.
 - **Back control:** a visible Back button on every non-root screen. It uses `history.back()` only when the previous entry was pushed by the app, and otherwise goes to the parent route, so deep links never leave the user stranded.
@@ -13,6 +13,16 @@ Decisions made after `PLAN.md` (v3) was written. Newest first. Every entry gives
 - **Admin index:** the registry lists 10 admin sections under `/admin/*`, admin-only. The pages are owned by later stories.
 - **Accessibility:** WCAG 2.1 AA, checked with axe on all three projects (serious and critical violations fail). Targets are at least 48px. Status is text plus colour. Reduced-motion disables animations.
 - **Test isolation:** Vitest runs without globals, so Testing Library cleanup is explicit in each file that renders.
+
+## 2026-11-23: S4.1 allocation resolutions (ambiguities)
+
+- **Instant-mode guest time:** a guest can't be confirmed before their host, so in instant mode a guest sorts by the later of their own and their host's request time. Ties put the member first. Reason: pure first-come must still never confirm a guest ahead of their host.
+- **Open seat after close (A5):** a late RSVP takes a seat that is still free, first-come. A5 only forbids bumping someone already confirmed. Changes `waitlistInsert` (`src/domain/allocation/waitlist.ts`).
+- **Cutoff boundary (A6):** the cutoff is `startsAt − cutoffMinutes`. At exactly that instant, promotion switches to offers. Before it, free seats fill automatically in mode order.
+- **Offer set (A6):** at the cutoff, every candidate who is eligible (a member, or a guest whose host is confirmed) is offered the free seats. The offer list is in mode order for display, but any eligible candidate may claim. The first claim wins (`claimOffer`). When no seat is free, nothing is offered.
+- **Guest of an unconfirmed host:** a guest whose host is waitlisted or absent waits. A host who is confirmed later in the same pass unlocks the guest, so the rule is checked during the fill, not against the input.
+- **Capacity:** must be a non-negative whole number. A `RangeError` is thrown otherwise. Reason: money and seat rules are integer-only (AGENTS.md rule 5).
+- **Time injection:** `promote` takes `now` and `startsAt` as epoch milliseconds from the caller. The domain never reads the clock (AGENTS.md rule 6).
 
 ## 2026-11-23: R1 roster import (integrator-confirmed)
 

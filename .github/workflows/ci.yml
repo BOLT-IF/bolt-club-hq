@@ -10,26 +10,12 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  checks:
-    name: typecheck & lint
-    # Skips (counts as success) until the first code story lands
-    if: ${{ hashFiles('package.json') != '' }}
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-      - run: npm ci
-      - run: npm run typecheck
-      - run: npm run lint
-
-  test:
-    name: test (postgres)
-    if: ${{ hashFiles('package.json') != '' }}
+  ci:
+    name: ci
     runs-on: ubuntu-latest
     services:
+      # Postgres for Worker/API tests against a real database (plan §Testing).
+      # Container starts on every run; steps are skipped until code lands.
       postgres:
         image: postgres:17
         env:
@@ -48,9 +34,21 @@ jobs:
       DATABASE_URL: postgres://postgres:postgres@localhost:5432/club_test
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+
+      # Docs-only stage: repo has no package.json yet, so the build steps
+      # below skip (step-level hashFiles is only valid after checkout).
+      - name: Install dependencies
+        if: hashFiles('package.json') != ''
+        uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
       - run: npm ci
-      - run: npm test
+        if: hashFiles('package.json') != ''
+      - run: npm run typecheck
+        if: hashFiles('package.json') != ''
+      - run: npm run lint
+        if: hashFiles('package.json') != ''
+      - name: Test
+        if: hashFiles('package.json') != ''
+        run: npm test

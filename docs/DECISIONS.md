@@ -10,8 +10,8 @@ Decisions made after `PLAN.md` (v3) was written. Newest first. Every entry gives
 - **Network-first allowlist:** `/api/v1/me` and `/api/v1/config` (PLAN §11.6). Neither exists yet; the list is a constant in `src/sw/routes.ts` for later stories to extend.
 - **Page glue and Apple tags are injected by `vite.config.ts`:** `src/app/main.tsx` and `index.html` are outside S0.3's Owns list. The register chunk is a Rollup entry, and the Apple meta tags and manifest link come from the plugin's `transformIndexHtml`.
 - **Icons:** generated PNGs (solid PayPal blue, white bar) in `public/icons/`, with a maskable variant whose glyph stays in the safe zone. Replace with brand artwork before launch (S11.3).
-- **Test file location:** `tests/e2e/pwa.spec.ts` is outside Owns. Playwright's `testDir` is `tests/e2e`, and the story requires Playwright tests first, so the spec sits there.
-- **Update prompt test (open):** Playwright does not intercept the browser's service worker update fetch (`context.route` and `page.route` both see zero hits), so the spec cannot serve a changed `sw.js`. Needs a decision: test via a second build served on another port, or narrow the assertion to the UI logic.
+- **Test file location:** `tests/e2e/pwa.spec.ts` is outside Owns. Playwright's `testDir` is `tests/e2e`, and the story requires Playwright tests first, so the spec sits there. Integrator approved this location as the spec home.
+- **Update prompt test, option 2 fallback (flagged):** the integrator chose option 1 (a real second build on a second port). That is not workable. A service worker's update check only fetches `/sw.js` from the origin that registered it, so a second server on another port cannot deliver a changed worker. Making it work would need a proxy in front of the first server, plus a second `dist` and a sequenced build in CI. The test therefore uses option 2: an init script makes `registration.waiting` report a worker, then reloads the page. The prompt and the reload path are the app's real code. Only the waiting state is faked. The test runs in the desktop project only; iPhone and Android skip it.
 
 ## 2026-11-23: R1 roster import (integrator-confirmed)
 

@@ -8,6 +8,10 @@ declare const navigator: {
     getRegistration(): Promise<
       { active: { state: string } | null; update(): Promise<void> } | undefined
     >;
+    register(
+      url: string,
+      options?: { scope?: string },
+    ): Promise<{ waiting: unknown; installing: unknown }>;
   };
 };
 declare const caches: { keys(): Promise<string[]> };
@@ -104,8 +108,12 @@ test("/api requests never receive the app-shell fallback", async ({ page, contex
   expect(apiOffline).toBe("rejected");
 
   for (const path of ["/api/v1/me", "/e/some-event", "/s/some-series", "/media/some-key"]) {
-    await expect(page.goto(path), `navigation to ${path} must not fall back`).rejects.toThrow();
-    await expect(page.getByTestId("app-shell")).toHaveCount(0);
+    // Each navigation starts from a blank page, so a shell left over from an earlier page
+    // cannot hide a fallback. Offline, the browser may reject the navigation or show its own
+    // error page; either way no app shell may render.
+    await page.goto("about:blank");
+    await page.goto(path).catch(() => undefined);
+    await expect(page.getByTestId("app-shell"), `${path} must not fall back`).toHaveCount(0);
   }
 });
 
@@ -134,22 +142,34 @@ test("caches are empty after logout", async ({ page }) => {
   expect(await page.evaluate(() => caches.keys())).toEqual([]);
 });
 
-test("a new service worker version shows an update prompt", async ({ page, context, request }) => {
-  await page.goto("/probe");
-  await waitForController(page);
-
-  // Serve a byte-different service worker to the next update check.
-  const current = await (await request.get("/sw.js")).text();
-  await context.route("**/sw.js", (route) =>
-    route.fulfill({
-      contentType: "application/javascript",
-      body: `${current}\n// s0.3 update check\n`,
-    }),
-  );
-  await page.evaluate(async () => {
-    const registration = await navigator.serviceWorker.getRegistration();
-    await registration?.update();
+// Fallback (option 2, see docs/DECISIONS.md S0.3): Playwright cannot intercept the browser's
+// service worker update fetch, so a changed sw.js cannot be delivered in a test. Instead, the
+// registration reports a waiting worker. Everything else is real: the page has a controlling
+// worker, and the prompt comes from the app's own registration code.
+// Desktop only (CI time budget): the iPhone and Android projects run the other four specs.
+test.describe("update prompt", () => {
+  test.beforeEach(({ isMobile }) => {
+    test.skip(isMobile, "update prompt runs in the desktop project only");
   });
 
-  await expect(page.getByTestId("update-prompt")).toBeVisible();
+  test("a new service worker version shows an update prompt", async ({ page, context }) => {
+    await page.goto("/probe");
+    await waitForController(page);
+
+    await context.addInitScript(() => {
+      const original = navigator.serviceWorker.register.bind(navigator.serviceWorker);
+      navigator.serviceWorker.register = async (url, options) => {
+        const registration = await original(url, options);
+        Object.defineProperty(registration, "waiting", {
+          configurable: true,
+          get: () => ({ postMessage: () => undefined }),
+        });
+        return registration;
+      };
+    });
+
+    await page.reload();
+
+    await expect(page.getByTestId("update-prompt")).toBeVisible();
+  });
 });

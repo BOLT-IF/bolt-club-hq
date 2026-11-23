@@ -56,5 +56,10 @@
     "vite-plugin-pwa": "^2.0.0",
     "vitest": "^4.1.0",
     "wrangler": "^4.166.0"
+  },
+  "allowScripts": {
+    "esbuild": true,
+    "workerd": true,
+    "fsevents": true
   }
 }

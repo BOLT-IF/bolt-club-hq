@@ -12,6 +12,8 @@ import { requireGuard, unguardedRoutes } from "./permissions";
 const ALLOWLIST: readonly string[] = [
   // S0.1 placeholder, removed once a real route exists (see docs/DECISIONS.md, S0.2).
   "GET /api/v1/probe",
+  // Public by design: the shell loads flags before sign-in (PLAN §11.6, DECISIONS "Repo audit").
+  "GET /api/v1/config",
 ];
 
 describe("route-guard lint", () => {

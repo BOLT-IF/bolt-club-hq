@@ -1,7 +1,11 @@
-import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { cleanup, render, screen } from "@testing-library/react";
+import { afterEach, describe, expect, it } from "vitest";
 
 import { FeatureFlagsProvider, useFeatureFlag } from "./flags";
+
+afterEach(() => {
+  cleanup();
+});
 
 function Probe({ name }: { name: string }) {
   const enabled = useFeatureFlag(name);

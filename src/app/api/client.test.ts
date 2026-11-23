@@ -4,9 +4,10 @@ import { CLIENT_VERSION, apiFetch, configureApiClient, newIdempotencyKey } from 
 import { isClientOutdated, resetClientOutdatedForTests } from "../lib/clientVersion";
 
 function jsonResponse(status: number, body: unknown = null): Response {
-  return new Response(body === null ? null : JSON.stringify(body), {
+  if (body === null) return new Response(null, { status });
+  return new Response(JSON.stringify(body), {
     status,
-    headers: body === null ? undefined : { "content-type": "application/json" },
+    headers: { "content-type": "application/json" },
   });
 }
 
@@ -22,7 +23,7 @@ describe("apiFetch", () => {
   });
 
   it("sends the Clerk bearer token, X-Client-Version and the Idempotency-Key header", async () => {
-    const fetchMock = vi.fn(async () => jsonResponse(200, { ok: true }));
+    const fetchMock = vi.fn(() => Promise.resolve(jsonResponse(200, { ok: true })));
     configureApiClient({ getToken: () => "tok_1", fetch: fetchMock });
 
     const result = await apiFetch<{ ok: boolean }>("/members", {
@@ -43,7 +44,7 @@ describe("apiFetch", () => {
   });
 
   it("omits the bearer header when there is no signed-in session", async () => {
-    const fetchMock = vi.fn(async () => jsonResponse(200, {}));
+    const fetchMock = vi.fn(() => Promise.resolve(jsonResponse(200, {})));
     configureApiClient({ getToken: () => null, fetch: fetchMock });
 
     await apiFetch("/config");
@@ -56,7 +57,7 @@ describe("apiFetch", () => {
     window.history.pushState({}, "", "/events?week=3");
     const onUnauthorized = vi.fn();
     configureApiClient({
-      fetch: vi.fn(async () => jsonResponse(401, { error: "unauthorized" })),
+      fetch: vi.fn(() => Promise.resolve(jsonResponse(401, { error: "unauthorized" }))),
       onUnauthorized,
     });
 
@@ -65,7 +66,9 @@ describe("apiFetch", () => {
   });
 
   it("maps 426 to the refresh banner state", async () => {
-    configureApiClient({ fetch: vi.fn(async () => jsonResponse(426, { error: "upgrade" })) });
+    configureApiClient({
+      fetch: vi.fn(() => Promise.resolve(jsonResponse(426, { error: "upgrade" }))),
+    });
 
     await expect(apiFetch("/me")).rejects.toMatchObject({ status: 426 });
     expect(isClientOutdated()).toBe(true);

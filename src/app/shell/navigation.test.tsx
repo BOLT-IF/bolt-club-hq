@@ -1,9 +1,13 @@
-import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { cleanup, render, screen } from "@testing-library/react";
+import { afterEach, describe, expect, it } from "vitest";
 
 import { BottomNav } from "./BottomNav";
 import { FeatureFlagsProvider } from "../lib/flags";
 import { PRIMARY_NAV, adminIndex, moreMenu, visibleNavItems, type NavItem } from "./navigation";
+
+afterEach(() => {
+  cleanup();
+});
 
 function renderNav(flags: Record<string, boolean>, path = "/") {
   return render(
@@ -18,8 +22,8 @@ describe("bottom navigation", () => {
     renderNav({ events: true, money: true, inbox: true });
 
     const nav = screen.getByRole("navigation", { name: "Primary" });
-    const labels = Array.from(nav.querySelectorAll("a, button")).map((el) =>
-      (el.textContent ?? "").replace(/\s*\d+$/, "").trim(),
+    const labels = Array.from(nav.querySelectorAll(".bcq-tabbar__label")).map((el) =>
+      (el.textContent || "").trim(),
     );
     expect(labels).toEqual(["Home", "Events", "Money", "Inbox", "More"]);
   });
@@ -44,7 +48,7 @@ describe("bottom navigation", () => {
     expect(screen.getByRole("link", { name: /Money/ })).toBeTruthy();
   });
 
-  it("opens the More menu from its button", async () => {
+  it("opens the More menu from its button", () => {
     let opened = 0;
     render(
       <FeatureFlagsProvider flags={{}}>

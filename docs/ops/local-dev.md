@@ -8,7 +8,7 @@
 ## Verify /healthz and the SPA on one origin
 1. `npm run build` (produces `dist/client`, the assets directory)
 2. `npx wrangler dev --local` and open the printed URL (default `http://localhost:8787`)
-3. Check `GET /healthz` returns `{"status":"ok"}`.
+3. Check `GET /healthz` returns `{"status":"ok"}` (liveness). `GET /healthz/ready` is the strict readiness check: it stays 503 until a cron tick is recorded (see Notes for triggering one).
 4. Open `/probe`. It should render the probe route (`data-testid="probe-route"`), served by the SPA from the same origin.
 
 The automated equivalents are `tests/e2e/smoke.spec.ts` (Playwright, all three projects) and `src/worker/probe/probe.test.ts` (Worker pool).

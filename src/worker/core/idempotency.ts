@@ -1,8 +1,8 @@
 import type { MiddlewareHandler } from "hono";
+import { and, eq } from "drizzle-orm";
 
 import { idempotencyRecord } from "../../../db/schema";
 import type { Db } from "./db/client";
-import { and, eq } from "drizzle-orm";
 
 export interface IdempotencyOptions {
   db: Db;
@@ -16,8 +16,12 @@ const HEADER = "Idempotency-Key";
 
 /**
  * Requires an `Idempotency-Key` header on money and RSVP POSTs (PLAN §5.2 invariant 2).
- * The first response is stored in `idempotency_record`; a repeat with the same
- * key and actor replays it without running the handler again.
+ *
+ * Claim first, then run: the request inserts an empty record for (key, actor, route)
+ * with ON CONFLICT DO NOTHING. Only the request whose insert lands runs the handler,
+ * so concurrent duplicates (a double-tap) can never run it twice. The others replay
+ * the stored response, or get 409 while the first is still running. A handler that
+ * throws or returns 5xx releases the claim so a retry can run again.
  */
 export function idempotencyKeyMiddleware(options: IdempotencyOptions): MiddlewareHandler {
   return async (c, next) => {
@@ -26,40 +30,48 @@ export function idempotencyKeyMiddleware(options: IdempotencyOptions): Middlewar
       return c.json({ error: "idempotency_key_required", header: HEADER }, 400);
     }
     const actorId = options.actorOf(c);
+    const match = and(
+      eq(idempotencyRecord.key, key),
+      eq(idempotencyRecord.actorId, actorId),
+      eq(idempotencyRecord.route, options.route),
+    );
 
-    const [existing] = await options.db
-      .select()
-      .from(idempotencyRecord)
-      .where(
-        and(
-          eq(idempotencyRecord.key, key),
-          eq(idempotencyRecord.actorId, actorId),
-          eq(idempotencyRecord.route, options.route),
-        ),
-      )
-      .limit(1);
-    if (existing && existing.responseBody !== null) {
-      return new Response(existing.responseBody, {
-        status: existing.responseStatus ?? 200,
-        headers: { "Content-Type": "application/json", "Idempotent-Replayed": "true" },
-      });
+    const claimed = await options.db
+      .insert(idempotencyRecord)
+      .values({ key, actorId, route: options.route })
+      .onConflictDoNothing()
+      .returning({ key: idempotencyRecord.key });
+
+    if (claimed.length === 0) {
+      const [existing] = await options.db.select().from(idempotencyRecord).where(match).limit(1);
+      if (existing?.responseBody != null) {
+        return new Response(existing.responseBody, {
+          status: existing.responseStatus ?? 200,
+          headers: { "Content-Type": "application/json", "Idempotent-Replayed": "true" },
+        });
+      }
+      return c.json({ error: "idempotency_key_in_progress", header: HEADER }, 409);
     }
 
-    await next();
+    const release = () => options.db.delete(idempotencyRecord).where(match);
+    try {
+      await next();
+    } catch (error) {
+      await release();
+      throw error;
+    }
 
-    const response = c.res;
-    const body = await response.clone().text();
+    // Hono catches handler errors itself and sets c.error and a 500 response.
+    if (c.error !== undefined || c.res.status >= 500) {
+      await release();
+      return;
+    }
+
+    const body = await c.res.clone().text();
     await options.db
-      .insert(idempotencyRecord)
-      .values({
-        key,
-        actorId,
-        route: options.route,
-        responseBody: body,
-        responseStatus: response.status,
-        responseHash: await sha256(body),
-      })
-      .onConflictDoNothing();
+      .update(idempotencyRecord)
+      .set({ responseBody: body, responseStatus: c.res.status, responseHash: await sha256(body) })
+      .where(match);
   };
 }
 

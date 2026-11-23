@@ -2,6 +2,14 @@
 
 Decisions made after `PLAN.md` (v3) was written. Newest first. Every entry gives the decision, the reason, and what it changes.
 
+## 2026-11-23: Repo audit: idempotency is claim-first
+
+- **Found by the audit:** the `Idempotency-Key` middleware looked up the key, ran the handler, and only then stored the response. Two copies of one request arriving together (a double-tap on a slow phone) both missed the lookup and both ran the handler. The ledger's unique key still blocked a duplicate ledger row, but RSVPs, notifications and other side effects were not protected. The old test sent its two requests one after the other, so it never caught this.
+- **Claim first, then run.** The middleware inserts an empty record for (key, actor, route) with `ON CONFLICT DO NOTHING ... RETURNING`. Only the request whose insert lands runs the handler. The unique index `idempotency_record_pk` serialises the race in Postgres, so it holds across Worker isolates.
+- **Losers:** a stored response is replayed with `Idempotent-Replayed: true`. If the winner is still running, the loser gets **409 `idempotency_key_in_progress`**, and the client retries with the same key. The S0.4 `apiFetch` already throws `ApiError` on 409; the screen that uses a key decides whether to retry.
+- **Failure releases the claim.** A handler that throws, or returns 5xx, deletes the record, so a retry runs again. 4xx responses are stored and replayed: they are the answer for that request.
+- **Open:** a Worker killed mid-handler leaves an empty claim, and that key answers 409 until a cleanup removes it. Acceptable at club scale (the client uses a fresh key per action); a cleanup of empty claims older than a few minutes goes with S6.x cron work.
+
 ## 2026-11-23: Repo audit: `/api/v1/config`
 
 - **Found by the audit:** the shell loads `/api/v1/config` at startup (S0.4), but no Worker route served it. Every real load got a 404, so every flag read as off. The tests passed only because they mocked the endpoint.

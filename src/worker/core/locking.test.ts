@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { eq } from "drizzle-orm";
 
-import { member } from "../../../../db/schema";
+import { member } from "../../../db/schema";
 import { createTestDatabase, type TestDatabase } from "../test-support/database";
 import { makeMember } from "../test-support/factories";
 

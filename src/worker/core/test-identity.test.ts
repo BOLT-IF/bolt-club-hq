@@ -17,9 +17,7 @@ describe("test-identity override", () => {
   });
 
   it("is rejected when ENV is production", () => {
-    expect(() => testIdentityFromRequest({ ENV: "production" }, withHeader())).toThrow(
-      /ENV=test/,
-    );
+    expect(() => testIdentityFromRequest({ ENV: "production" }, withHeader())).toThrow(/ENV=test/);
   });
 
   it("is ignored when no header is sent", () => {

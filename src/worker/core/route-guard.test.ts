@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { Hono } from "hono";
 
 import { mountBackendRoutes } from "../registry";
+import type { AppEnv } from "../types";
 import { requireGuard, unguardedRoutes } from "./permissions";
 
 /**
@@ -15,7 +16,7 @@ const ALLOWLIST: readonly string[] = [
 
 describe("route-guard lint", () => {
   it("every /api/v1 route in the backend registry declares a guard", () => {
-    const app = new Hono();
+    const app = new Hono<AppEnv>();
     mountBackendRoutes(app);
 
     const offenders = unguardedRoutes(app.routes).filter(

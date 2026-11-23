@@ -2,10 +2,21 @@ import react from "@vitejs/plugin-react";
 import { defineConfig } from "vitest/config";
 import { cloudflareTest } from "@cloudflare/vitest-pool-workers";
 
+/** Suites that need real Postgres through `pg`; they run in the plain-Node db project. */
+const DB_SUITES = [
+  "src/worker/core/db/migration.test.ts",
+  "src/worker/core/ledger.test.ts",
+  "src/worker/core/idempotency.test.ts",
+  "src/worker/core/locking.test.ts",
+];
+
 /**
- * Three Vitest projects (S0.1):
+ * Four Vitest projects:
  * - domain: pure TypeScript, node environment.
- * - worker: Workers runtime via @cloudflare/vitest-pool-workers (needs Postgres in S0.2+).
+ * - worker: Workers runtime via @cloudflare/vitest-pool-workers (runtime semantics only).
+ * - db: plain Node against real Postgres via DATABASE_URL (migrations, ledger trigger,
+ *   idempotency, row locking). Outside the workerd pool because
+ *   @cloudflare/vitest-pool-workers 0.23 cannot load pg's CJS chain (docs/ops/db.md).
  * - ui: React components under jsdom.
  */
 export default defineConfig({
@@ -30,6 +41,16 @@ export default defineConfig({
         test: {
           name: "worker",
           include: ["src/worker/**/*.test.ts"],
+          exclude: [...DB_SUITES],
+        },
+      },
+      {
+        extends: true,
+        test: {
+          name: "db",
+          include: DB_SUITES,
+          environment: "node",
+          fileParallelism: false,
         },
       },
       {

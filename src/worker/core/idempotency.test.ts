@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { Hono } from "hono";
 import { eq } from "drizzle-orm";
 
-import { ledgerEntry } from "../../../../db/schema";
+import { ledgerEntry } from "../../../db/schema";
 import { createTestDatabase, type TestDatabase } from "../test-support/database";
 import { makeMember } from "../test-support/factories";
 import { idempotencyKeyMiddleware } from "./idempotency";
@@ -57,7 +57,11 @@ describe("HTTP Idempotency-Key middleware", () => {
     const app = new Hono();
     app.post(
       "/api/v1/ledger",
-      idempotencyKeyMiddleware({ db: t.db, route: "POST /api/v1/ledger", actorOf: () => "actor-1" }),
+      idempotencyKeyMiddleware({
+        db: t.db,
+        route: "POST /api/v1/ledger",
+        actorOf: () => "actor-1",
+      }),
       (c) => {
         handlerCalls += 1;
         return c.json({ created: handlerCalls }, 201);
@@ -83,7 +87,11 @@ describe("HTTP Idempotency-Key middleware", () => {
     const app = new Hono();
     app.post(
       "/api/v1/ledger",
-      idempotencyKeyMiddleware({ db: t.db, route: "POST /api/v1/ledger", actorOf: () => "actor-1" }),
+      idempotencyKeyMiddleware({
+        db: t.db,
+        route: "POST /api/v1/ledger",
+        actorOf: () => "actor-1",
+      }),
       (c) => c.json({ ok: true }, 201),
     );
     const res = await app.request("/api/v1/ledger", { method: "POST" });

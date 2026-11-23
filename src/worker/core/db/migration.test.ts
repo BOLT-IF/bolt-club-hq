@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { sql } from "drizzle-orm";
 
-import { createTestDatabase, type TestDatabase } from "../../test-support/database";
+import { createTestDatabase, migrationFiles, type TestDatabase } from "../../test-support/database";
 
 /** Every table named in docs/PLAN.md §5.1. */
 const PLAN_TABLES = [
@@ -56,7 +56,6 @@ describe("initial migration", () => {
   });
 
   it("ships exactly one initial migration file", () => {
-    const files = Object.keys(import.meta.glob("../../../../db/migrations/*.sql"));
-    expect(files).toHaveLength(1);
+    expect(migrationFiles()).toEqual(["../../../db/migrations/0000_initial.sql"]);
   });
 });

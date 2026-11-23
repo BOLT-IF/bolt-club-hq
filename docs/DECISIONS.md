@@ -2,6 +2,18 @@
 
 Decisions made after `PLAN.md` (v3) was written. Newest first. Every entry gives the decision, the reason, and what it changes.
 
+## 2026-11-23: S0.2 core contracts + schema resolutions (ambiguities)
+
+- **Hyperdrive + `pg` (integrator and Ashok approved).** Production connects through Hyperdrive (`HYPERDRIVE` binding). The driver is `pg` ^8.23.1 as a regular dependency, reached through `pg-cloudflare`, which needs `nodejs_compat` (already in `wrangler.jsonc`). Free-plan evidence and the manual `wrangler hyperdrive create` step are in `docs/ops/db.md`.
+- **Scope exception (approved by integrator): `vitest.config.ts` gains a `db` project.** The four DB suites (`migration`, `ledger`, `idempotency`, `locking`) run in a plain-Node project with `environment: node` against the local Postgres via `DATABASE_URL`. The workerd `worker` project excludes them and keeps the runtime-semantics suites. Reason: `@cloudflare/vitest-pool-workers` 0.23 cannot load `pg`'s CJS chain (`require('./client')` from `pg/lib/index.js` fails with `Cannot use import statement outside a module` under the `?mf_vitest_no_cjs_esm_shim` suffix). Inlining the package and aliasing `pg-protocol` both failed, so the fix is to move the suites rather than fight the shim. Re-evaluate when the pool package is replaced by `@cloudflare/vitest-plugin`.
+- **Scope exception (approved by integrator): `drizzle.config.ts` schema list.** drizzle-kit reads the four area files directly (`identity`, `club`, `money`, `comms`) instead of the `db/schema/index.ts` barrel, so the barrel is not loaded twice. The app and tests still import the barrel.
+- **Scope exception (approved by integrator): `src/worker/types/pg.d.ts`, interim typings.** A minimal `declare module "pg"` covering `Pool`, `Client`, `PoolClient`, `QueryResult` and `PoolConfig`. `@types/pg` is not an approved dependency, so this stands in for it. **It must be replaced by `@types/pg` at the next sanctioned dependency change.**
+- **Probe route allowlist.** `src/worker/core/route-guard.test.ts` allows exactly `GET /api/v1/probe` without a guard. This is the S0.1 placeholder route. It is removed from the allowlist when the real routes arrive, so every new `/api/v1` route must carry a guard.
+- **Schema is one initial migration.** `db/migrations/0000_initial.sql` holds all 26 tables from PLAN §5.1 plus the append-only ledger trigger. The trigger is hand-appended, since drizzle-kit does not emit triggers. The ledger allows exactly one `exported_at` stamp and no other UPDATE, and no DELETE.
+- **Idempotency is two layers.** `insertIdempotent` (ledger `ON CONFLICT DO NOTHING` on `idempotency_key`) makes writes safe under concurrency. The HTTP `Idempotency-Key` middleware stores responses in `idempotency_record`, keyed by (key, actor, route). A missing header returns 400.
+- **Test DB per test.** Each DB test creates `club_test_<uuid>`, applies the bundled migrations and drops it afterwards. Migrations are bundled with `import.meta.glob` because workerd has no filesystem.
+- **Clock is injected.** `Clock` (`src/worker/core/clock.ts`) has `systemClock` and `FixedClock`. Nothing in core or test-support calls `Date.now()`.
+
 ## 2026-11-23: S0.4 frontend foundation resolutions (ambiguities)
 
 - **Scope exception (approved by the user and sanctioned by the integrator):** `src/app/main.tsx` now mounts `AppRoot` (the shell, flags and toasts), and `tests/e2e/shell.spec.ts` was added. The integrator confirmed both as approved. All other edits stay within the story's Owns paths. The probe-in-shell test lives in `src/app/shell/registry.test.tsx`.

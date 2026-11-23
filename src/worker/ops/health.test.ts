@@ -1,7 +1,13 @@
 import { Hono } from "hono";
 import { describe, expect, it } from "vitest";
 
-import { createHealthHandler, cronIntervalMs, LAST_TICK_KEY, readLastTick, recordTick } from "./health";
+import {
+  createHealthHandler,
+  cronIntervalMs,
+  LAST_TICK_KEY,
+  readLastTick,
+  recordTick,
+} from "./health";
 
 const MINUTE = 60_000;
 // 2026-11-23 is a Monday. 12:00 UTC is inside the 10-minute window (05-21 UTC).
@@ -37,7 +43,8 @@ function healthApp(options: {
 
 async function getHealth(app: Hono): Promise<{ status: number; body: HealthBody }> {
   const res = await app.request("/healthz");
-  return { status: res.status, body: (await res.json()) as HealthBody };
+  const body = await res.json<HealthBody>();
+  return { status: res.status, body };
 }
 
 describe("/healthz tick staleness", () => {

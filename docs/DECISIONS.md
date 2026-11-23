@@ -2,6 +2,16 @@
 
 Decisions made after `PLAN.md` (v3) was written. Newest first. Every entry gives the decision, the reason, and what it changes.
 
+## 2026-11-23: S0.7 observability resolutions (ambiguities)
+
+- **`@sentry/browser` is not installed.** STORIES says S0.1 pre-added the browser SDK, but `package.json` and `node_modules` only have `toucan-js` (Worker). The browser reporter (`src/app/ops/sentry.ts`) posts a Sentry v7 envelope with `fetch` and sends nothing without a DSN. Adding the SDK later needs a `package.json` change, so it goes through the integrator.
+- **Staleness threshold.** A tick is stale when `now - last_tick_at > 2 × cron interval`. The interval is 10 minutes inside the UTC 05–21 window and 60 minutes outside it. This follows the S0.1 trigger split, so the overnight hourly run is not reported as stale. A missing tick counts as stale. Health returns 503 when the DB is in error or the tick is stale.
+- **DB and queue probes are injected.** No database client exists before S0.2. Until then `db.status` is `unknown` and `queue.depth` is null. Neither degrades health. S0.2 supplies the real probes.
+- **Launch metrics go to structured logs.** Counters are emitted as `metric` log lines with the request ID. A future Analytics Engine sink can replace them without changing callers.
+- **Sentry DSN** comes from the `SENTRY_DSN` binding. Unset means no reporting. The Worker client uses `sendDefaultPii: false` and scrubs `authorization` and `cookie` headers.
+- **Clock.** Ops code uses its own structural `Clock` (`src/worker/ops/clock.ts`) so it does not depend on S0.2's `src/worker/core/`. `performance.timeOrigin + performance.now()` gives epoch milliseconds without `Date.now()`, which lint forbids in the Worker.
+- **Route placement.** `/healthz` lives in `src/worker/ops/app.ts`, not `routes.ts`, so the `/api/v1` registry glob ignores it. It must be mounted at the Worker root. That wiring is in `src/worker/index.ts` and `src/worker/app.ts`, which this story does not own (see the PR for the contract-change request).
+
 ## 2026-11-23: R1 roster import (integrator-confirmed)
 
 - **Owns-scope exception (approved by integrator):** two wiring lines outside R1's owned paths in `roster-generator` — `PlannerRoute.jsx` renders the `ClubImportSheet`/`ClubImportBanner`, and `App.jsx` passes `onCreatePlayer` into `usePlannerState`. Without them the feature cannot be reached.

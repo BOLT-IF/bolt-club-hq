@@ -1,5 +1,5 @@
-import { render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { cleanup, render, screen } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { AppErrorBoundary } from "./ErrorBoundary";
 
@@ -8,6 +8,10 @@ function Boom(): never {
 }
 
 describe("AppErrorBoundary", () => {
+  afterEach(() => {
+    cleanup();
+  });
+
   it("renders the fallback when a child throws", () => {
     // React logs caught render errors to console.error; keep the test output quiet.
     const spy = vi.spyOn(console, "error").mockImplementation(() => undefined);

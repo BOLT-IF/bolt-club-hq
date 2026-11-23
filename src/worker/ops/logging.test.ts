@@ -9,7 +9,9 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 function captureApp() {
   const lines: LogLine[] = [];
   const sink = (line: LogLine) => lines.push(line);
-  const app = new Hono<{ Variables: { requestId: string; logger: ReturnType<typeof createLogger> } }>();
+  const app = new Hono<{
+    Variables: { requestId: string; logger: ReturnType<typeof createLogger> };
+  }>();
   app.use(requestIdMiddleware({ sink, now: () => 1_700_000_000_000 }));
   app.get("/work", (c) => {
     c.var.logger.info("work.started", { step: 1 });
@@ -82,10 +84,10 @@ describe("launch-metric counters", () => {
     const events: Array<{ name: string; labels?: Record<string, string>; value?: number }> = [];
     const sink: CounterSink = {
       increment: (name, labels) => {
-        events.push({ name, labels });
+        events.push(labels === undefined ? { name } : { name, labels });
       },
       observe: (name, value, labels) => {
-        events.push({ name, value, labels });
+        events.push(labels === undefined ? { name, value } : { name, value, labels });
       },
     };
     const counters = createLaunchCounters(sink);

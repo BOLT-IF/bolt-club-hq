@@ -1,0 +1,63 @@
+name: Weekly encrypted backup
+
+# PLAN §16: backups kept 90 days. Dumps are AES-256 encrypted before they leave the runner.
+# Secrets: DATABASE_URL, BACKUP_ENCRYPTION_KEY, BACKUP_BUCKET_TOKEN (docs/ops/secrets.md).
+
+on:
+  schedule:
+    # Sunday 03:00 UTC.
+    - cron: "0 3 * * 0"
+  workflow_dispatch:
+
+concurrency:
+  group: backup
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  backup:
+    name: encrypted pg_dump
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      BACKUP_ENCRYPTION_KEY: ${{ secrets.BACKUP_ENCRYPTION_KEY }}
+      BACKUP_BUCKET_TOKEN: ${{ secrets.BACKUP_BUCKET_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check secrets (skips until they exist)
+        id: guard
+        run: |
+          if bash scripts/ci/require-secrets.sh backup; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Install PostgreSQL client 17
+        if: steps.guard.outputs.ready == 'true'
+        run: |
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo curl -fsSL -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc https://www.postgresql.org/media/keys/ACCC4CF8.asc
+          echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" | sudo tee /etc/apt/sources.list.d/pgdg.list
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client-17
+
+      - name: Dump and encrypt
+        if: steps.guard.outputs.ready == 'true'
+        run: bash scripts/ci/backup-db.sh "$RUNNER_TEMP/backups"
+
+      # The encrypted file is uploaded as a run artifact (30 days, the GitHub maximum for
+      # artifacts with retention-days) so an off-site copy can be made. The 90-day retention
+      # target applies to whatever bucket BACKUP_BUCKET_TOKEN points at. See docs/ops/backups.md.
+      - name: Upload encrypted dump
+        if: steps.guard.outputs.ready == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: encrypted-db-dump
+          path: ${{ runner.temp }}/backups/*.sql.enc
+          retention-days: 30
+          if-no-files-found: error

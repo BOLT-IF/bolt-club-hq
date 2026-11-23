@@ -15,12 +15,12 @@ expect_contains "skip notice names a missing secret" "CLOUDFLARE_API_TOKEN"
 
 # All secrets set: guard passes and says it will run.
 expect_status "all secrets set: guard proceeds with exit 0" 0 -- \
-  env CLOUDFLARE_API_TOKEN=x DATABASE_URL=y bash "$CI/require-secrets.sh" deploy
+  env CLOUDFLARE_API_TOKEN=x CLOUDFLARE_ACCOUNT_ID=a DATABASE_URL=y bash "$CI/require-secrets.sh" deploy
 expect_contains "proceed notice" "proceeding"
 
-# Partially set: still skip, and list only the missing one.
+# Partially set: still skip, and name only the missing secrets.
 expect_status "partial secrets: skip" 0 -- \
-  env CLOUDFLARE_API_TOKEN=x -u DATABASE_URL bash "$CI/require-secrets.sh" deploy
+  env -u DATABASE_URL CLOUDFLARE_API_TOKEN=x CLOUDFLARE_ACCOUNT_ID=a bash "$CI/require-secrets.sh" deploy
 expect_contains "partial: names the missing DATABASE_URL" "DATABASE_URL"
 
 # Unknown job names fail closed, so a typo can't silently skip a job.

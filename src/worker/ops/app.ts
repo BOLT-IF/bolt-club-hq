@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 
-import { systemClock } from "./clock";
+import { systemClock } from "../core/clock";
 import { createHealthHandler, readLastTick, type DbStatus } from "./health";
 import { requestIdMiddleware, type OpsEnv } from "./logging";
 
@@ -21,7 +21,7 @@ export interface OpsProbes {
 /** Builds the `/healthz` app. Mount it at the Worker root, outside `/api/v1`. */
 export function createOpsApp(probes: OpsProbes = {}): Hono<OpsEnv & { Bindings: OpsBindings }> {
   const app = new Hono<OpsEnv & { Bindings: OpsBindings }>();
-  app.use("*", requestIdMiddleware({ now: () => systemClock.now() }));
+  app.use("*", requestIdMiddleware({ now: () => systemClock.now().getTime() }));
   app.get("/healthz", (c) =>
     createHealthHandler({
       clock: systemClock,

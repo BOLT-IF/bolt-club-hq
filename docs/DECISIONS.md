@@ -2,6 +2,15 @@
 
 Decisions made after `PLAN.md` (v3) was written. Newest first. Every entry gives the decision, the reason, and what it changes.
 
+## 2026-11-23: Repo audit cleanup (integrator)
+
+- **One `Clock`.** `src/worker/ops/clock.ts` was a stand-in until S0.2 landed (see S0.7 below). It is deleted. Ops code uses `src/worker/core/clock.ts` and converts with `.getTime()` where it needs epoch milliseconds.
+- **v3 copies removed from `docs/history/`.** `PLAN-v3.md` and `STORIES-v3.md` duplicated the live `PLAN.md` and `STORIES.md`, which are v3. v1, v2, the council review and the discarded files stay. Git keeps the deleted copies.
+- **Dead files removed:** the nine `.gitkeep` placeholders (every folder now holds code; supersedes the S0.1 "empty folders" note) and `src/app/lib/msw/handlers.ts`, which nothing imports (e2e tests mock with `page.route`).
+- **Lockfile bot** triggers on `deps/**` branches or by hand, not on merged story branches. It updates the existing lockfile (`--package-lock-only`) instead of deleting and re-resolving it. Re-resolving silently bumped `typescript-eslint` and broke lint on #12.
+- **Local Hyperdrive** points at `club_test`, the database docker-compose creates. `club_dev` never existed.
+- **Merged branches and story worktrees deleted.** The repo now auto-deletes a branch when its PR merges.
+
 ## 2026-11-23: S0.2 core contracts + schema resolutions (ambiguities)
 
 - **Hyperdrive + `pg` (integrator and Ashok approved).** Production connects through Hyperdrive (`HYPERDRIVE` binding). The driver is `pg` ^8.23.1 as a regular dependency, reached through `pg-cloudflare`, which needs `nodejs_compat` (already in `wrangler.jsonc`). Free-plan evidence and the manual `wrangler hyperdrive create` step are in `docs/ops/db.md`.

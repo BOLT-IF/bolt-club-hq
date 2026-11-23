@@ -3,12 +3,13 @@ name: Generate lockfile
 # One-shot bootstrap: this machine cannot produce a valid package-lock.json
 # (npm 11 writes it without resolved/integrity and the local network blocks
 # registry.npmjs.org). GitHub's runner has clean npm access, so it regenerates
-# the lockfile and commits it back to the story branch. Safe to keep: it
-# becomes a no-op once the lockfile exists and is in sync.
+# the lockfile and commits it back. Put dependency changes on a `deps/<slug>`
+# branch (triggers automatically) or run it by hand:
+# `gh workflow run generate-lockfile.yml --ref <branch>`. No-op when in sync.
 
 on:
   push:
-    branches: [story/s0.1-scaffold, story/s0.2-core-contracts]
+    branches: ["deps/**"]
   workflow_dispatch:
 
 permissions:
@@ -26,11 +27,13 @@ jobs:
           node-version: 22
           cache: npm
 
-      - name: Regenerate lockfile (npm 11, clean registry access)
+      # Updates the existing lockfile in place: only what package.json changed is
+      # re-resolved. Deleting it first re-resolved every package and silently
+      # bumped unrelated tools (typescript-eslint 8.73 -> 8.74 broke lint on #12).
+      - name: Update lockfile (npm 11, clean registry access)
         run: |
           npm install -g npm@11
-          rm -f package-lock.json
-          npm install --registry=https://registry.npmjs.org/
+          npm install --package-lock-only --registry=https://registry.npmjs.org/
 
       - name: Commit and push if the lockfile changed
         run: |

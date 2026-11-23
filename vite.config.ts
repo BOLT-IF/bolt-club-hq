@@ -18,7 +18,7 @@ function pwaHead(): Plugin {
     config() {
       return {
         build: {
-          rollupOptions: {
+          rolldownOptions: {
             input: { index: "index.html", register: REGISTER_ENTRY },
           },
         },

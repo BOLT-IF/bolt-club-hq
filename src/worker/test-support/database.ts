@@ -57,6 +57,10 @@ export async function createTestDatabase(): Promise<TestDatabase> {
   const url = new URL(BASE_URL);
   url.pathname = `/${name}`;
   const pool = new pg.Pool({ connectionString: url.toString(), max: 10 });
+  // close() drops the database WITH (force), which terminates any pool connection still
+  // shutting down (57P01). That is expected teardown, not a test failure; without a
+  // listener pg rethrows it as an unhandled error and Vitest fails the run.
+  pool.on("error", () => undefined);
   const db: Db = drizzle(pool, { schema });
 
   for (const file of migrationFiles()) {

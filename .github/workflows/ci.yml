@@ -1,0 +1,54 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ci:
+    name: ci
+    runs-on: ubuntu-latest
+    services:
+      # Postgres for Worker/API tests against a real database (plan §Testing).
+      # Container starts on every run; steps are skipped until code lands.
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: club_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      # Adjusted by the first story that wires up Drizzle/test setup
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/club_test
+    steps:
+      - uses: actions/checkout@v4
+
+      # Docs-only stage: repo has no package.json yet, so the build steps
+      # below skip (step-level hashFiles is only valid after checkout).
+      - name: Install dependencies
+        if: hashFiles('package.json') != ''
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+        if: hashFiles('package.json') != ''
+      - run: npm run typecheck
+        if: hashFiles('package.json') != ''
+      - run: npm run lint
+        if: hashFiles('package.json') != ''
+      - name: Test
+        if: hashFiles('package.json') != ''
+        run: npm test

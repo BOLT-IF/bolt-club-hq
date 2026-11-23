@@ -2,6 +2,18 @@
 
 Decisions made after `PLAN.md` (v3) was written. Newest first. Every entry gives the decision, the reason, and what it changes.
 
+## 2026-11-23: S0.4 frontend foundation resolutions (ambiguities)
+
+- **Scope exception (approved by the user and sanctioned by the integrator):** `src/app/main.tsx` now mounts `AppRoot` (the shell, flags and toasts), and `tests/e2e/shell.spec.ts` was added. The integrator confirmed both as approved. All other edits stay within the story's Owns paths. The probe-in-shell test lives in `src/app/shell/registry.test.tsx`.
+- **Shell owns the chrome, not the pages:** Home, Events, Money, Inbox and the More targets are registry entries. Their pages are owned by later stories, so an unregistered path shows an empty state.
+- **Bottom nav:** Home · Events · Money · Inbox · More. More opens a bottom sheet (a button, not a route), so the 5th item is never a dead link. Events, Money and Inbox are hidden unless their flag is on. Flags fail closed: if `/api/v1/config` fails, every flag is off.
+- **Back control:** a visible Back button on every non-root screen. It uses `history.back()` only when the previous entry was pushed by the app, and otherwise goes to the parent route, so deep links never leave the user stranded.
+- **apiFetch:** `Authorization` is sent only when Clerk supplies a token; S1.1 wires `getToken`. A 401 redirects to `/sign-in?return_to=<current path>` (the sign-in route is S1.1's). A 426 sets a global "outdated" flag, which shows the refresh banner. `X-Client-Version` is `"1"`.
+- **Idempotency:** `newIdempotencyKey()` uses `crypto.randomUUID()`. Callers pass the key explicitly per request.
+- **Admin index:** the registry lists 10 admin sections under `/admin/*`, admin-only. The pages are owned by later stories.
+- **Accessibility:** WCAG 2.1 AA, checked with axe on all three projects (serious and critical violations fail). Targets are at least 48px. Status is text plus colour. Reduced-motion disables animations.
+- **Test isolation:** Vitest runs without globals, so Testing Library cleanup is explicit in each file that renders.
+
 ## 2026-11-23: S0.7 observability resolutions (ambiguities)
 
 - **`@sentry/browser` is not installed.** STORIES says S0.1 pre-added the browser SDK, but `package.json` and `node_modules` only have `toucan-js` (Worker). The browser reporter (`src/app/ops/sentry.ts`) posts a Sentry v7 envelope with `fetch` and sends nothing without a DSN. Adding the SDK later needs a `package.json` change, so it goes through the integrator.

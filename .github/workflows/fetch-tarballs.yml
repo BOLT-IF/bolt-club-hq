@@ -2,7 +2,8 @@ name: fetch-tarballs
 
 # TEMPORARY integrator tool (delete before the story PR is opened).
 # The dev machine's network blocks registry.npmjs.org tarballs, and the
-# local npm cache is missing the pg dependency tree. This workflow
+# local npm cache is missing packages that the bot-regenerated lockfile
+# newly resolved (pg tree + typescript-eslint family). This workflow
 # downloads those tarballs on a GitHub runner (clean network) and
 # uploads them as an artifact, which the integrator injects into the
 # local npm cache with `npm cache add`.
@@ -12,29 +13,31 @@ on:
 
 jobs:
   fetch:
-    name: relay pg-tree tarballs
+    name: relay lockfile-diff tarballs
     runs-on: ubuntu-latest
     steps:
       - name: Download tarballs
         run: |
           mkdir -p out && cd out
           set -e
-          curl -fsSLO https://registry.npmjs.org/pg/-/pg-8.23.1.tgz
-          curl -fsSLO https://registry.npmjs.org/pg-connection-string/-/pg-connection-string-2.14.1.tgz
-          curl -fsSLO https://registry.npmjs.org/pg-pool/-/pg-pool-3.14.0.tgz
-          curl -fsSLO https://registry.npmjs.org/pg-protocol/-/pg-protocol-1.16.1.tgz
-          curl -fsSLO https://registry.npmjs.org/pg-types/-/pg-types-2.2.0.tgz
-          curl -fsSLO https://registry.npmjs.org/pgpass/-/pgpass-1.0.5.tgz
-          curl -fsSLO https://registry.npmjs.org/pg-int8/-/pg-int8-1.0.1.tgz
-          curl -fsSLO https://registry.npmjs.org/pg-cloudflare/-/pg-cloudflare-1.4.1.tgz
-          curl -fsSLO https://registry.npmjs.org/postgres-array/-/postgres-array-2.0.0.tgz
-          curl -fsSLO https://registry.npmjs.org/postgres-bytea/-/postgres-bytea-1.0.1.tgz
-          curl -fsSLO https://registry.npmjs.org/postgres-date/-/postgres-date-1.0.7.tgz
-          curl -fsSLO https://registry.npmjs.org/postgres-interval/-/postgres-interval-1.2.0.tgz
-          curl -fsSLO https://registry.npmjs.org/xtend/-/xtend-4.0.2.tgz
+          # typescript-eslint 8.74.0 family
+          curl -fsSLO https://registry.npmjs.org/typescript-eslint/-/typescript-eslint-8.74.0.tgz
+          curl -fsSLO "https://registry.npmjs.org/@typescript-eslint/eslint-plugin/-/eslint-plugin-8.74.0.tgz"
+          curl -fsSLO "https://registry.npmjs.org/@typescript-eslint/parser/-/parser-8.74.0.tgz"
+          curl -fsSLO "https://registry.npmjs.org/@typescript-eslint/project-service/-/project-service-8.74.0.tgz"
+          curl -fsSLO "https://registry.npmjs.org/@typescript-eslint/scope-manager/-/scope-manager-8.74.0.tgz"
+          curl -fsSLO "https://registry.npmjs.org/@typescript-eslint/tsconfig-utils/-/tsconfig-utils-8.74.0.tgz"
+          curl -fsSLO "https://registry.npmjs.org/@typescript-eslint/type-utils/-/type-utils-8.74.0.tgz"
+          curl -fsSLO "https://registry.npmjs.org/@typescript-eslint/types/-/types-8.74.0.tgz"
+          curl -fsSLO "https://registry.npmjs.org/@typescript-eslint/typescript-estree/-/typescript-estree-8.74.0.tgz"
+          curl -fsSLO "https://registry.npmjs.org/@typescript-eslint/utils/-/utils-8.74.0.tgz"
+          curl -fsSLO "https://registry.npmjs.org/@typescript-eslint/visitor-keys/-/visitor-keys-8.74.0.tgz"
+          # re-resolved transitive deps
+          curl -fsSLO https://registry.npmjs.org/brace-expansion/-/brace-expansion-5.1.0.tgz
+          curl -fsSLO https://registry.npmjs.org/split2/-/split2-4.2.0.tgz
           ls -la
       - uses: actions/upload-artifact@v4
         with:
-          name: pg-tree-tarballs
+          name: lockfile-diff-tarballs
           path: out
           retention-days: 1

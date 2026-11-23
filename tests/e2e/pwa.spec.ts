@@ -1,5 +1,21 @@
 import { expect, test, type Page } from "@playwright/test";
 
+// tsconfig.node.json has no DOM lib. These declarations type only the browser globals used
+// inside page.evaluate() callbacks, which run in the page, not in Node.
+declare const navigator: {
+  serviceWorker: {
+    controller: { postMessage(message: unknown, transfer: unknown[]): void } | null;
+    getRegistration(): Promise<
+      { active: { state: string } | null; update(): Promise<void> } | undefined
+    >;
+  };
+};
+declare const caches: { keys(): Promise<string[]> };
+declare const MessageChannel: new () => {
+  readonly port1: { onmessage: ((event: unknown) => void) | null };
+  readonly port2: unknown;
+};
+
 /** Waits until a service worker controls this page (installed, activated and claimed). */
 async function waitForController(page: Page): Promise<void> {
   await expect
@@ -108,7 +124,9 @@ test("caches are empty after logout", async ({ page }) => {
           return;
         }
         const channel = new MessageChannel();
-        channel.port1.onmessage = () => resolve();
+        channel.port1.onmessage = () => {
+          resolve();
+        };
         controller.postMessage({ type: "CLEAR_APP_CACHES" }, [channel.port2]);
       }),
   );

@@ -26,11 +26,11 @@ jobs:
           node-version: 22
           cache: npm
 
-      - name: Regenerate lockfile (npm 10, clean registry access)
+      - name: Regenerate lockfile (npm 11, clean registry access)
         run: |
+          npm install -g npm@11
           rm -f package-lock.json
           npm install --registry=https://registry.npmjs.org/
-          npx prettier --check . >/dev/null 2>&1 || true
 
       - name: Commit and push if the lockfile changed
         run: |

@@ -75,7 +75,7 @@ Run against `postgres:17` (PostgreSQL 17.12) in the `s02-postgres-1` container, 
 
 ## Production reference
 
-- Production is Neon, PostgreSQL 18.7, EU-central. Local Postgres is pinned to `postgres:18` in `docker-compose.yml` for major-version parity.
+- Production is Neon, PostgreSQL 18.7, EU-central. Local (`docker-compose.yml`), CI (`ci.yml` service) and the backup client (`backup.yml`) are all still on 17. Moving to 18 is a separate contract-change PR that bumps all three together, so local and CI never test different majors.
 - The dev machine reaches Neon only over its HTTPS endpoint (raw port 5432 is network-blocked there). The `@neondatabase/serverless` driver connects and runs `SELECT version()`. Production access from CI and Cloudflare is unaffected.
 - The Neon connection string lives in the gitignored `.env.local`. It must never be copied into a committed file.
 

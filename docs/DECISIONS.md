@@ -13,6 +13,28 @@ Decisions made after `PLAN.md` (v3) was written. Newest first. Every entry gives
 - **Test file location:** `tests/e2e/pwa.spec.ts` is outside Owns. Playwright's `testDir` is `tests/e2e`, and the story requires Playwright tests first, so the spec sits there. Integrator approved this location as the spec home.
 - **Update prompt test, option 2 fallback (flagged):** the integrator chose option 1 (a real second build on a second port). That is not workable. A service worker's update check only fetches `/sw.js` from the origin that registered it, so a second server on another port cannot deliver a changed worker. Making it work would need a proxy in front of the first server, plus a second `dist` and a sequenced build in CI. The test therefore uses option 2: an init script makes `registration.waiting` report a worker, then reloads the page. The prompt and the reload path are the app's real code. Only the waiting state is faked. The test runs in the desktop project only; iPhone and Android skip it.
 
+## 2026-11-23: S0.7 observability resolutions (ambiguities)
+
+- **`@sentry/browser` is not installed.** STORIES says S0.1 pre-added the browser SDK, but `package.json` and `node_modules` only have `toucan-js` (Worker). The browser reporter (`src/app/ops/sentry.ts`) posts a Sentry v7 envelope with `fetch` and sends nothing without a DSN. Adding the SDK later needs a `package.json` change, so it goes through the integrator.
+- **Staleness threshold.** A tick is stale when `now - last_tick_at > 2 × cron interval`. The interval is 10 minutes inside the UTC 05–21 window and 60 minutes outside it. This follows the S0.1 trigger split, so the overnight hourly run is not reported as stale. A missing tick counts as stale. Health returns 503 when the DB is in error or the tick is stale.
+- **DB and queue probes are injected.** No database client exists before S0.2. Until then `db.status` is `unknown` and `queue.depth` is null. Neither degrades health. S0.2 supplies the real probes.
+- **Launch metrics go to structured logs.** Counters are emitted as `metric` log lines with the request ID. A future Analytics Engine sink can replace them without changing callers.
+- **Sentry DSN** comes from the `SENTRY_DSN` binding. Unset means no reporting. The Worker reporter scrubs `authorization` and `cookie` headers and email or long-number strings from messages.
+- **No toucan-js in the Worker.** The story names toucan-js, but importing it breaks `npm run typecheck` on `Cloudflare.Env` (`ASSETS` missing). Its types reference `@cloudflare/workers-types`, which shadows the generated `Env`. A clean clone of `main` passes and a clone with only a bare `import "toucan-js"` fails. The Worker reporter posts Sentry envelopes with `fetch` instead, which matches the browser side and adds no dependency. Restoring toucan-js needs an integrator decision on `tsconfig.worker.json` or `worker-configuration.d.ts`.
+- **Clock.** Ops code uses its own structural `Clock` (`src/worker/ops/clock.ts`) so it does not depend on S0.2's `src/worker/core/`. `performance.timeOrigin + performance.now()` gives epoch milliseconds without `Date.now()`, which lint forbids in the Worker.
+- **Scope exception approved by integrator:** `src/worker/app.ts` (mount `createOpsApp()`), `src/worker/index.ts` (Sentry reporting via `ctx.waitUntil`) and the optional `SENTRY_DSN` entry in `wrangler.jsonc` `vars`.
+- **Route placement.** `/healthz` lives in `src/worker/ops/app.ts`, not `routes.ts`, so the `/api/v1` registry glob ignores it. It must be mounted at the Worker root. That wiring is in `src/worker/index.ts` and `src/worker/app.ts`, which this story does not own. The integrator approved this scope exception: the two wiring edits and the optional `SENTRY_DSN` var.
+
+## 2026-11-23: S4.1 allocation resolutions (ambiguities)
+
+- **Instant-mode guest time:** a guest can't be confirmed before their host, so in instant mode a guest sorts by the later of their own and their host's request time. Ties put the member first. Reason: pure first-come must still never confirm a guest ahead of their host.
+- **Open seat after close (A5):** a late RSVP takes a seat that is still free, first-come. A5 only forbids bumping someone already confirmed. Changes `waitlistInsert` (`src/domain/allocation/waitlist.ts`).
+- **Cutoff boundary (A6):** the cutoff is `startsAt − cutoffMinutes`. At exactly that instant, promotion switches to offers. Before it, free seats fill automatically in mode order.
+- **Offer set (A6):** at the cutoff, every candidate who is eligible (a member, or a guest whose host is confirmed) is offered the free seats. The offer list is in mode order for display, but any eligible candidate may claim. The first claim wins (`claimOffer`). When no seat is free, nothing is offered.
+- **Guest of an unconfirmed host:** a guest whose host is waitlisted or absent waits. A host who is confirmed later in the same pass unlocks the guest, so the rule is checked during the fill, not against the input.
+- **Capacity:** must be a non-negative whole number. A `RangeError` is thrown otherwise. Reason: money and seat rules are integer-only (AGENTS.md rule 5).
+- **Time injection:** `promote` takes `now` and `startsAt` as epoch milliseconds from the caller. The domain never reads the clock (AGENTS.md rule 6).
+
 ## 2026-11-23: R1 roster import (integrator-confirmed)
 
 - **Owns-scope exception (approved by integrator):** two wiring lines outside R1's owned paths in `roster-generator` — `PlannerRoute.jsx` renders the `ClubImportSheet`/`ClubImportBanner`, and `App.jsx` passes `onCreatePlayer` into `usePlannerState`. Without them the feature cannot be reached.

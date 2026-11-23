@@ -1,6 +1,6 @@
 import type { Context } from "hono";
 
-import type { Clock } from "./clock";
+import type { Clock } from "../core/clock";
 
 /** KV key holding the epoch-ms time of the most recent cron tick (PLAN §11.2 scheduler state). */
 export const LAST_TICK_KEY = "ops:last_tick_at";
@@ -37,7 +37,7 @@ export function isTickStale(lastTick: number | null, nowMs: number): boolean {
 /** Builds the `/healthz` handler from injected probes. Returns 503 when the DB or the tick is unhealthy. */
 export function createHealthHandler(deps: HealthDeps) {
   return async (c: Context): Promise<Response> => {
-    const now = deps.clock.now();
+    const now = deps.clock.now().getTime();
     const [db, lastTick, queue] = await Promise.all([
       deps.probeDb(),
       deps.lastTickAt(),
@@ -73,5 +73,5 @@ export async function readLastTick(kv: KVNamespace): Promise<number | null> {
 
 /** Records a cron tick. The scheduled() hook calls this on every run. */
 export async function recordTick(kv: KVNamespace, clock: Clock): Promise<void> {
-  await kv.put(LAST_TICK_KEY, String(clock.now()));
+  await kv.put(LAST_TICK_KEY, String(clock.now().getTime()));
 }

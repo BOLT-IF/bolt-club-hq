@@ -13,27 +13,26 @@ Status of the parallel build run of `docs/STORIES.md` (48 stories). Read this, t
 | S0.5 CI/deploy/ops | #8 | Sharded Playwright ×4, owns + migration checks, deploy/backup/lighthouse workflows (skip until secrets exist). |
 | S4.1 allocation engine | #6 | Pure TS, 42 tests + 11 fast-check properties. |
 | S0.3 PWA + service worker | #9 | Update-prompt test uses faked waiting-state (real second build impossible: SW updates are same-origin only). |
+| S0.2 core contracts + schema | #12 | 26 tables, append-only ledger trigger, core services. 99 tests incl. 4 DB suites against Postgres in CI. Local Postgres kept on 17 (see DECISIONS). |
 
-Integrator chore PRs also merged: #1 (CI bootstrap), #3 (R1 decision log), #4 (allowScripts), #10 (tarball relay, temporary), #11 (S0.3 owns + relay removal), #13 (this handoff + S0.2 owns).
+Integrator chore PRs also merged: #1 (CI bootstrap), #3 (R1 decision log), #4 (allowScripts), #10 (tarball relay, temporary), #11 (S0.3 owns + relay removal), #13 (handoff + S0.2 owns), #14 (vite `rolldownOptions` lint fix), plus the repo-audit cleanup and fix PRs (see DECISIONS, "Repo audit").
 
-## In flight — S0.2 (PR #12, one step from green)
+## Repo audit follow-ups (2026-11-23)
 
-- Implementation COMPLETE: migration `0000_initial.sql`, ledger trigger, core services (Clock, audit, permissions, test-identity, idempotency, outbox, cron registry), fakes, factories, route-guard lint.
-- Local: typecheck clean, `npm test` 21 files / 99 tests green (4 DB suites run in the new plain-Node `db` vitest project against docker Postgres).
-- CI red ONLY on the Owns check — fixed by PR #13 (owns list extended with the sanctioned exceptions). After #13 merges: in `.worktrunk/s0.2` run `git fetch origin && git merge origin/main` (plain merge, keep ALL DECISIONS.md sections), push, rerun CI, merge when green.
-- Known pre-existing lint error on main: `vite.config.ts:21` (rollupOptions deprecated) — fix in a small chore PR, it blocks nothing else.
-- Worker agent `s0_2_core` (claude-haiku-5-5) was mid-task; its worktree state is the source of truth above.
+All merged branches and story worktrees were deleted; the repo auto-deletes branches on merge. Audit fixes landed as separate PRs: ops wiring (`/healthz` + `scheduled()` tick), `/api/v1/config`, idempotency claim-first, and the dependency trim. See DECISIONS for each.
+
+**Open:** Postgres 18 parity (bump local + CI + backup client together, one contract PR).
 
 ## Not started
 
-- **W2 (after S0.2):** S1.1 (Clerk), S2.1, S2.3, S3.0, S3.1, S5.1, S6.1, S6.4 — fan out in parallel worktrees (recipe below). All depend on S0.2.
+- **W2 (S0.2 is merged, so unblocked):** S1.1 (Clerk), S2.1, S2.3, S3.0, S3.1, S5.1, S6.1, S6.4 — fan out in parallel worktrees (recipe below).
 - **S0.6 device spike:** blocked on Ashok (Clerk production instance, real iPhone + Android). Domain `boltif.eu` is on Cloudflare (nameservers moved) — done.
 - W3–W8 per docs/STORIES.md wave table.
 
 ## Production state
 
 - **Neon:** live, PostgreSQL 18.7 (org `org-ancient-hat-10361899`, project `autumn-term-77415320`, branch `production`, database `neondb`). Connection string (pooled, `-pooler` host) is in `.env.local` at the repo root — gitignored, never commit it. This dev machine can only reach Neon over its **HTTPS endpoint** (`@neondatabase/serverless`, installed; verified working). Raw Postgres 5432 is network-blocked here; Cloudflare/GitHub CI reach it directly — unaffected.
-- **Local Postgres:** Rancher Desktop runs the docker engine — binary at `~/.rd/bin/docker` (not on default PATH). docker-compose Postgres is the local/CI test DB. NOTE: docker-compose pins postgres:17; production Neon is 18 — bump to 18 for parity (sanctioned; the S0.2 worker was told to do this — verify it landed).
+- **Local Postgres:** Rancher Desktop runs the docker engine — binary at `~/.rd/bin/docker` (not on default PATH). docker-compose Postgres is the local/CI test DB. docker-compose and CI pin postgres:17; production Neon is 18. Parity is an open contract PR (above), not a one-file bump.
 - **Deploy:** `deploy.yml` merges to main → wrangler deploy → drizzle-kit migrate → smoke. Blocked on secrets (below).
 
 ## Ashok's queue (needed for deploy + S0.6)
@@ -48,7 +47,7 @@ Integrator chore PRs also merged: #1 (CI bootstrap), #3 (R1 decision log), #4 (a
 ## Environment / infra recipes (this machine is hostile — follow these)
 
 - **Worktrees:** parallel workers each get `git worktree add .worktrunk/<slug> -b story/<id>-<slug> main` (inside the repo root = session root, so file tools work). `.worktrunk/` is excluded via `.git/info/exclude`. Bootstrap: `npm ci --prefer-offline --no-audit --no-fund` (Peons npm cache). `allowScripts` is already in package.json.
-- **npm network:** registry.npmjs.org tarballs are network-BLOCKED (even escalated raw curl → 403). The private mirror (`~/.npmrc`, us-central1-npm.pkg.dev) denies a rotating subset of packages. If a dependency must be added: worker adds it to package.json → push → the **lockfile bot** (`generate-lockfile.yml`, triggers on `story/s0.1-scaffold` and `story/s0.2-core-contracts`; extend the branch list if another branch needs it) regenerates the lockfile on a GitHub runner and commits it back → compute the lockfile diff (node script comparing `packages` vs old lockfile) → relay just those tarballs via a temporary workflow with `curl` + `upload-artifact` (must be added to MAIN first — GitHub only registers workflow_dispatch workflows from the default branch; it was removed in #11, re-add temporarily, remove after) → download artifact → `npm cache add <tgz>` each → `npm ci --prefer-offline`.
+- **npm network:** registry.npmjs.org tarballs are network-BLOCKED (even escalated raw curl → 403). The private mirror (`~/.npmrc`, us-central1-npm.pkg.dev) denies a rotating subset of packages. If a dependency must be added: worker adds it to package.json → push → the **lockfile bot** (`generate-lockfile.yml`, triggers on any `deps/**` branch, or `gh workflow run generate-lockfile.yml --ref <branch>`) updates the lockfile on a GitHub runner and commits it back → compute the lockfile diff (node script comparing `packages` vs old lockfile) → relay just those tarballs via a temporary workflow with `curl` + `upload-artifact` (must be added to MAIN first — GitHub only registers workflow_dispatch workflows from the default branch; it was removed in #11, re-add temporarily, remove after) → download artifact → `npm cache add <tgz>` each → `npm ci --prefer-offline`.
 - **GitHub CLI:** `gh` uses the github.com auth (the github.paypal.com account in `gh auth status` is stale/invalid — ignore it).
 - **Playwright CI:** browser-install step can stall (once hung 25 min) — it now has `timeout-minutes: 10`; cancel+rerun if it stalls anyway.
 - **DECISIONS.md conflicts:** every story adds a section at the top, so every merge conflicts on it. Rule: workers do a PLAIN `git merge origin/main` (never rebase/force-push) and keep ALL sections from both sides, newest-first.

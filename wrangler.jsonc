@@ -34,11 +34,12 @@
   ],
 
   "hyperdrive": [
-    // Pooled Postgres. The id is set after `wrangler hyperdrive create`; local dev uses localConnectionString.
+    // Pooled Postgres. The id is set after `wrangler hyperdrive create`; local dev uses
+    // localConnectionString, the database docker-compose creates.
     {
       "binding": "HYPERDRIVE",
       "id": "REPLACE_WITH_HYPERDRIVE_ID",
-      "localConnectionString": "postgres://postgres:postgres@localhost:5432/club_dev",
+      "localConnectionString": "postgres://postgres:postgres@localhost:5432/club_test",
     },
   ],
 

@@ -19,7 +19,7 @@ The automated equivalents are `tests/e2e/smoke.spec.ts` (Playwright, all three p
 | `npm run dev` | Vite dev server with the Cloudflare plugin |
 | `npm run typecheck` | Three tsconfigs: app, worker and domain, and tooling |
 | `npm run lint` | ESLint (type-aware) and Prettier check |
-| `npm test` | Vitest projects: `domain`, `worker`, `ui` |
+| `npm test` | Vitest projects: `domain`, `worker`, `db` (needs `DATABASE_URL`), `ui` |
 | `npm run test:e2e` | Playwright: `desktop`, `iPhone`, `Android` |
 
 ## Notes

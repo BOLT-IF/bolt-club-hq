@@ -32,7 +32,7 @@ function healthApp(options: {
   app.get(
     "/healthz",
     createHealthHandler({
-      clock: { now: () => options.now },
+      clock: { now: () => new Date(options.now) },
       probeDb: () => Promise.resolve(options.dbOk === false ? "error" : "ok"),
       lastTickAt: () => Promise.resolve(options.lastTick),
       queueDepth: () => Promise.resolve(options.queueDepth ?? 0),
@@ -116,7 +116,7 @@ describe("tick recording", () => {
     } as unknown as KVNamespace;
 
     expect(await readLastTick(kv)).toBeNull();
-    await recordTick(kv, { now: () => NOON_UTC });
+    await recordTick(kv, { now: () => new Date(NOON_UTC) });
     expect(store.get(LAST_TICK_KEY)).toBe(String(NOON_UTC));
     expect(await readLastTick(kv)).toBe(NOON_UTC);
   });

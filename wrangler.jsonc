@@ -45,6 +45,11 @@
 
   "vars": {
     "ENV": "dev",
+    // Per-area feature flags, served at /api/v1/config (PLAN §11.5). "on", "true" or "1"
+    // turns an area on; anything else is off. A story flips its area on when it ships.
+    "FLAG_EVENTS": "off",
+    "FLAG_MONEY": "off",
+    "FLAG_INBOX": "off",
     // Optional. Sentry DSN for Worker error reports. Set the real value as a secret
     // (`wrangler secret put SENTRY_DSN`); unset means no reporting (see docs/DECISIONS.md, S0.7).
     // "SENTRY_DSN": "",

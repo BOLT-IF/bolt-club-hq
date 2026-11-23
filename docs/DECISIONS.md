@@ -2,6 +2,14 @@
 
 Decisions made after `PLAN.md` (v3) was written. Newest first. Every entry gives the decision, the reason, and what it changes.
 
+## 2026-11-23: Repo audit: `/api/v1/config`
+
+- **Found by the audit:** the shell loads `/api/v1/config` at startup (S0.4), but no Worker route served it. Every real load got a 404, so every flag read as off. The tests passed only because they mocked the endpoint.
+- **Flags come from `FLAG_<AREA>` vars** in `wrangler.jsonc` (PLAN §11.5: per-area env vars), lower-cased: `FLAG_EVENTS` → `events`. "on", "true" or "1" means on; anything else is off (fails closed). Only `FLAG_*` string vars are read, so no other binding or secret can reach the client.
+- **All three areas start off.** No area page exists yet. The story that ships an area flips its flag to "on" in the same PR.
+- **Public route.** `/config` is on the route-guard allowlist because the shell needs it before sign-in. S2.3 adds the public ClubSettings subset to the same response.
+- **`worker-configuration.d.ts`** gets the three `FLAG_*` lines by hand. Re-running `wrangler types` rewrites all 28k lines (formatting and date changes), so it is left for a deliberate types refresh.
+
 ## 2026-11-23: Repo audit: ops wiring (Ashok chose the liveness/readiness split)
 
 - **Found by the audit:** S0.7's ops app, request IDs and Sentry reporting were built and tested but never wired. `/healthz` was a hard-coded `{"status":"ok"}` and the Worker had no `scheduled()` handler, so the cron tick was never recorded.

@@ -16,9 +16,11 @@ describe("flagsFromEnv (PLAN §11.5: per-area flags from env vars)", () => {
   });
 
   it("fails closed: any other value is off", () => {
-    expect(flagsFromEnv({ FLAG_EVENTS: "off", FLAG_MONEY: "", FLAG_INBOX: "yes please" })).toEqual(
-      { events: false, money: false, inbox: false },
-    );
+    expect(flagsFromEnv({ FLAG_EVENTS: "off", FLAG_MONEY: "", FLAG_INBOX: "yes please" })).toEqual({
+      events: false,
+      money: false,
+      inbox: false,
+    });
   });
 
   it("ignores vars that are not flags, so secrets never reach the client", () => {

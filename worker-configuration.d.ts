@@ -7,6 +7,9 @@ interface __BaseEnv_Env {
   HYPERDRIVE: Hyperdrive;
   ASSETS: Fetcher;
   ENV: "dev";
+  FLAG_EVENTS: "off";
+  FLAG_MONEY: "off";
+  FLAG_INBOX: "off";
 }
 declare namespace Cloudflare {
   interface GlobalProps {

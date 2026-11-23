@@ -77,7 +77,7 @@ Login is off the critical path. From W2 on, stories use the **test-identity over
   - Each Vitest project and Playwright run executes one passing test.
 
 ### S0.2 Core contracts + full schema: L · W1
-- **Depends on:** S0.1 · **Owns:** `src/worker/core/`, `db/`, `src/worker/test-support/`
+- **Depends on:** S0.1 · **Owns:** `src/worker/core/`, `db/`, `src/worker/test-support/`, plus integrator-sanctioned additions (2026-11-23): `docs/ops/db.md`, `vitest.config.ts` (db project), `drizzle.config.ts`, `src/worker/types/pg.d.ts` (interim, replace with `@types/pg` at next dependency change), and the one-time `pg` dependency addition (`package.json`, `package-lock.json`, `.github/workflows/generate-lockfile.yml` branch trigger)
 - **One initial Drizzle migration** creating every table in PLAN §5.1, plus the append-only ledger trigger.
 - **DB access:** go with Hyperdrive if it is available on the free plan. Otherwise use the Neon WebSocket driver. Record the decision in `docs/ops/db.md`. Real transactions are required either way.
 - **Core services:**

@@ -2,6 +2,21 @@
 
 Decisions made after `PLAN.md` (v3) was written. Newest first. Every entry gives the decision, the reason, and what it changes.
 
+## 2026-11-23: S0.5 CI, deploy, backups (ambiguities resolved)
+
+- **Owns-scope exception (additive only):** `docs/DECISIONS.md` is edited outside S0.5's Owns. Only this section is added at the top, as AGENTS.md rule 4 requires. `check-owns.sh` allows this file for every story.
+- **Check scripts are bash, not TypeScript.** `npm run lint` type-checks every `.ts`/`.js` file against the three tsconfigs, and `scripts/ci/` is not in any of them. Bash keeps the checks out of the type graph without editing tsconfig or package.json, which are outside S0.5's Owns.
+- **Playwright shards:** 4 runners, as in `roster-generator`. Each shard runs its own Postgres service container, so the shards share no state. The `e2e-tests` summary job keeps a branch-protection rule on that name working. The e2e jobs depend on `ci`, so a unit failure does not spend four runners.
+- **Browser install:** `chromium webkit`, not roster's `chromium firefox webkit`. `playwright.config.ts` runs the iPhone project on WebKit and does not use Firefox. The step has a 10-minute `timeout-minutes` cap because a stalled CDN download hung the old job for 25+ minutes.
+- **Owns check branch convention:** the story ID is read from the head branch `story/<id>-<slug>`. A branch that does not follow the convention skips the check with a notice, rather than failing every PR.
+- **Deploy order:** `wrangler deploy`, then `drizzle-kit migrate`, then the smoke test, as the story states. Migrations therefore run after the new Worker is live, so every migration must be expand-only. Rollback is `wrangler rollback`; migrations are not rolled back automatically.
+- **Secrets gate:** each scheduled or deploy job runs `require-secrets.sh` first and skips with a notice when a secret is missing. The job stays green until the secrets exist. An unknown job name fails closed.
+- **Backup retention vs artifacts:** PLAN §16 requires 90-day backup retention. GitHub artifacts are not a backup store, so the workflow uploads a 30-day artifact only. The off-site store is an open item, recorded in `docs/ops/backups.md`.
+- **Restore drill fetch step:** the drill cannot yet fetch the latest dump, because the off-site store is not chosen. The fetch step fails on purpose so the drill is never reported green without a restore. It is the first thing to replace once the store exists.
+- **Neon storage correction:** PLAN §11.3 says "0.5 GB" for Neon free. Neon's current plans page gives 1 GB per project (20 GB account total). `docs/ops/budgets.md` records the verified figure.
+- **Cloudflare Cron Triggers:** the Free plan allows 5 per account. We use 2, as in PLAN §11.3. Recorded in `docs/ops/budgets.md`.
+- **Unverified:** the GitHub Actions included-minutes figure and the `@lhci/cli@0.15` pin could not be checked from the build machine (the GitHub billing page and the npm registry were unreachable). Both are flagged in `docs/ops/budgets.md` and `docs/ops/backups.md` for confirmation on the first real run.
+
 ## 2026-11-23: S0.4 frontend foundation resolutions (ambiguities)
 
 - **Scope exception (approved by the user and sanctioned by the integrator):** `src/app/main.tsx` now mounts `AppRoot` (the shell, flags and toasts), and `tests/e2e/shell.spec.ts` was added. The integrator confirmed both as approved. All other edits stay within the story's Owns paths. The probe-in-shell test lives in `src/app/shell/registry.test.tsx`.

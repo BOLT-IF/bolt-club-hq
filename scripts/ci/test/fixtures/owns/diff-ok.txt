@@ -1,0 +1,3 @@
+src/fixture/a.ts
+docs/fixture/notes.md
+docs/DECISIONS.md

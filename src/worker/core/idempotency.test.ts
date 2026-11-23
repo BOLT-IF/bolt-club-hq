@@ -83,6 +83,56 @@ describe("HTTP Idempotency-Key middleware", () => {
     expect(handlerCalls).toBe(1);
   });
 
+  it("runs the handler once when the same key arrives concurrently (double-tap)", async () => {
+    let handlerCalls = 0;
+    const app = new Hono();
+    app.post(
+      "/api/v1/rsvp",
+      idempotencyKeyMiddleware({ db: t.db, route: "POST /api/v1/rsvp", actorOf: () => "actor-1" }),
+      async (c) => {
+        handlerCalls += 1;
+        // Slow handler: both requests are in flight before either stores its response.
+        await new Promise((resolve) => setTimeout(resolve, 50));
+        return c.json({ rsvp: "confirmed" }, 201);
+      },
+    );
+
+    const send = () =>
+      app.request("/api/v1/rsvp", { method: "POST", headers: { "Idempotency-Key": "tap-1" } });
+    const responses = await Promise.all([send(), send(), send()]);
+
+    expect(handlerCalls).toBe(1);
+    const statuses = responses.map((r) => r.status).sort();
+    // One request wins with 201; the others are told it is still in progress (409),
+    // so the client retries and then gets the stored 201.
+    expect(statuses).toEqual([201, 409, 409]);
+    const retry = await send();
+    expect(retry.status).toBe(201);
+    expect(retry.headers.get("Idempotent-Replayed")).toBe("true");
+    expect(handlerCalls).toBe(1);
+  });
+
+  it("releases the key when the handler fails, so a retry runs again", async () => {
+    let handlerCalls = 0;
+    const app = new Hono();
+    app.post(
+      "/api/v1/rsvp",
+      idempotencyKeyMiddleware({ db: t.db, route: "POST /api/v1/rsvp", actorOf: () => "actor-1" }),
+      (c) => {
+        handlerCalls += 1;
+        if (handlerCalls === 1) throw new Error("db down");
+        return c.json({ rsvp: "confirmed" }, 201);
+      },
+    );
+    app.onError((_error, c) => c.json({ error: "internal" }, 500));
+
+    const send = () =>
+      app.request("/api/v1/rsvp", { method: "POST", headers: { "Idempotency-Key": "tap-2" } });
+    expect((await send()).status).toBe(500);
+    expect((await send()).status).toBe(201);
+    expect(handlerCalls).toBe(2);
+  });
+
   it("rejects a money POST without an Idempotency-Key header", async () => {
     const app = new Hono();
     app.post(

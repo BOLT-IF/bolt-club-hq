@@ -100,7 +100,7 @@ Login is off the critical path. From W2 on, stories use the **test-identity over
   - A transaction holding `FOR UPDATE` blocks a second one (proves the driver choice).
 
 ### S0.3 PWA manifest + service worker: M · W1
-- **Depends on:** S0.1 · **Owns:** `vite.config.ts` (PWA section), `public/`, `src/sw/`
+- **Depends on:** S0.1 · **Owns:** `vite.config.ts` (PWA section), `public/`, `src/sw/`, `tests/e2e/pwa.spec.ts` (integrator-approved spec home, 2026-11-23)
 - `vite-plugin-pwa` in **injectManifest** mode.
   - Manifest with icons 192, 512 and maskable. Apple meta tags. Precache the app shell.
   - Allowlisted GET routes: network-first, 3 s timeout, then cache with a "stale" badge.

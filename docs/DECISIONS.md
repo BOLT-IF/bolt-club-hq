@@ -11,7 +11,18 @@ Decisions made after `PLAN.md` (v3) was written. Newest first. Every entry gives
 - **Sentry DSN** comes from the `SENTRY_DSN` binding. Unset means no reporting. The Worker reporter scrubs `authorization` and `cookie` headers and email or long-number strings from messages.
 - **No toucan-js in the Worker.** The story names toucan-js, but importing it breaks `npm run typecheck` on `Cloudflare.Env` (`ASSETS` missing). Its types reference `@cloudflare/workers-types`, which shadows the generated `Env`. A clean clone of `main` passes and a clone with only a bare `import "toucan-js"` fails. The Worker reporter posts Sentry envelopes with `fetch` instead, which matches the browser side and adds no dependency. Restoring toucan-js needs an integrator decision on `tsconfig.worker.json` or `worker-configuration.d.ts`.
 - **Clock.** Ops code uses its own structural `Clock` (`src/worker/ops/clock.ts`) so it does not depend on S0.2's `src/worker/core/`. `performance.timeOrigin + performance.now()` gives epoch milliseconds without `Date.now()`, which lint forbids in the Worker.
-- **Route placement.** `/healthz` lives in `src/worker/ops/app.ts`, not `routes.ts`, so the `/api/v1` registry glob ignores it. It must be mounted at the Worker root. That wiring is in `src/worker/index.ts` and `src/worker/app.ts`, which this story does not own (see the PR for the contract-change request).
+- **Scope exception approved by integrator:** `src/worker/app.ts` (mount `createOpsApp()`), `src/worker/index.ts` (Sentry reporting via `ctx.waitUntil`) and the optional `SENTRY_DSN` entry in `wrangler.jsonc` `vars`.
+- **Route placement.** `/healthz` lives in `src/worker/ops/app.ts`, not `routes.ts`, so the `/api/v1` registry glob ignores it. It must be mounted at the Worker root. That wiring is in `src/worker/index.ts` and `src/worker/app.ts`, which this story does not own. The integrator approved this scope exception: the two wiring edits and the optional `SENTRY_DSN` var.
+
+## 2026-11-23: S4.1 allocation resolutions (ambiguities)
+
+- **Instant-mode guest time:** a guest can't be confirmed before their host, so in instant mode a guest sorts by the later of their own and their host's request time. Ties put the member first. Reason: pure first-come must still never confirm a guest ahead of their host.
+- **Open seat after close (A5):** a late RSVP takes a seat that is still free, first-come. A5 only forbids bumping someone already confirmed. Changes `waitlistInsert` (`src/domain/allocation/waitlist.ts`).
+- **Cutoff boundary (A6):** the cutoff is `startsAt − cutoffMinutes`. At exactly that instant, promotion switches to offers. Before it, free seats fill automatically in mode order.
+- **Offer set (A6):** at the cutoff, every candidate who is eligible (a member, or a guest whose host is confirmed) is offered the free seats. The offer list is in mode order for display, but any eligible candidate may claim. The first claim wins (`claimOffer`). When no seat is free, nothing is offered.
+- **Guest of an unconfirmed host:** a guest whose host is waitlisted or absent waits. A host who is confirmed later in the same pass unlocks the guest, so the rule is checked during the fill, not against the input.
+- **Capacity:** must be a non-negative whole number. A `RangeError` is thrown otherwise. Reason: money and seat rules are integer-only (AGENTS.md rule 5).
+- **Time injection:** `promote` takes `now` and `startsAt` as epoch milliseconds from the caller. The domain never reads the clock (AGENTS.md rule 6).
 
 ## 2026-11-23: R1 roster import (integrator-confirmed)
 

@@ -2,6 +2,19 @@
 
 Decisions made after `PLAN.md` (v3) was written. Newest first. Every entry gives the decision, the reason, and what it changes.
 
+## 2026-11-24: S3.2 recurrence, skip-dates, occurrence edits: ambiguities resolved
+
+Each is the most conservative reading of PLAN; change here if the product intent differs.
+
+- **Occurrence identity is the local (Stockholm) date.** `POST /series/:id/generate-events` creates an event only for a term date that has **no** event of that series yet, whatever its status. So re-running is idempotent, manual edits survive, and a cancelled night is never recreated. Series-level edits (time, capacity) apply to nights generated afterwards only; existing nights are changed one by one (or by S4.4c).
+- **Never generate the past.** A date whose RSVP close has already passed is not generated (it would be born closed).
+- **DST rules** (`src/domain/recurrence.ts`, via `Intl`, no dependency): a wall time that occurs twice (autumn) resolves to the first (summer time); a time skipped in spring moves forward by the gap (02:30 → 03:30). Club sessions never sit in that hour, so this only matters for odd input.
+- **Skip-dates:** admin only, must be the series weekday inside the term. Locked after `open_for_passes`; `overrideLock: true` (admin) saves anyway and is recorded in the audit row (PLAN §6.5 "override with a warning"). Skipping a date that already has a live event is 409 `skip_date_has_event`: cancelling a generated night is S4.4c (it reverses charges and notifies).
+- **Occurrence edits** (`PATCH /series/:id/occurrences/:eventId`): location, guests per member and RSVP close offset for captains of the series; capacity, start time and duration for admins only (same split as the S3.1 series edit). Start time is local Stockholm time on the same date; `rsvp_close_at` and `ends_at` are recomputed as absolute minutes from start. Only before RSVP close: after close a date/time/location change is a material change (PLAN §6.6), owned by S4.4c, so it is 409 `event_closed` here.
+- **Cap below sold** applies to an occurrence's capacity exactly as to the series': if the new `pass_cap` (A8 minimum) falls and is below active passes, 409 `cap_below_passes_sold` unless an admin sends `overrideCapBelowSold: true` (audited). Raising capacity never needs an override; promotion from the waitlist on raise belongs to S4.4b/c.
+- **Scheduler:** generation and occurrence edits call `markDue(env.KV, earliest rsvp_close_at)`. Skipped when `KV` is absent (tests); a KV failure is logged and never fails the write.
+- **OG:** `createEvent` is called with a no-op publisher inside the generation transaction; OG is published after commit for the created events, so a rolled-back run never leaves KV entries.
+- **No SeriesPage link yet:** the schedule screen is `/admin/terms/series/:id/schedule`; the integrator adds the link from the series page (outside S3.2 Owns).
 ## 2026-11-24: S9.1 polls resolutions (migration approved by integrator)
 
 - **Migration `0001_polls` (integrator-approved, shipped in the S9.1 PR).** The initial schema could not store multi-choice votes (`poll_vote` PK was `(poll_id, member_id)`) or any poll setting. Adds `poll.multi_choice`, `poll.anonymous`, `poll.results_visibility` (pgEnum `poll_results_visibility`: `always | after_vote | after_close | admins`, default `always`), `poll.created_at`, and changes the `poll_vote` PK to `(poll_id, member_id, option_id)`. Generated with drizzle-kit (SQL, `0001_snapshot.json` and journal). The PK change is not expand-only in general, but the tables are empty in production.

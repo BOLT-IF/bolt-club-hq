@@ -10,6 +10,7 @@
  * - A new worker waits until the user accepts the update prompt (SKIP_WAITING).
  */
 import { MSG, type ClientMessage, type WorkerMessage } from "./messages";
+import "./push";
 import {
   API_CACHE,
   NETWORK_TIMEOUT_MS,

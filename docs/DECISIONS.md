@@ -19,6 +19,7 @@ Decisions made after `PLAN.md` (v3) was written. Newest first. Every entry gives
   - `defaults` keys are whitelisted: `capacity`, `durationMin`, `passPrice`, `adhocFee`, `maxGuestsDefault`, `rsvpCloseOffsetMin`, whole numbers only (money in whole kronor).
   - `accountCodes`: lower-case snake_case keys (`pass`, `adhoc`, `guest`, `payment` shown in the UI), values up to 20 of letters, digits, `.`, `_`, `-`. S5.6 may add keys; the format of the codes is for the treasurer to confirm.
   - `bank_details` (a text column) stores the bank object as JSON. No migration.
+- **Middleware scope:** `contextMiddleware()` is mounted on `/admin/settings` and `/settings/public` only, never `"*"` (root contract correction: `"*"` leaks onto routes mounted after the sub-app). `scoping.test.ts` guards it. `/admin/*` is avoided on purpose, since other admin areas share that prefix.
 - **No new dependency.** The form uses plain controls and the UI kit; no `user-event`, so UI tests use `fireEvent`.
 
 ## 2026-11-24: S6.1 notifications: inbox first, push is a seam

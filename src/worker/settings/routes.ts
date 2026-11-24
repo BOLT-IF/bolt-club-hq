@@ -45,9 +45,13 @@ async function loadSettings(db: Db | Tx): Promise<ClubSettingsValue> {
 /**
  * Club settings (S2.3). `/admin/settings` is admin only. `/settings/public` is the member-visible
  * subset; it is a guarded route here, not part of the anonymous `/config` (DECISIONS 2026-11-24).
+ *
+ * The context middleware is scoped to this area's own two paths. `use("*")` would leak onto every
+ * route mounted after this sub-app at /api/v1 (other areas, /config, /probe).
  */
 export default new Hono<AppEnv>()
-  .use("*", contextMiddleware())
+  .use("/admin/settings", contextMiddleware())
+  .use("/settings/public", contextMiddleware())
   .get("/admin/settings", requireGuard("admin"), async (c) => c.json(await loadSettings(c.var.db)))
   .put("/admin/settings", requireGuard("admin"), async (c) => {
     const raw: unknown = await c.req.json().catch(() => undefined);

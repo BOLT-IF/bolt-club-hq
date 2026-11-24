@@ -33,7 +33,7 @@ const PLAN_TABLES = [
   "domain_event_outbox",
 ];
 
-describe("initial migration", () => {
+describe("migrations", () => {
   let t: TestDatabase;
 
   beforeEach(async () => {
@@ -55,7 +55,24 @@ describe("initial migration", () => {
     }
   });
 
-  it("ships exactly one initial migration file", () => {
-    expect(migrationFiles()).toEqual(["../../../db/migrations/0000_initial.sql"]);
+  it("ships one contiguous chain that starts with the initial migration", () => {
+    const files = migrationFiles().map((f) => f.replace("../../../db/migrations/", ""));
+    expect(files[0]).toBe("0000_initial.sql");
+    files.forEach((f, i) => {
+      expect(f.slice(0, 5)).toBe(`${String(i).padStart(4, "0")}_`);
+    });
+  });
+
+  it("0001_polls stores one vote row per chosen option (multi-choice)", async () => {
+    const rows = await t.db.execute<{ column_name: string }>(sql`
+      select a.attname as column_name
+      from pg_index i join pg_attribute a on a.attrelid = i.indrelid and a.attnum = any(i.indkey)
+      where i.indrelid = 'poll_vote'::regclass and i.indisprimary
+    `);
+    expect(rows.rows.map((r) => r.column_name).sort()).toEqual([
+      "member_id",
+      "option_id",
+      "poll_id",
+    ]);
   });
 });

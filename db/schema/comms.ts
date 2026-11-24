@@ -90,6 +90,14 @@ export const schedulerState = pgTable("scheduler_state", {
   lastError: text("last_error"),
 });
 
+/** Who sees poll results, and when (PLAN §10 "visibility settings"; S9.1). */
+export const pollResultsVisibility = pgEnum("poll_results_visibility", [
+  "always",
+  "after_vote",
+  "after_close",
+  "admins",
+]);
+
 export const poll = pgTable("poll", {
   id: text("id").primaryKey(),
   question: text("question").notNull(),
@@ -97,6 +105,10 @@ export const poll = pgTable("poll", {
     .notNull()
     .references(() => member.id),
   closesAt: timestamp("closes_at", { withTimezone: true }),
+  multiChoice: boolean("multi_choice").notNull().default(false),
+  anonymous: boolean("anonymous").notNull().default(false),
+  resultsVisibility: pollResultsVisibility("results_visibility").notNull().default("always"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
 export const pollOption = pgTable("poll_option", {
@@ -122,7 +134,8 @@ export const pollVote = pgTable(
       .references(() => member.id),
     votedAt: timestamp("voted_at", { withTimezone: true }).notNull().defaultNow(),
   },
-  (t) => [primaryKey({ columns: [t.pollId, t.memberId] })],
+  // One row per chosen option, so multi-choice polls fit (S9.1, migration 0001).
+  (t) => [primaryKey({ columns: [t.pollId, t.memberId, t.optionId] })],
 );
 
 export const domainEventOutbox = pgTable("domain_event_outbox", {

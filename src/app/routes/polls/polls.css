@@ -1,0 +1,126 @@
+.bcq-polls {
+  list-style: none;
+  margin: 1rem 0 0;
+  padding: 0;
+  display: grid;
+  gap: 0.75rem;
+}
+.bcq-polls__item {
+  display: grid;
+  gap: 0.375rem;
+  min-height: var(--bcq-touch);
+  padding: 0.875rem 1rem;
+  background: var(--bcq-card);
+  border: 1px solid var(--bcq-line);
+  border-radius: var(--bcq-radius);
+  color: var(--bcq-ink);
+  text-decoration: none;
+}
+.bcq-polls__item:focus-visible,
+.bcq-polls__question:focus-visible {
+  outline: 3px solid var(--bcq-focus);
+  outline-offset: 2px;
+}
+.bcq-polls__question {
+  font-weight: 700;
+  color: var(--bcq-ink);
+}
+.bcq-polls__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.bcq-poll__meta,
+.bcq-poll__note {
+  color: var(--bcq-muted);
+}
+.bcq-poll__subtitle {
+  font-size: 1.05rem;
+  margin: 1.25rem 0 0.5rem;
+}
+.bcq-poll__form {
+  display: grid;
+  gap: 0.75rem;
+}
+.bcq-poll__form fieldset {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.5rem;
+}
+.bcq-poll__option {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-height: var(--bcq-touch);
+  padding: 0.5rem 1rem;
+  background: var(--bcq-card);
+  border: 1px solid var(--bcq-line);
+  border-radius: var(--bcq-radius-sm);
+  cursor: pointer;
+}
+.bcq-poll__option input {
+  width: 1.25rem;
+  height: 1.25rem;
+  accent-color: var(--bcq-club);
+}
+.bcq-field {
+  display: grid;
+  gap: 0.25rem;
+  font-weight: 600;
+}
+.bcq-field input,
+.bcq-field select {
+  min-height: var(--bcq-touch);
+  padding: 0 0.75rem;
+  font: inherit;
+  font-weight: 400;
+  border: 1px solid var(--bcq-muted);
+  border-radius: var(--bcq-radius-sm);
+  background: var(--bcq-card);
+  color: var(--bcq-ink);
+}
+.bcq-field input:focus-visible,
+.bcq-field select:focus-visible,
+.bcq-poll__option input:focus-visible {
+  outline: 3px solid var(--bcq-focus);
+  outline-offset: 2px;
+}
+.bcq-poll__ok {
+  color: var(--bcq-success-ink);
+}
+.bcq-poll__error {
+  color: var(--bcq-danger-ink);
+}
+.bcq-poll__bars {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.75rem;
+}
+.bcq-poll__bar-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+.bcq-poll__bar {
+  display: block;
+  height: 0.5rem;
+  margin-top: 0.25rem;
+  background: var(--bcq-line);
+  border-radius: 999px;
+  overflow: hidden;
+}
+.bcq-poll__bar > span {
+  display: block;
+  height: 100%;
+  background: var(--bcq-club);
+}
+.bcq-poll__voters {
+  display: block;
+  margin-top: 0.25rem;
+  font-size: 0.9rem;
+  color: var(--bcq-muted);
+}

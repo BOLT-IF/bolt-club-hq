@@ -3,7 +3,7 @@
 // Runtime types generated with workerd@1.20261119.1 2026-11-01 nodejs_compat
 interface __BaseEnv_Env {
   KV: KVNamespace;
-  MEDIA?: R2Bucket; // off until R2 is enabled (see wrangler.jsonc)
+  MEDIA: R2Bucket;
   HYPERDRIVE: Hyperdrive;
   ASSETS: Fetcher;
   ENV: "dev";

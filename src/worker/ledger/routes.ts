@@ -6,6 +6,7 @@ import { contextMiddleware } from "../core/context";
 import { requireGuard } from "../core/permissions";
 import type { AppEnv } from "../types";
 import adminRoutes from "./admin-routes";
+import claimsRoutes from "./claims";
 import { createLedgerService } from "./service";
 
 function actorId(c: Context<AppEnv>): string {
@@ -79,4 +80,5 @@ export default new Hono<AppEnv>()
       })),
     });
   })
-  .route("/", adminRoutes);
+  .route("/", adminRoutes)
+  .route("/", claimsRoutes);

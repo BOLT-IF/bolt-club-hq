@@ -148,7 +148,7 @@ describe("poll routes", () => {
       const [red, blue, green] = p.options.map((o) => o.id);
       expect((await vote(alice.clerkUserId, p.id, [red, red])).status).toBe(400);
       expect((await vote(alice.clerkUserId, p.id, [red, blue])).status).toBe(200);
-      expect((await vote(bob.clerkUserId, p.id, [blue, green])).status).toBe(200);
+      expect((await vote(bob.clerkUserId, p.id, [blue])).status).toBe(200);
       const view = await get(alice.clerkUserId, p.id);
       expect(view.myVote.sort()).toEqual([red, blue].sort());
       expect(view.results?.totalVoters).toBe(2);

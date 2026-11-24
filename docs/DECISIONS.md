@@ -9,6 +9,13 @@ Decisions made after `PLAN.md` (v3) was written. Newest first. Every entry gives
 - **Exited members (follow-up for the integrator):** `/settings/public` and `/me/profile` use `requireGuard("member")` without `allowInactive`, so an exited member sees their balance and entries but not the bank details or their payment reference. PLAN §6.7 suggests they need them to settle a remaining balance. The fix is adding `allowInactive: true` in S2.3's and S2.1's routes; not done here because those files are outside S5.2's Owns.
 - **Entries newest first**, each with a FIFO chip: Paid / Partly paid, N kr left / Unpaid for charges; Used / N kr credit left for money in; Cancelled / Cancellation for reversal pairs. Money in shows with a minus sign (−150 kr). Credit is shown as "Credit 100 kr", never as a negative debt.
 - **"Another member's ledger is 403"** is covered server-side by S5.1's `src/worker/ledger/routes.db.test.ts`. The S5.2 Playwright spec checks the screen never sends a member id and shows an error (no data) on a 403.
+## 2026-11-24: S6.6 broadcasts: audiences, mute, audit
+
+- **Route:** `POST /admin/broadcasts` (admin guard + `Idempotency-Key`), body `{ title, body, audience }`, returns `{ broadcastId, recipientCount }`. Title max 100, body max 1000 characters. Unknown event: 404 `event_not_found`.
+- **Audiences** query the tables directly and only ever include `active` members (pending, exited and erased members get nothing): `all`; `pass_holders` (active passes, optionally one series); `event_rsvps` (RSVPs in `requested`, `confirmed`, `waitlisted`, `offered`; cancelled and late-cancelled are left out; the event may be named by id or share slug); `captains` (`series_captain`, optionally one series). Conservative reading: PLAN names the four audiences but not the RSVP statuses.
+- **Sending** goes through `createNotifyPort` with category `announcements`, one call per member, idempotency key `broadcast:<id>:<memberId>`. The inbox row is always written; mute (S6.3, order 10) and the rest of the policy chain decide only about the push. An event audience deep-links to `/events/<slug>`; others use the category default.
+- **Audit:** one `audit()` row per broadcast (`broadcast.send`, entity `broadcast`), written in the same transaction, also when there are zero recipients. Its id is derived from the broadcast id, which doubles as the "already sent" check, so a retry sends and audits once. The route derives the broadcast id from actor + `Idempotency-Key`.
+- **Not in v1:** scheduling and an event picker (the screen takes an event ID or share slug).
 
 ## 2026-11-24: Integrator queue: polls migration 0001; push wake-up from notify
 

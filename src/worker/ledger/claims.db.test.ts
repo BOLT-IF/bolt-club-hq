@@ -127,7 +127,13 @@ describe("payment claims", () => {
       const at = (body: unknown, key: string | undefined = crypto.randomUUID()) =>
         post("/me/payment-claims", body, m.clerkUserId, key).then((r) => r.status);
 
-      expect(await at({ amountSek: 100, paidOn: "2027-02-27" }, undefined)).toBe(400);
+      // at(…, undefined) would fall back to the default key, so post without one directly.
+      const noKey = await post(
+        "/me/payment-claims",
+        { amountSek: 100, paidOn: "2027-02-27" },
+        m.clerkUserId,
+      );
+      expect(noKey.status).toBe(400);
       expect(await at({ amountSek: 0, paidOn: "2027-02-27" })).toBe(400);
       expect(await at({ amountSek: 12.5, paidOn: "2027-02-27" })).toBe(400);
       expect(await at({ amountSek: "100", paidOn: "2027-02-27" })).toBe(400);

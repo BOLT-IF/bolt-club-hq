@@ -2,6 +2,13 @@
 
 Decisions made after `PLAN.md` (v3) was written. Newest first. Every entry gives the decision, the reason, and what it changes.
 
+## 2026-11-24: S10.2 install & push onboarding
+
+- **Prompt matrix** (`src/app/components/install/platform.ts`): iOS Safari/iPadOS (not installed) shows Add to Home Screen steps and never a push card (Safari tabs can't receive push). Android Chrome (not installed) shows an Install button when the browser fires `beforeinstallprompt`, otherwise menu steps. Desktop and installed apps show no install card. The push card shows only after the first RSVP (PLAN §10), only while permission is `default`, and never after a decline.
+- **A decline is remembered per device** (localStorage `bcq.push.declined`). It is set by tapping Not now, or by a browser prompt that returns anything other than `granted`. The card never asks again. The member can still turn notifications on from `/install`, since that is their own explicit tap. A dismissed install card (`bcq.install.dismissed`) also stays dismissed.
+- **The first RSVP is a device flag** set by `noteRsvpSaved()`. Integrator follow-up: call it from `RsvpPanel` after a successful save (S4.2). Until then the push card never appears on its own (safe default); `/install` still works.
+- **Re-subscribe on every open:** `InstallPrompt` (mounted in the shell) calls S6.2's `resubscribePush()` on mount when permission is already `granted`, lazily imported. It never asks. This closes S6.2's "wire resubscribePush into the shell" follow-up.
+
 ## 2026-11-24: S6.6 broadcasts: audiences, mute, audit
 
 - **Route:** `POST /admin/broadcasts` (admin guard + `Idempotency-Key`), body `{ title, body, audience }`, returns `{ broadcastId, recipientCount }`. Title max 100, body max 1000 characters. Unknown event: 404 `event_not_found`.

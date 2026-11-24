@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from "react";
 
+import { InstallPrompt } from "../components/install";
 import { useClientOutdated } from "../lib/clientVersion";
 import { goBack } from "../lib/navigate";
 import { BottomNav } from "./BottomNav";
@@ -60,6 +61,7 @@ export function AppShell({ path, children, badges = {}, isAdmin = false }: AppSh
       </header>
 
       <main id="main" className="bcq-main" tabIndex={-1}>
+        {path === "/install" ? null : <InstallPrompt />}
         {children}
       </main>
 

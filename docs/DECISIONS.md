@@ -2,6 +2,13 @@
 
 Decisions made after `PLAN.md` (v3) was written. Newest first. Every entry gives the decision, the reason, and what it changes.
 
+## 2026-11-24: Secrets gate writes the verdict, workflows read it
+
+- **Bug:** `require-secrets.sh` exits 0 both when it proceeds and when it skips (so CI stays green), but all four workflows wrapped it in `if require-secrets.sh; then ready=true`. A skip therefore set `ready=true`, and Deploy ran `wrangler deploy` with no Cloudflare token on every push to main (red since S0.5). Backup, restore drill and Lighthouse had the same wiring and would have gone red on their first schedule.
+- **Fix:** the script writes `ready=true|false` to `$GITHUB_OUTPUT` itself. Workflows call it bare and gate on `steps.guard.outputs.ready`. Exit codes are unchanged: 0 for proceed or skip, 2 for an unknown job name (fails closed).
+- **Guarded by tests:** `test-require-secrets.sh` checks the written verdict and fails if any of the four workflows gates on the exit code again.
+- **Also:** `.gitignore` ignores `.neon`, the Neon CLI's local project link.
+
 ## 2026-11-23: Repo audit: dependency trim
 
 - **Removed (nothing imports them):** `toucan-js` (the Worker posts Sentry envelopes with `fetch`, see S0.7), `msw` (its only handler file was dead), and `@cloudflare/workers-types` (the generated `worker-configuration.d.ts` already carries the runtime types; worker typecheck and lint pass without it). `axe-core` and `@testing-library/dom` are dropped as direct entries: they arrive through `@axe-core/playwright` and `@testing-library/react`.
@@ -75,7 +82,7 @@ Decisions made after `PLAN.md` (v3) was written. Newest first. Every entry gives
 - **Browser install:** `chromium webkit`, not roster's `chromium firefox webkit`. `playwright.config.ts` runs the iPhone project on WebKit and does not use Firefox. The step has a 10-minute `timeout-minutes` cap because a stalled CDN download hung the old job for 25+ minutes.
 - **Owns check branch convention:** the story ID is read from the head branch `story/<id>-<slug>`. A branch that does not follow the convention skips the check with a notice, rather than failing every PR.
 - **Deploy order:** `wrangler deploy`, then `drizzle-kit migrate`, then the smoke test, as the story states. Migrations therefore run after the new Worker is live, so every migration must be expand-only. Rollback is `wrangler rollback`; migrations are not rolled back automatically.
-- **Secrets gate:** each scheduled or deploy job runs `require-secrets.sh` first and skips with a notice when a secret is missing. The job stays green until the secrets exist. An unknown job name fails closed.
+- **Secrets gate:** each scheduled or deploy job runs `require-secrets.sh` first and skips with a notice when a secret is missing. The job stays green until the secrets exist. An unknown job name fails closed. (The workflow wiring was wrong until 2026-11-24; see "Secrets gate writes the verdict".)
 - **Backup retention vs artifacts:** PLAN §16 requires 90-day backup retention. GitHub artifacts are not a backup store, so the workflow uploads a 30-day artifact only. The off-site store is an open item, recorded in `docs/ops/backups.md`.
 - **Restore drill fetch step:** the drill cannot yet fetch the latest dump, because the off-site store is not chosen. The fetch step fails on purpose so the drill is never reported green without a restore. It is the first thing to replace once the store exists.
 - **Neon storage correction:** PLAN §11.3 says "0.5 GB" for Neon free. Neon's current plans page gives 1 GB per project (20 GB account total). `docs/ops/budgets.md` records the verified figure.

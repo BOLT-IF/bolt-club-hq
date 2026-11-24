@@ -7,6 +7,8 @@
 #   job = deploy | backup | restore-drill | lighthouse
 #
 # Writes a skip/proceed line to stdout and, in GitHub Actions, to the step summary.
+# The verdict is `ready=true|false` in $GITHUB_OUTPUT. Workflows must gate on
+# `steps.guard.outputs.ready`, never on the exit code: a skip also exits 0 (green).
 # Exit codes: 0 proceed or skip, 2 unknown job name (fails closed on a typo).
 set -euo pipefail
 
@@ -40,10 +42,16 @@ say() {
   if [ -n "${GITHUB_STEP_SUMMARY:-}" ]; then echo "$1" >> "$GITHUB_STEP_SUMMARY"; fi
 }
 
+verdict() {
+  if [ -n "${GITHUB_OUTPUT:-}" ]; then echo "ready=$1" >> "$GITHUB_OUTPUT"; fi
+}
+
 if [ "${#missing[@]}" -gt 0 ]; then
   say "require-secrets: SKIPPING '$JOB'. Missing secret(s): ${missing[*]}."
   say "Add them under repo Settings > Secrets and variables > Actions. See docs/ops/secrets.md."
+  verdict false
   exit 0
 fi
 
 say "require-secrets: all secrets present for '$JOB'; proceeding."
+verdict true

@@ -2,6 +2,19 @@
 
 Decisions made after `PLAN.md` (v3) was written. Newest first. Every entry gives the decision, the reason, and what it changes.
 
+## 2026-11-24: S6.2 web push: provisional batch cap, sender on the scheduler, quiet hours
+
+- **Batch cap 20 sends per run, provisional until S0.6.** `PUSH_BATCH_CAP` in `push-sender.ts` is the one constant to change. PLAN §11 says at most 10 per run; S0.6 (real CPU measurement on Workers) has not happened, so 20 is a placeholder agreed with the integrator, **pending S0.6**. The cap counts sends (one encryption + POST per device), not rows, and a member's devices are never split across runs.
+- **Sender runs as an S6.4 tick hook** (`registerTickHook("push-sender")` in `push-cron.ts`), not a cron-string hook, so it gets the DB and is independent of the trigger strings. It is registered at module load from `push-routes.ts`, which the route registry imports at start-up.
+- **Waking the scheduler.** After a run, the sender calls `markDue` for the earliest pending row (leftovers past the cap: now + 1 ms; backoff and quiet hours: their `not_before`). `notify()` calls `markPushDue` after queuing (integrator-granted one line in `notify.ts`). Both read `env.KV` lazily from `cloudflare:workers` and swallow errors; worst case the daily maintenance run sends.
+- **VAPID secrets** `VAPID_PUBLIC_KEY` (base64url uncompressed P-256 point), `VAPID_PRIVATE_KEY` (base64url `d`), `VAPID_SUBJECT` (`mailto:`). Unset: the hook skips and rows stay `queued`; `GET /push/vapid-public-key` answers 503 `push_not_configured`. Never rotate casually (PLAN §10).
+- **Outcomes per device:** 2xx stamps `last_success_at` and resets `failures`; 404/410 deletes the subscription; 5xx, 429 and network errors count `failures` and retry; other 4xx and malformed stored keys are not retried. **Per row:** any device reached → `sent`; else a retryable error with attempts left → `deferred` with backoff 10, 20, 40, 80 min (`MAX_PUSH_ATTEMPTS` = 5), pushed out of quiet hours if it would land in them; else `failed` (no device, all gone, or out of attempts). The inbox is unaffected.
+- **Quiet hours** (`policies/quiet-hours.ts`, order 20) read `club_settings.quiet_hours` (`{start,end}` `HH:MM` Stockholm, the S2.3 shape). No settings row → PLAN A9 default 22:00-08:00; `null` → off. The window is `[start, end)`, may cross midnight, and the end is computed in Stockholm time through `Intl` (DST-safe).
+- **Payload** `{ title, body, url, tag }`; `tag` = notification id, so a retry replaces rather than stacks. The SW always calls `showNotification` (falls back to a generic title/body for empty or malformed payloads; iOS revokes subscriptions otherwise) and only opens in-app paths, else `/inbox`.
+- **Routes** (`push-routes.ts`, mounted with one line in `notifications/routes.ts`): `GET /push/vapid-public-key`, `POST /push/subscriptions` (upsert on endpoint; the last member to subscribe a device owns it; https endpoints only), `DELETE /push/subscriptions` (own rows only; naturally idempotent, so no `Idempotency-Key`), `GET /admin/push-coverage` (admin; active members with at least one device).
+- **Re-subscribe:** `resubscribePush()` in `src/sw/push-client.ts` never prompts; it only (re)registers when permission is already granted. Wiring it at app start is an integrator follow-up (outside S6.2 Owns).
+- **Contract grants used:** `src/sw/sw.ts` (`import "./push"`), `vitest.config.ts` (ui project runs `src/sw/**/*.test.ts`), `src/worker/notifications/routes.ts` (mount), `src/worker/notifications/notify.ts` (`markPushDue`).
+
 ## 2026-11-24: S5.1 ledger core resolutions (ambiguities)
 
 - **Sign convention:** positive = the member owes, negative = credit; a payment is stored negative (PLAN §5.1 says `amount_sek (signed)` but not which way). Callers always pass positive kronor for `charge` and `recordPayment`; the kind sets the sign. `adjust` keeps the caller's sign (a waiver must be negative).

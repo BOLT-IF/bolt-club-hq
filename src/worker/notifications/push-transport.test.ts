@@ -9,20 +9,20 @@ const b64url = (bytes: ArrayBuffer | Uint8Array): string =>
     .replace(/=+$/, "");
 
 async function vapidKeys(): Promise<VapidConfig> {
-  const pair = await crypto.subtle.generateKey({ name: "ECDSA", namedCurve: "P-256" }, true, [
+  const pair = (await crypto.subtle.generateKey({ name: "ECDSA", namedCurve: "P-256" }, true, [
     "sign",
     "verify",
-  ]);
-  const jwk = await crypto.subtle.exportKey("jwk", pair.privateKey);
-  const raw = await crypto.subtle.exportKey("raw", pair.publicKey);
+  ])) as CryptoKeyPair;
+  const jwk = (await crypto.subtle.exportKey("jwk", pair.privateKey)) as JsonWebKey;
+  const raw = (await crypto.subtle.exportKey("raw", pair.publicKey)) as ArrayBuffer;
   return { subject: "mailto:admin@example.test", publicKey: b64url(raw), privateKey: jwk.d ?? "" };
 }
 
 /** A browser-like subscription: an ECDH P-256 public key and a 16-byte auth secret. */
 async function subscription(endpoint = "https://push.example.test/sub/1") {
-  const pair = await crypto.subtle.generateKey({ name: "ECDH", namedCurve: "P-256" }, true, [
+  const pair = (await crypto.subtle.generateKey({ name: "ECDH", namedCurve: "P-256" }, true, [
     "deriveBits",
-  ]);
+  ])) as CryptoKeyPair;
   const raw = (await crypto.subtle.exportKey("raw", pair.publicKey)) as ArrayBuffer;
   return {
     endpoint,

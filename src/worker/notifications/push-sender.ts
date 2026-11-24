@@ -31,6 +31,8 @@ export interface SendPushResult {
   sent: number;
   failed: number;
   deferred: number;
+  /** When the sender has work again (rows left over, or the earliest not_before); null if none. */
+  nextDueAt: Date | null;
 }
 
 /**
@@ -48,7 +50,7 @@ export interface SendPushResult {
 export async function sendPushBatch(deps: SendPushDeps): Promise<SendPushResult> {
   const cap = deps.batchCap ?? PUSH_BATCH_CAP;
   const now = deps.clock.now();
-  const result: SendPushResult = { sends: 0, sent: 0, failed: 0, deferred: 0 };
+  const result: SendPushResult = { sends: 0, sent: 0, failed: 0, deferred: 0, nextDueAt: null };
 
   // Each row needs at least one send, so `cap` rows is enough to fill the batch.
   const due = await deps.db
@@ -71,7 +73,7 @@ export async function sendPushBatch(deps: SendPushDeps): Promise<SendPushResult>
     )
     .orderBy(sql`${outboundPush.notBefore} asc nulls first`, asc(notification.createdAt))
     .limit(cap);
-  if (due.length === 0) return result;
+  if (due.length === 0) return { ...result, nextDueAt: await nextPushDue(deps.db, now) };
 
   const subs = await deps.db
     .select()
@@ -94,12 +96,15 @@ export async function sendPushBatch(deps: SendPushDeps): Promise<SendPushResult>
 
     const outcomes: PushResult[] = [];
     for (const device of targets) {
-      const outcome = await deps.transport.send(device as StoredSubscription & typeof device, {
-        title: row.title,
-        body: row.body,
-        url: row.link ?? "/inbox",
-        tag: row.notificationId,
-      });
+      const outcome = await deps.transport.send(
+        { endpoint: device.endpoint, keys: device.keys as StoredSubscription["keys"] },
+        {
+          title: row.title,
+          body: row.body,
+          url: row.link ?? "/inbox",
+          tag: row.notificationId,
+        },
+      );
       outcomes.push(outcome);
       result.sends++;
       await recordDeviceOutcome(deps.db, device.id, outcome, now);
@@ -121,7 +126,19 @@ export async function sendPushBatch(deps: SendPushDeps): Promise<SendPushResult>
       result.failed++;
     }
   }
-  return result;
+  return { ...result, nextDueAt: await nextPushDue(deps.db, now) };
+}
+
+/** Earliest moment any pending row can go out: a queued row means now (null not_before). */
+export async function nextPushDue(db: Db, now: Date): Promise<Date | null> {
+  const [row] = await db
+    .select({ notBefore: outboundPush.notBefore })
+    .from(outboundPush)
+    .where(inArray(outboundPush.status, ["queued", "deferred"]))
+    .orderBy(sql`${outboundPush.notBefore} asc nulls first`)
+    .limit(1);
+  if (!row) return null;
+  return row.notBefore && row.notBefore > now ? row.notBefore : now;
 }
 
 async function recordDeviceOutcome(db: Db, id: string, outcome: PushResult, now: Date) {

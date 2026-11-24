@@ -25,13 +25,13 @@
     // OG preview cache and next_due_at scheduler state (PLAN §11.2).
     {
       "binding": "KV",
-      "id": "REPLACE_WITH_KV_NAMESPACE_ID",
-      "preview_id": "REPLACE_WITH_KV_PREVIEW_ID",
+      "id": "68031a5b401347098df663b521a10ddf",
+      "preview_id": "5ee394e1f7344bb2a60af20b848ba2a8",
     },
   ],
 
   "r2_buckets": [
-    // Poll images, member-only (PLAN §11.1).
+    // Poll images, member-only (PLAN §11.1). Nothing reads MEDIA until S9.2 (images).
     { "binding": "MEDIA", "bucket_name": "bolt-club-hq-media" },
   ],
 
@@ -40,7 +40,7 @@
     // localConnectionString, the database docker-compose creates.
     {
       "binding": "HYPERDRIVE",
-      "id": "REPLACE_WITH_HYPERDRIVE_ID",
+      "id": "24dd32c71522408ab20f3b51c6e65417",
       "localConnectionString": "postgres://postgres:postgres@localhost:5432/club_test",
     },
   ],

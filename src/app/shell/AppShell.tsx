@@ -5,6 +5,7 @@ import { useClientOutdated } from "../lib/clientVersion";
 import { goBack } from "../lib/navigate";
 import { BottomNav } from "./BottomNav";
 import { MoreSheet } from "./MoreSheet";
+import boltMark from "./assets/bolt-mark.png";
 import { PRIMARY_NAV } from "./navigation";
 
 export interface AppShellProps {
@@ -29,7 +30,7 @@ export function AppShell({ path, children, badges = {}, isAdmin = false }: AppSh
 
       {outdated ? (
         <div className="bcq-banner" role="alert">
-          <span>A newer version of Bolt Club HQ is ready.</span>
+          <span>A newer version of BOLT HQ is ready.</span>
           <button
             type="button"
             className="bcq-banner__action"
@@ -57,7 +58,10 @@ export function AppShell({ path, children, badges = {}, isAdmin = false }: AppSh
             Back
           </button>
         ) : null}
-        <span className="bcq-brand">Bolt Club</span>
+        <span className="bcq-brand">
+          <img className="bcq-brand__mark" src={boltMark} alt="" width="28" height="27" />
+          BOLT <span className="bcq-brand__hq">HQ</span>
+        </span>
       </header>
 
       <main id="main" className="bcq-main" tabIndex={-1}>

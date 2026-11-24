@@ -58,8 +58,8 @@ const owing: MyLedger = {
 };
 
 const settings = {
-  clubName: "Bolt Club",
-  bank: { accountHolder: "Bolt IF", iban: "SE4550000000058398257466", bankgiro: "5050-1055" },
+  clubName: "BOLT IF",
+  bank: { accountHolder: "BOLT IF", iban: "SE4550000000058398257466", bankgiro: "5050-1055" },
   paymentInstructions: "Pay within 14 days.",
   quietHours: null,
   rosterAppUrl: null,
@@ -197,7 +197,7 @@ describe("member money screen", () => {
     await within(howTo).findByText("BOLT-ALEX");
     expect(within(howTo).getByText("5050-1055")).toBeTruthy();
     expect(within(howTo).getByText("SE4550000000058398257466")).toBeTruthy();
-    expect(within(howTo).getByText("Bolt IF")).toBeTruthy();
+    expect(within(howTo).getByText("BOLT IF")).toBeTruthy();
     expect(within(howTo).getByText("Pay within 14 days.")).toBeTruthy();
 
     fireEvent.click(within(howTo).getByRole("button", { name: "Copy payment reference" }));

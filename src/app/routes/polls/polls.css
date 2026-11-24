@@ -63,7 +63,7 @@
 .bcq-poll__option input {
   width: 1.25rem;
   height: 1.25rem;
-  accent-color: var(--bcq-club);
+  accent-color: var(--bcq-brand);
 }
 .bcq-field {
   display: grid;
@@ -116,7 +116,7 @@
 .bcq-poll__bar > span {
   display: block;
   height: 100%;
-  background: var(--bcq-club);
+  background: var(--bcq-brand);
 }
 .bcq-poll__voters {
   display: block;

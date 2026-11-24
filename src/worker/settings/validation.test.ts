@@ -11,7 +11,7 @@ import {
 } from "./validation";
 
 const valid = {
-  clubName: "Bolt Club",
+  clubName: "BOLT IF",
   passUnpaidRevokeDays: 21,
   autoPromoteCutoffMin: 180,
 };
@@ -84,7 +84,7 @@ describe("validateSettingsInput", () => {
     expect(result).toEqual({
       ok: true,
       value: {
-        clubName: "Bolt Club",
+        clubName: "BOLT IF",
         bank: null,
         paymentInstructions: null,
         quietHours: null,
@@ -101,18 +101,18 @@ describe("validateSettingsInput", () => {
     const ok = validateSettingsInput({
       ...valid,
       bank: {
-        accountHolder: " Bolt IF ",
+        accountHolder: " BOLT IF ",
         iban: "se45 5000 0000 0583 9825 7466",
         bankgiro: "54029681",
       },
     });
     expect(ok.ok && ok.value.bank).toEqual({
-      accountHolder: "Bolt IF",
+      accountHolder: "BOLT IF",
       iban: "SE4550000000058398257466",
       bankgiro: "5402-9681",
     });
 
-    const empty = validateSettingsInput({ ...valid, bank: { accountHolder: "Bolt IF" } });
+    const empty = validateSettingsInput({ ...valid, bank: { accountHolder: "BOLT IF" } });
     expect(!empty.ok && empty.errors).toHaveProperty("bank");
   });
 

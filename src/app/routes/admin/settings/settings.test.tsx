@@ -7,8 +7,8 @@ import { registeredFrontendRoutes } from "../../registry";
 import SettingsPage from "./SettingsPage";
 
 const loaded = {
-  clubName: "Bolt IF",
-  bank: { accountHolder: "Bolt IF", iban: "SE4550000000058398257466", bankgiro: "5402-9681" },
+  clubName: "BOLT IF",
+  bank: { accountHolder: "BOLT IF", iban: "SE4550000000058398257466", bankgiro: "5402-9681" },
   paymentInstructions: null,
   quietHours: { start: "22:00", end: "08:00" },
   passUnpaidRevokeDays: 21,
@@ -67,7 +67,7 @@ describe("admin settings page", () => {
 
   it("loads the saved settings into labelled fields", async () => {
     renderPage();
-    expect(await screen.findByLabelText("Club name")).toHaveProperty("value", "Bolt IF");
+    expect(await screen.findByLabelText("Club name")).toHaveProperty("value", "BOLT IF");
     expect(screen.getByLabelText("IBAN")).toHaveProperty("value", "SE4550000000058398257466");
     expect(screen.getByLabelText("Bankgiro")).toHaveProperty("value", "5402-9681");
     expect(screen.getByLabelText("Roster app URL")).toHaveProperty("value", "");
@@ -87,7 +87,7 @@ describe("admin settings page", () => {
     const put = calls.find((call) => call.method === "PUT")!;
     expect(put.url).toBe("/api/v1/admin/settings");
     expect(put.body).toMatchObject({
-      clubName: "Bolt IF",
+      clubName: "BOLT IF",
       rosterAppUrl: "https://roster.example.se",
       passUnpaidRevokeDays: 21,
     });

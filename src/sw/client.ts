@@ -42,7 +42,7 @@ function showUpdatePrompt(registration: ServiceWorkerRegistration): void {
   bar.setAttribute("data-testid", PROMPT_TEST_ID);
   bar.setAttribute("role", "status");
   bar.style.cssText =
-    "position:fixed;left:0;right:0;bottom:0;padding:12px 16px;background:#003087;color:#fff;display:flex;gap:12px;align-items:center;justify-content:space-between;font:14px system-ui,sans-serif;z-index:2147483647";
+    "position:fixed;left:0;right:0;bottom:0;padding:12px 16px;background:#272e38;color:#fff;border-top:3px solid #fd8d27;display:flex;gap:12px;align-items:center;justify-content:space-between;font:14px system-ui,sans-serif;z-index:2147483647";
 
   const text = document.createElement("span");
   text.textContent = "A new version is available.";
@@ -51,7 +51,7 @@ function showUpdatePrompt(registration: ServiceWorkerRegistration): void {
   reload.type = "button";
   reload.textContent = "Reload";
   reload.style.cssText =
-    "padding:8px 12px;border:0;border-radius:6px;background:#fff;color:#003087;font-weight:600";
+    "padding:8px 12px;border:0;border-radius:6px;background:#fd8d27;color:#272e38;font-weight:700";
   reload.addEventListener("click", () => {
     const waiting = registration.waiting;
     if (!waiting) {

@@ -7,7 +7,7 @@
  * Tapping a notification focuses an open app window (or opens one) at the in-app path.
  */
 
-const FALLBACK_TITLE = "Bolt Club";
+const FALLBACK_TITLE = "BOLT HQ";
 const FALLBACK_BODY = "You have a new message.";
 const FALLBACK_URL = "/inbox";
 const ICON = "/icons/icon-192.png";

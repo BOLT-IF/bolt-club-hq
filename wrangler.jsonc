@@ -14,9 +14,11 @@
     "run_worker_first": ["/healthz", "/healthz/*", "/api/*"],
   },
 
-  // Cron Triggers: two entries (PLAN §11.3 budget), in UTC. See docs/DECISIONS.md (S0.1) on the Stockholm DST offset.
+  // Cron Triggers: two entries (PLAN §11.3 budget), in UTC. Every UTC hour belongs to exactly one.
+  // The 10-minute trigger covers Stockholm 07-23 in summer (UTC 05-21) and winter (UTC 06-22).
+  // Keep in step with src/worker/scheduler/schedule.ts. See docs/DECISIONS.md (S6.4).
   "triggers": {
-    "crons": ["*/10 5-21 * * *", "0 * * * *"],
+    "crons": ["*/10 5-22 * * *", "0 0-4,23 * * *"],
   },
 
   "kv_namespaces": [

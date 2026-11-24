@@ -53,7 +53,7 @@ export function AppRoot() {
   useEffect(() => {
     if (flags.inbox !== true) return;
     const controller = new AbortController();
-    fetchNotifications(controller.signal)
+    fetchNotifications(controller.signal, { redirectOnUnauthorized: false })
       .then((page) => {
         if (!controller.signal.aborted) setInboxUnread(page.unreadCount);
       })

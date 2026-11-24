@@ -1,6 +1,6 @@
 /* Admin terms & series. Builds on the UI kit tokens (ui.css). */
 .bcq-link {
-  color: var(--bcq-club-deep);
+  color: var(--bcq-brand-deep);
   font-weight: 600;
   text-underline-offset: 3px;
 }

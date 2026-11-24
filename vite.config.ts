@@ -50,7 +50,7 @@ function pwaHead(): Plugin {
           attrs: { name: "apple-mobile-web-app-title", content: "Bolt Club" },
           injectTo: "head",
         },
-        { tag: "meta", attrs: { name: "theme-color", content: "#003087" }, injectTo: "head" },
+        { tag: "meta", attrs: { name: "theme-color", content: "#272e38" }, injectTo: "head" },
         { tag: "script", attrs: { type: "module", src: registerSrc }, injectTo: "body" },
       ];
     },
@@ -82,8 +82,8 @@ export default defineConfig({
         start_url: "/",
         scope: "/",
         display: "standalone",
-        background_color: "#ffffff",
-        theme_color: "#003087",
+        background_color: "#fbf8f3",
+        theme_color: "#272e38",
         icons: [
           { src: "/icons/icon-192.png", sizes: "192x192", type: "image/png", purpose: "any" },
           { src: "/icons/icon-512.png", sizes: "512x512", type: "image/png", purpose: "any" },

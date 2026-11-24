@@ -29,7 +29,7 @@
   flex: none;
   width: 1.75rem;
   height: 1.75rem;
-  accent-color: var(--bcq-club);
+  accent-color: var(--bcq-brand);
 }
 .bcq-prefs__error {
   margin-top: 1rem;

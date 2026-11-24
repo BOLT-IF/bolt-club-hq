@@ -63,16 +63,27 @@ body {
   min-height: 56px;
   padding: env(safe-area-inset-top) calc(0.75rem + env(safe-area-inset-right)) 0
     calc(0.75rem + env(safe-area-inset-left));
-  background: color-mix(in srgb, var(--bcq-paper) 92%, transparent);
-  backdrop-filter: saturate(1.4) blur(10px);
-  border-bottom: 1px solid var(--bcq-line);
+  background: var(--bcq-ink);
+  color: #fff;
+  border-bottom: 3px solid var(--bcq-brand);
 }
 .bcq-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
   margin-left: auto;
   font: 800 0.9375rem/1 var(--bcq-font);
-  letter-spacing: 0.04em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--bcq-club-deep);
+  color: #fff;
+}
+.bcq-brand__mark {
+  width: 28px;
+  height: auto;
+  display: block;
+}
+.bcq-brand__if {
+  color: var(--bcq-bolt);
 }
 .bcq-back {
   display: inline-flex;
@@ -83,12 +94,12 @@ body {
   border: none;
   border-radius: 999px;
   background: transparent;
-  color: var(--bcq-ink);
+  color: #fff;
   font: 600 1rem/1 var(--bcq-font);
   cursor: pointer;
 }
 .bcq-back:hover {
-  background: var(--bcq-bolt-soft);
+  background: rgb(255 255 255 / 0.12);
 }
 .bcq-back__arrow {
   font-size: 1.25rem;
@@ -123,7 +134,7 @@ body {
   z-index: 30;
   background: var(--bcq-card);
   border-top: 1px solid var(--bcq-line);
-  box-shadow: 0 -6px 20px rgb(18 24 38 / 0.06);
+  box-shadow: 0 -6px 20px rgb(39 46 56 / 0.08);
   padding-bottom: env(safe-area-inset-bottom);
 }
 .bcq-tabbar__list {
@@ -155,11 +166,11 @@ body {
 }
 .bcq-tabbar__item.is-active,
 .bcq-tabbar__item[aria-current="page"] {
-  color: var(--bcq-club-deep);
+  color: var(--bcq-ink);
 }
 .bcq-tabbar__item.is-active .bcq-tabbar__icon,
 .bcq-tabbar__item[aria-current="page"] .bcq-tabbar__icon {
-  background: var(--bcq-bolt);
+  background: var(--bcq-brand);
   color: var(--bcq-ink);
 }
 .bcq-tabbar__icon {
@@ -212,8 +223,8 @@ body {
   text-decoration: none;
 }
 .bcq-menu__item:hover {
-  background: var(--bcq-bolt-soft);
+  background: var(--bcq-brand-soft);
 }
 .bcq-menu__item .bcq-icon {
-  color: var(--bcq-club-deep);
+  color: var(--bcq-brand-deep);
 }

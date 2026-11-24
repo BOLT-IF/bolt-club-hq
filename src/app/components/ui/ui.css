@@ -1,25 +1,31 @@
 /*
- * Bolt Club UI kit. Visual language: ink on paper, club green for actions,
- * bolt yellow as a fill (always with ink text). Touch targets are at least 48px.
- * Every colour pair here meets WCAG 2.1 AA contrast.
+ * Bolt IF UI kit. Palette taken from the logo: bolt orange for actions, amber as a
+ * highlight fill, burnt orange for text accents, slate ink for type and chrome, warm
+ * paper behind it all. Actions are orange with ink text (orange is too light for white
+ * text). Touch targets are at least 48px. Every text pair here meets WCAG 2.1 AA.
  */
 
 :root {
-  --bcq-ink: #121826;
-  --bcq-ink-soft: #3b4456;
-  --bcq-muted: #5b6375;
-  --bcq-paper: #f6f4ee;
-  --bcq-card: #fffdf8;
-  --bcq-line: #e3dfd3;
-  --bcq-club: #0b6e4f;
-  --bcq-club-deep: #084f38;
-  --bcq-bolt: #ffc53d;
-  --bcq-bolt-soft: #fff1c2;
+  /* Logo colours */
+  --bcq-ink: #272e38; /* the logo's slate: type, top bar, dark buttons */
+  --bcq-ink-soft: #3d4552;
+  --bcq-muted: #5d6572;
+  --bcq-brand: #fd8d27; /* bolt orange: primary actions, progress */
+  --bcq-brand-hover: #f07b0e;
+  --bcq-brand-deep: #a63406; /* burnt orange: links and accents on light grounds (6.4:1) */
+  --bcq-brand-soft: #fff0dc; /* hover wash and highlights */
+  --bcq-bolt: #febe1d; /* amber: active tab, banner */
+  --bcq-bolt-soft: #fff0dc;
+  /* Surfaces */
+  --bcq-paper: #fbf8f3;
+  --bcq-card: #ffffff;
+  --bcq-line: #ebe5da;
+  /* Status colours stay semantic (not brand) so orange never means "error" or "ok". */
   --bcq-success-bg: #dcf5e6;
   --bcq-success-ink: #0b5133;
-  --bcq-warning-bg: #fff1c2;
-  --bcq-warning-ink: #6b4300;
-  --bcq-danger: #a4161a;
+  --bcq-warning-bg: #ffeab8;
+  --bcq-warning-ink: #6b3d00;
+  --bcq-danger: #b4141a;
   --bcq-danger-bg: #fde4e2;
   --bcq-danger-ink: #8a1014;
   --bcq-info-bg: #e2ebff;
@@ -28,7 +34,7 @@
   --bcq-radius: 14px;
   --bcq-radius-sm: 10px;
   --bcq-touch: 48px;
-  --bcq-shadow: 0 1px 2px rgb(18 24 38 / 0.06), 0 8px 24px rgb(18 24 38 / 0.08);
+  --bcq-shadow: 0 1px 2px rgb(39 46 56 / 0.06), 0 8px 24px rgb(39 46 56 / 0.1);
   --bcq-font: ui-rounded, "SF Pro Rounded", "Avenir Next", "Segoe UI", system-ui, sans-serif;
 }
 
@@ -75,11 +81,11 @@
   cursor: not-allowed;
 }
 .bcq-btn--primary {
-  background: var(--bcq-club);
-  color: #fff;
+  background: var(--bcq-brand);
+  color: var(--bcq-ink);
 }
 .bcq-btn--primary:hover:not(:disabled) {
-  background: var(--bcq-club-deep);
+  background: var(--bcq-brand-hover);
 }
 .bcq-btn--secondary {
   background: var(--bcq-card);
@@ -91,10 +97,10 @@
 }
 .bcq-btn--ghost {
   background: transparent;
-  color: var(--bcq-club-deep);
+  color: var(--bcq-brand-deep);
 }
 .bcq-btn--ghost:hover:not(:disabled) {
-  background: var(--bcq-bolt-soft);
+  background: var(--bcq-brand-soft);
 }
 .bcq-btn--danger {
   background: var(--bcq-danger);
@@ -116,7 +122,7 @@
   white-space: nowrap;
 }
 .bcq-chip--neutral {
-  background: #ebe8df;
+  background: #efe9dd;
   color: var(--bcq-ink-soft);
 }
 .bcq-chip--success {
@@ -147,13 +153,13 @@
 .bcq-spots__track {
   height: 10px;
   border-radius: 999px;
-  background: #e7e3d8;
+  background: #efe9dd;
   overflow: hidden;
 }
 .bcq-spots__fill {
   height: 100%;
   border-radius: 999px;
-  background: linear-gradient(90deg, var(--bcq-club), #1f9d74);
+  background: linear-gradient(90deg, #ff8b28, var(--bcq-bolt));
   transition: width 240ms ease;
 }
 
@@ -178,7 +184,7 @@
   cursor: pointer;
 }
 .bcq-stepper__btn:disabled {
-  background: #b8b4a8;
+  background: #bdb6a8;
   cursor: not-allowed;
 }
 .bcq-stepper__value {
@@ -193,7 +199,7 @@
   position: fixed;
   inset: 0;
   z-index: 50;
-  background: rgb(18 24 38 / 0.45);
+  background: rgb(39 46 56 / 0.5);
   display: flex;
   align-items: flex-end;
   justify-content: center;
@@ -234,7 +240,7 @@
   padding: 0 0.75rem;
   border: none;
   background: transparent;
-  color: var(--bcq-club-deep);
+  color: var(--bcq-brand-deep);
   font: 600 1rem/1 var(--bcq-font);
   cursor: pointer;
 }
@@ -275,7 +281,8 @@
   animation: bcq-rise 200ms ease;
 }
 .bcq-toast--success {
-  background: var(--bcq-club-deep);
+  background: var(--bcq-ink);
+  border-left: 6px solid var(--bcq-bolt);
 }
 .bcq-toast--danger {
   background: var(--bcq-danger);
@@ -317,7 +324,7 @@
 .bcq-skeleton__line {
   height: 14px;
   border-radius: 999px;
-  background: linear-gradient(90deg, #ece8dd 25%, #f8f6f0 50%, #ece8dd 75%);
+  background: linear-gradient(90deg, #f0eadf 25%, #fbf8f3 50%, #f0eadf 75%);
   background-size: 200% 100%;
   animation: bcq-shimmer 1.2s linear infinite;
 }

@@ -21,7 +21,10 @@ const OPTIONS = ["a", "b", "c"];
 describe("validateChoice", () => {
   it("single choice needs exactly one option", () => {
     expect(validateChoice(poll(), OPTIONS, ["a"])).toEqual({ ok: true, optionIds: ["a"] });
-    expect(validateChoice(poll(), OPTIONS, ["a", "b"])).toEqual({ ok: false, error: "single_choice" });
+    expect(validateChoice(poll(), OPTIONS, ["a", "b"])).toEqual({
+      ok: false,
+      error: "single_choice",
+    });
     expect(validateChoice(poll(), OPTIONS, [])).toEqual({ ok: false, error: "no_choice" });
   });
 
@@ -36,7 +39,10 @@ describe("validateChoice", () => {
   });
 
   it("rejects options from another poll and non-string input", () => {
-    expect(validateChoice(poll(), OPTIONS, ["zzz"])).toEqual({ ok: false, error: "unknown_option" });
+    expect(validateChoice(poll(), OPTIONS, ["zzz"])).toEqual({
+      ok: false,
+      error: "unknown_option",
+    });
     expect(validateChoice(poll(), OPTIONS, "a")).toEqual({ ok: false, error: "invalid_body" });
     expect(validateChoice(poll(), OPTIONS, [1])).toEqual({ ok: false, error: "invalid_body" });
   });
@@ -138,7 +144,10 @@ describe("parseCreate", () => {
 
 describe("parsePatch", () => {
   it("allows question, closing and visibility changes", () => {
-    expect(parsePatch({ question: "New?" }, NOW)).toEqual({ ok: true, value: { question: "New?" } });
+    expect(parsePatch({ question: "New?" }, NOW)).toEqual({
+      ok: true,
+      value: { question: "New?" },
+    });
     expect(parsePatch({ close: true }, NOW)).toEqual({ ok: true, value: { closesAt: NOW } });
     expect(parsePatch({ closesAt: null }, NOW)).toEqual({ ok: true, value: { closesAt: null } });
     expect(parsePatch({ resultsVisibility: "admins" }, NOW)).toEqual({

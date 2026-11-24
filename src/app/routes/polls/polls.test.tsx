@@ -140,7 +140,9 @@ describe("PollDetailPage", () => {
     fireEvent.click(screen.getByRole("checkbox", { name: "Blue" }));
     fireEvent.click(screen.getByRole("button", { name: /vote/i }));
     await waitFor(() => {
-      expect(calls.find((c) => c.method === "PUT")?.body).toEqual({ optionIds: ["o_red", "o_blue"] });
+      expect(calls.find((c) => c.method === "PUT")?.body).toEqual({
+        optionIds: ["o_red", "o_blue"],
+      });
     });
   });
 
@@ -148,7 +150,7 @@ describe("PollDetailPage", () => {
     stubApi({ "GET /polls/pol_1": { body: { poll: poll() } } });
     render(withFlag(<PollDetailPage />));
     await screen.findByRole("radio", { name: "Red" });
-    expect((screen.getByRole("button", { name: /vote/i }) as HTMLButtonElement).disabled).toBe(true);
+    expect(screen.getByRole<HTMLButtonElement>("button", { name: /vote/i }).disabled).toBe(true);
   });
 
   it("a closed poll shows results and no voting controls", async () => {
@@ -163,7 +165,9 @@ describe("PollDetailPage", () => {
   it("tells the member when results are hidden", async () => {
     stubApi({
       "GET /polls/pol_1": {
-        body: { poll: poll({ resultsVisible: false, results: null, resultsVisibility: "after_close" }) },
+        body: {
+          poll: poll({ resultsVisible: false, results: null, resultsVisibility: "after_close" }),
+        },
       },
     });
     render(withFlag(<PollDetailPage />));
@@ -178,7 +182,13 @@ describe("PollDetailPage", () => {
 
     const anon = poll({
       anonymous: true,
-      results: { totalVoters: 3, options: [{ optionId: "o_red", votes: 1 }, { optionId: "o_blue", votes: 2 }] },
+      results: {
+        totalVoters: 3,
+        options: [
+          { optionId: "o_red", votes: 1 },
+          { optionId: "o_blue", votes: 2 },
+        ],
+      },
     });
     stubApi({ "GET /polls/pol_1": { body: { poll: anon } } });
     render(withFlag(<PollDetailPage />));
@@ -215,14 +225,18 @@ describe("AdminPollsPage", () => {
       "POST /polls": { status: 201, body: { poll: poll() } },
     });
     render(withFlag(<AdminPollsPage />));
-    fireEvent.change(await screen.findByLabelText(/question/i), { target: { value: "Kit colour?" } });
+    fireEvent.change(await screen.findByLabelText(/question/i), {
+      target: { value: "Kit colour?" },
+    });
     fireEvent.change(screen.getByLabelText("Option 1"), { target: { value: "Red" } });
     fireEvent.change(screen.getByLabelText("Option 2"), { target: { value: "Blue" } });
     fireEvent.click(screen.getByRole("button", { name: /add option/i }));
     fireEvent.change(screen.getByLabelText("Option 3"), { target: { value: "Green" } });
     fireEvent.click(screen.getByLabelText(/allow several choices/i));
     fireEvent.click(screen.getByLabelText(/anonymous/i));
-    fireEvent.change(screen.getByLabelText(/who sees results/i), { target: { value: "after_close" } });
+    fireEvent.change(screen.getByLabelText(/who sees results/i), {
+      target: { value: "after_close" },
+    });
     fireEvent.click(screen.getByRole("button", { name: /create poll/i }));
     await waitFor(() => {
       expect(calls.find((c) => c.method === "POST")?.body).toEqual({

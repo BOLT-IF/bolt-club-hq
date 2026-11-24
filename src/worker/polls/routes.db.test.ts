@@ -113,8 +113,13 @@ describe("poll routes", () => {
       const pending = await makeMember(t.db, { status: "pending" });
       expect((await call(pending.clerkUserId, "GET", "/polls")).status).toBe(403);
       expect((await call(alice.clerkUserId, "GET", "/polls")).status).toBe(200);
-      expect((await call(alice.clerkUserId, "POST", "/polls", { question: "x", options: ["a", "b"] })).status).toBe(403);
-      expect((await call(alice.clerkUserId, "PATCH", `/polls/${p.id}`, { close: true })).status).toBe(403);
+      expect(
+        (await call(alice.clerkUserId, "POST", "/polls", { question: "x", options: ["a", "b"] }))
+          .status,
+      ).toBe(403);
+      expect(
+        (await call(alice.clerkUserId, "PATCH", `/polls/${p.id}`, { close: true })).status,
+      ).toBe(403);
       expect((await call(alice.clerkUserId, "DELETE", `/polls/${p.id}`)).status).toBe(403);
       expect((await call(alice.clerkUserId, "GET", "/polls/nope")).status).toBe(404);
     });
@@ -147,7 +152,9 @@ describe("poll routes", () => {
       const view = await get(alice.clerkUserId, p.id);
       expect(view.myVote.sort()).toEqual([red, blue].sort());
       expect(view.results?.totalVoters).toBe(2);
-      const votes = Object.fromEntries(view.results?.options.map((o) => [o.optionId, o.votes]) ?? []);
+      const votes = Object.fromEntries(
+        view.results?.options.map((o) => [o.optionId, o.votes]) ?? [],
+      );
       expect(votes).toEqual({ [red ?? ""]: 1, [blue ?? ""]: 2, [green ?? ""]: 0 });
     });
 
@@ -230,7 +237,9 @@ describe("poll routes", () => {
       await vote(alice.clerkUserId, p.id, [p.options[0]?.id]);
       clock.set(IN_3_DAYS);
       expect((await get(alice.clerkUserId, p.id)).results).toBeNull();
-      const list = await (await call(alice.clerkUserId, "GET", "/polls")).json<{ polls: PollDto[] }>();
+      const list = await (
+        await call(alice.clerkUserId, "GET", "/polls")
+      ).json<{ polls: PollDto[] }>();
       expect(list.polls[0]?.results).toBeNull();
       expect((await get(admin.clerkUserId, p.id)).results?.totalVoters).toBe(1);
     });
@@ -240,14 +249,20 @@ describe("poll routes", () => {
       const p = await create(admin.clerkUserId);
       await vote(alice.clerkUserId, p.id, [p.options[0]?.id]);
       const v = await get(admin.clerkUserId, p.id);
-      expect(v.results?.options[0]?.voters).toEqual([{ memberId: alice.id, displayName: "Alice Voter" }]);
+      expect(v.results?.options[0]?.voters).toEqual([
+        { memberId: alice.id, displayName: "Alice Voter" },
+      ]);
     });
 
     it("only these settings can change after creation", async () => {
       const { admin } = await cast();
       const p = await create(admin.clerkUserId, { anonymous: true });
-      expect((await call(admin.clerkUserId, "PATCH", `/polls/${p.id}`, { anonymous: false })).status).toBe(400);
-      const res = await call(admin.clerkUserId, "PATCH", `/polls/${p.id}`, { resultsVisibility: "after_close" });
+      expect(
+        (await call(admin.clerkUserId, "PATCH", `/polls/${p.id}`, { anonymous: false })).status,
+      ).toBe(400);
+      const res = await call(admin.clerkUserId, "PATCH", `/polls/${p.id}`, {
+        resultsVisibility: "after_close",
+      });
       expect((await res.json<{ poll: PollDto }>()).poll.resultsVisibility).toBe("after_close");
     });
   });
@@ -273,12 +288,20 @@ describe("poll routes", () => {
       await vote(alice.clerkUserId, p.id, [red, blue]);
       await vote(bob.clerkUserId, p.id, [blue]);
 
-      const secrets = [alice.id, bob.id, alice.clerkUserId, bob.clerkUserId, "Alice Voter", "Bob Voter"];
+      const secrets = [
+        alice.id,
+        bob.id,
+        alice.clerkUserId,
+        bob.clerkUserId,
+        "Alice Voter",
+        "Bob Voter",
+      ];
       const table = sweep(red ?? "");
       const declared = routes.routes
         .filter((r) => r.method !== "ALL")
         .map((r) => `${r.method} ${r.path}`);
-      for (const key of declared) expect(Object.keys(table), `add ${key} to the sweep`).toContain(key);
+      for (const key of declared)
+        expect(Object.keys(table), `add ${key} to the sweep`).toContain(key);
 
       // DELETE last, so the other routes still find the poll.
       const ordered = [...new Set(declared)].sort((a, b) =>
@@ -295,7 +318,9 @@ describe("poll routes", () => {
             const res = await call(viewer.clerkUserId, method, path, table[key]?.body);
             const text = await res.text();
             for (const secret of secrets) {
-              expect(text, `${key} as ${viewer.displayName} leaked ${secret}`).not.toContain(secret);
+              expect(text, `${key} as ${viewer.displayName} leaked ${secret}`).not.toContain(
+                secret,
+              );
             }
             checked++;
           }
@@ -338,7 +363,10 @@ describe("poll routes", () => {
       const p = await create(admin.clerkUserId);
       await vote(alice.clerkUserId, p.id, [p.options[0]?.id]);
       const reminders = () =>
-        t.db.select().from(notification).where(eq(notification.idempotencyKey, `poll-closing:${p.id}:${bob.id}`));
+        t.db
+          .select()
+          .from(notification)
+          .where(eq(notification.idempotencyKey, `poll-closing:${p.id}:${bob.id}`));
 
       clock.set("2027-03-03T11:59:00Z"); // 24h01m before close: too early
       await runClosingReminders({ db: t.db, clock, now: clock.now() });
@@ -349,9 +377,12 @@ describe("poll routes", () => {
       await runClosingReminders({ db: t.db, clock, now: clock.now() });
       expect(await reminders()).toHaveLength(1);
       const all = await t.db.select().from(notification);
-      expect(all.filter((n) => n.idempotencyKey.startsWith("poll-closing:")).map((n) => n.memberId).sort()).toEqual(
-        [admin.id, bob.id].sort(),
-      );
+      expect(
+        all
+          .filter((n) => n.idempotencyKey.startsWith("poll-closing:"))
+          .map((n) => n.memberId)
+          .sort(),
+      ).toEqual([admin.id, bob.id].sort());
 
       clock.set(IN_3_DAYS); // closed polls get no reminder
       const late = await create(admin.clerkUserId, { closesAt: "2027-03-04T13:00:00Z" });

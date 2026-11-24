@@ -2,6 +2,19 @@
 
 Decisions made after `PLAN.md` (v3) was written. Newest first. Every entry gives the decision, the reason, and what it changes.
 
+## 2026-11-24: S9.1 polls resolutions (migration approved by integrator)
+
+- **Migration `0001_polls` (integrator-approved, shipped in the S9.1 PR).** The initial schema could not store multi-choice votes (`poll_vote` PK was `(poll_id, member_id)`) or any poll setting. Adds `poll.multi_choice`, `poll.anonymous`, `poll.results_visibility` (pgEnum `poll_results_visibility`: `always | after_vote | after_close | admins`, default `always`), `poll.created_at`, and changes the `poll_vote` PK to `(poll_id, member_id, option_id)`. Generated with drizzle-kit (SQL, `0001_snapshot.json` and journal). The PK change is not expand-only in general, but the tables are empty in production.
+- **Anonymous means anonymous to everyone, admins included,** and for good: `anonymous` cannot be changed after creation, and neither can the choice mode or the options, so a ballot is never reinterpreted. Voter identities are selected only for named polls whose results the viewer may see. Audit rows snapshot poll settings, never votes. A route-sweep test fails if a new polls route is not checked.
+- **Named polls show voter names** next to the counts, to whoever may see the results. That is the point of a non-anonymous poll.
+- **Visibility:** admins always see results. `after_vote` also opens once the poll is closed, so non-voters learn the outcome. `admins` never opens to members.
+- **Closing:** closed from `closes_at` on (`now >= closes_at`). A vote then gets 409 `poll_closed`. `closesAt` is optional (open until an admin closes it, `PATCH { close: true }`) and must be in the future when set.
+- **Voting is `PUT` and replaces the ballot,** so it is naturally idempotent and needs no `Idempotency-Key` (not a money or RSVP POST). The poll row is locked `FOR UPDATE` so a vote and a concurrent close serialise.
+- **Notifications:** creating a poll notifies every active member once (`polls`, key `poll-created:<poll>:<member>`), in the create transaction. The closing reminder (PLAN §10, 24 h before) goes only to active members who have not voted, once (`poll-closing:<poll>:<member>`), from tick hook `poll-closing-reminders`. `markDue` is called on create and whenever the closing date changes. Tick hooks get no KV, so the hook cannot re-arm `markDue` for a later poll. The scheduler's daily maintenance run covers that, so a reminder can be up to a day late only if a `markDue` write was lost.
+- **Limits:** 2-20 options, labels ≤ 120 chars, case-insensitively distinct. Question ≤ 300 chars. Image options are S9.2.
+- **Delete** removes votes and options too (admin, audited). PLAN lists "CRUD /polls" and nothing references a poll.
+- **Frontend:** `/polls`, `/polls/:id` and `/admin/polls` all register from `src/app/routes/polls/routes.tsx` (S9.1 Owns), behind flag `polls`, which fails closed. `FLAG_POLLS` is not in `wrangler.jsonc` yet (integrator).
+
 ## 2026-11-24: S5.1 ledger core resolutions (ambiguities)
 
 - **Sign convention:** positive = the member owes, negative = credit; a payment is stored negative (PLAN §5.1 says `amount_sek (signed)` but not which way). Callers always pass positive kronor for `charge` and `recordPayment`; the kind sets the sign. `adjust` keeps the caller's sign (a waiver must be negative).

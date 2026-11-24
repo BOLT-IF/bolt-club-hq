@@ -87,12 +87,16 @@ function stub(routes: Record<string, unknown>) {
         headers: new Headers(init?.headers),
       });
       const key = `${method} ${path}`;
-      if (!(key in routes)) return Promise.resolve(new Response(`no stub for ${key}`, { status: 500 }));
+      if (!(key in routes))
+        return Promise.resolve(new Response(`no stub for ${key}`, { status: 500 }));
       const value = routes[key];
       return Promise.resolve(
         value === null
           ? new Response(null, { status: 204 })
-          : new Response(JSON.stringify(value), { status: 200, headers: { "content-type": "application/json" } }),
+          : new Response(JSON.stringify(value), {
+              status: 200,
+              headers: { "content-type": "application/json" },
+            }),
       );
     }),
   });
@@ -176,8 +180,16 @@ describe("TermsPage", () => {
       expect(calls.some((c) => c.method === "POST" && c.path === "/terms")).toBe(true);
     });
     const post = calls.find((c) => c.method === "POST")!;
-    expect(post.body).toEqual({ name: "Spring 2027", startsOn: "2027-01-11", endsOn: "2027-06-24" });
-    expect(calls.filter((c) => c.method === "GET" && c.path === "/terms").length).toBeGreaterThan(1);
+    expect(post.body).toEqual({
+      name: "Spring 2027",
+      startsOn: "2027-01-11",
+      endsOn: "2027-06-24",
+    });
+    await waitFor(() => {
+      expect(calls.filter((c) => c.method === "GET" && c.path === "/terms").length).toBeGreaterThan(
+        1,
+      );
+    });
   });
 
   it("clones a term with an Idempotency-Key and opens the new term", async () => {
@@ -200,7 +212,11 @@ describe("TermsPage", () => {
     });
     const clone = calls.find((c) => c.path === "/terms/t1/clone")!;
     expect(clone.headers.get("Idempotency-Key")).toBeTruthy();
-    expect(clone.body).toEqual({ name: "Autumn 2027", startsOn: "2027-07-05", endsOn: "2027-12-20" });
+    expect(clone.body).toEqual({
+      name: "Autumn 2027",
+      startsOn: "2027-07-05",
+      endsOn: "2027-12-20",
+    });
     await waitFor(() => {
       expect(window.location.pathname).toBe("/admin/terms/t2");
     });
@@ -289,7 +305,9 @@ describe("SeriesPage", () => {
   });
 
   const base = {
-    "GET /series/s1": { series: seriesRow({ captains: [{ id: "m1", displayName: "Ada Captain" }] }) },
+    "GET /series/s1": {
+      series: seriesRow({ captains: [{ id: "m1", displayName: "Ada Captain" }] }),
+    },
     "GET /series/captain-candidates": {
       members: [
         { id: "m1", displayName: "Ada Captain" },
@@ -303,8 +321,12 @@ describe("SeriesPage", () => {
     renderPage(<SeriesPage />);
     expect(await screen.findByRole("heading", { name: "Thursday XD" })).toBeTruthy();
     expect(screen.getByText(/pass cap/i).textContent).toContain("16");
-    expect((screen.getByRole("checkbox", { name: "Ada Captain" }) as HTMLInputElement).checked).toBe(true);
-    expect((screen.getByRole("checkbox", { name: "Bo Player" }) as HTMLInputElement).checked).toBe(false);
+    expect(screen.getByRole<HTMLInputElement>("checkbox", { name: "Ada Captain" }).checked).toBe(
+      true,
+    );
+    expect(screen.getByRole<HTMLInputElement>("checkbox", { name: "Bo Player" }).checked).toBe(
+      false,
+    );
   });
 
   it("saves the chosen captains as a full replacement", async () => {
@@ -338,7 +360,12 @@ describe("SeriesPage", () => {
           headers: new Headers(init?.headers),
         });
         const json = (status: number, body: unknown) =>
-          Promise.resolve(new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } }));
+          Promise.resolve(
+            new Response(JSON.stringify(body), {
+              status,
+              headers: { "content-type": "application/json" },
+            }),
+          );
         if (method === "GET" && path === "/series/s1") return json(200, base["GET /series/s1"]);
         if (method === "GET") return json(200, base["GET /series/captain-candidates"]);
         attempt += 1;

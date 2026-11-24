@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-call -- response bodies are asserted field by field; typing every shape adds nothing. */
 import { and, eq } from "drizzle-orm";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
@@ -63,16 +64,23 @@ describe("terms, series, captains, clone (S3.1)", () => {
     }
     const res = await routes.request(path, init, testEnv);
     const text = await res.text();
-    return { status: res.status, body: (text ? JSON.parse(text) : null) as any, res };
+    return { status: res.status, body: text ? JSON.parse(text) : null, res };
   }
 
-  async function seedTerm(id = "t1", status: "draft" | "open_for_passes" | "active" | "closed" = "draft") {
+  async function seedTerm(
+    id = "t1",
+    status: "draft" | "open_for_passes" | "active" | "closed" = "draft",
+  ) {
     await t.db
       .insert(term)
       .values({ id, name: `Term ${id}`, startsOn: "2027-01-11", endsOn: "2027-06-24", status });
   }
 
-  async function seedSeries(id: string, termId = "t1", overrides: Partial<typeof series.$inferInsert> = {}) {
+  async function seedSeries(
+    id: string,
+    termId = "t1",
+    overrides: Partial<typeof series.$inferInsert> = {},
+  ) {
     await t.db.insert(series).values({
       id,
       termId,
@@ -90,7 +98,12 @@ describe("terms, series, captains, clone (S3.1)", () => {
     });
   }
 
-  async function seedEvent(seriesId: string, id: string, capacity: number, status: "scheduled" | "cancelled" = "scheduled") {
+  async function seedEvent(
+    seriesId: string,
+    id: string,
+    capacity: number,
+    status: "scheduled" | "cancelled" = "scheduled",
+  ) {
     await t.db.insert(event).values({
       id,
       seriesId,
@@ -137,14 +150,22 @@ describe("terms, series, captains, clone (S3.1)", () => {
         endsOn: "2027-06-24",
       });
       expect(res.status).toBe(201);
-      expect(res.body.term).toMatchObject({ name: "Spring 2027", status: "draft", clonedFromTermId: null });
+      expect(res.body.term).toMatchObject({
+        name: "Spring 2027",
+        status: "draft",
+        clonedFromTermId: null,
+      });
       const rows = await t.db.select().from(auditLog).where(eq(auditLog.entity, "term"));
       expect(rows.map((r) => r.action)).toEqual(["term.create"]);
       expect(rows[0]?.actorId).toBe(admin.id);
     });
 
     it("rejects bad input with 422", async () => {
-      const res = await call(admin, "POST", "/terms", { name: "x", startsOn: "2027-06-24", endsOn: "2027-01-11" });
+      const res = await call(admin, "POST", "/terms", {
+        name: "x",
+        startsOn: "2027-06-24",
+        endsOn: "2027-01-11",
+      });
       expect(res.status).toBe(422);
     });
 
@@ -269,11 +290,18 @@ describe("terms, series, captains, clone (S3.1)", () => {
 
       const blocked = await call(admin, "PATCH", "/series/s1", { capacity: 2 });
       expect(blocked.status).toBe(409);
-      expect(blocked.body).toMatchObject({ error: "cap_below_passes_sold", passCap: 2, passesSold: 3 });
+      expect(blocked.body).toMatchObject({
+        error: "cap_below_passes_sold",
+        passCap: 2,
+        passesSold: 3,
+      });
       const [unchanged] = await t.db.select().from(series).where(eq(series.id, "s1"));
       expect(unchanged?.capacity).toBe(16);
 
-      const forced = await call(admin, "PATCH", "/series/s1", { capacity: 2, overrideCapBelowSold: true });
+      const forced = await call(admin, "PATCH", "/series/s1", {
+        capacity: 2,
+        overrideCapBelowSold: true,
+      });
       expect(forced.status).toBe(200);
       expect(forced.body.series.passCap).toBe(2);
       const audits = await t.db.select().from(auditLog).where(eq(auditLog.action, "series.update"));
@@ -317,20 +345,30 @@ describe("terms, series, captains, clone (S3.1)", () => {
     });
 
     it("an admin sets the captains of a series; the set is replaced, not appended", async () => {
-      const first = await call(admin, "PUT", "/series/s1/captains", { memberIds: [captain.id, plain.id] });
+      const first = await call(admin, "PUT", "/series/s1/captains", {
+        memberIds: [captain.id, plain.id],
+      });
       expect(first.status).toBe(200);
-      expect(first.body.series.captains.map((c: { id: string }) => c.id).sort()).toEqual([captain.id, plain.id].sort());
+      expect(first.body.series.captains.map((c: { id: string }) => c.id).sort()).toEqual(
+        [captain.id, plain.id].sort(),
+      );
       const second = await call(admin, "PUT", "/series/s1/captains", { memberIds: [plain.id] });
       expect(second.body.series.captains.map((c: { id: string }) => c.id)).toEqual([plain.id]);
-      expect(await t.db.select().from(seriesCaptain).where(eq(seriesCaptain.seriesId, "s2"))).toHaveLength(0);
+      expect(
+        await t.db.select().from(seriesCaptain).where(eq(seriesCaptain.seriesId, "s2")),
+      ).toHaveLength(0);
     });
 
     it("only active members can be captains (422), and nothing changes on failure", async () => {
       const pending = await makeMember(t.db, { status: "pending" });
-      const res = await call(admin, "PUT", "/series/s1/captains", { memberIds: [captain.id, pending.id] });
+      const res = await call(admin, "PUT", "/series/s1/captains", {
+        memberIds: [captain.id, pending.id],
+      });
       expect(res.status).toBe(422);
       expect(await t.db.select().from(seriesCaptain)).toHaveLength(0);
-      expect((await call(admin, "PUT", "/series/s1/captains", { memberIds: ["ghost"] })).status).toBe(422);
+      expect(
+        (await call(admin, "PUT", "/series/s1/captains", { memberIds: ["ghost"] })).status,
+      ).toBe(422);
     });
 
     it("a captain cannot set captains, not even for their own series", async () => {
@@ -357,13 +395,24 @@ describe("terms, series, captains, clone (S3.1)", () => {
         rsvpCloseOffsetMin: 720,
       });
       expect(ok.status).toBe(200);
-      for (const patch of [{ capacity: 30 }, { passPrice: 1 }, { adhocFee: 0 }, { name: "Mine" }, { overrideCapBelowSold: true }]) {
+      for (const patch of [
+        { capacity: 30 },
+        { passPrice: 1 },
+        { adhocFee: 0 },
+        { name: "Mine" },
+        { overrideCapBelowSold: true },
+      ]) {
         const res = await call(captain, "PATCH", "/series/s1", patch);
         expect(res.status, JSON.stringify(patch)).toBe(403);
         expect(res.body.error).toBe("forbidden_field");
       }
       const [row] = await t.db.select().from(series).where(eq(series.id, "s1"));
-      expect(row).toMatchObject({ capacity: 16, passPrice: 1800, name: "Series s1", location: "Hall B" });
+      expect(row).toMatchObject({
+        capacity: 16,
+        passPrice: 1800,
+        name: "Series s1",
+        location: "Hall B",
+      });
     });
 
     it("a captain cannot create or delete series, or touch terms", async () => {
@@ -376,7 +425,8 @@ describe("terms, series, captains, clone (S3.1)", () => {
 
     it("GET /series lists everything for an admin and only captained series for a captain", async () => {
       await t.db.insert(seriesCaptain).values({ seriesId: "s1", memberId: captain.id });
-      const ids = (r: { body: { series: Array<{ id: string }> } }) => r.body.series.map((s) => s.id).sort();
+      const ids = (r: { body: { series: Array<{ id: string }> } }) =>
+        r.body.series.map((s) => s.id).sort();
       expect(ids(await call(admin, "GET", "/series"))).toEqual(["s1", "s2"]);
       expect(ids(await call(captain, "GET", "/series"))).toEqual(["s1"]);
       expect(ids(await call(plain, "GET", "/series"))).toEqual([]);
@@ -413,7 +463,9 @@ describe("terms, series, captains, clone (S3.1)", () => {
 
     it("copies the series into a new draft term, without events, passes or skip-dates", async () => {
       await seedSource();
-      const res = await call(admin, "POST", "/terms/t1/clone", cloneBody, { "Idempotency-Key": "k1" });
+      const res = await call(admin, "POST", "/terms/t1/clone", cloneBody, {
+        "Idempotency-Key": "k1",
+      });
       expect(res.status).toBe(201);
       expect(res.body.term).toMatchObject({
         name: "Autumn 2027",
@@ -469,14 +521,24 @@ describe("terms, series, captains, clone (S3.1)", () => {
 
     it("defaults the name to 'Copy of <source>' when none is given", async () => {
       await seedSource();
-      const res = await call(admin, "POST", "/terms/t1/clone", { startsOn: "2027-07-05", endsOn: "2027-12-20" }, { "Idempotency-Key": "k1" });
+      const res = await call(
+        admin,
+        "POST",
+        "/terms/t1/clone",
+        { startsOn: "2027-07-05", endsOn: "2027-12-20" },
+        { "Idempotency-Key": "k1" },
+      );
       expect(res.body.term.name).toBe("Copy of Term t1");
     });
 
     it("a replayed Idempotency-Key makes one clone; a missing key is 400", async () => {
       await seedSource();
-      const first = await call(admin, "POST", "/terms/t1/clone", cloneBody, { "Idempotency-Key": "k1" });
-      const again = await call(admin, "POST", "/terms/t1/clone", cloneBody, { "Idempotency-Key": "k1" });
+      const first = await call(admin, "POST", "/terms/t1/clone", cloneBody, {
+        "Idempotency-Key": "k1",
+      });
+      const again = await call(admin, "POST", "/terms/t1/clone", cloneBody, {
+        "Idempotency-Key": "k1",
+      });
       expect(again.status).toBe(201);
       expect(again.body.term.id).toBe(first.body.term.id);
       expect(await t.db.select().from(term)).toHaveLength(2);
@@ -485,10 +547,24 @@ describe("terms, series, captains, clone (S3.1)", () => {
 
     it("404 for an unknown source, 403 for a member, 422 for bad dates", async () => {
       await seedSource();
-      expect((await call(admin, "POST", "/terms/nope/clone", cloneBody, { "Idempotency-Key": "a" })).status).toBe(404);
-      expect((await call(plain, "POST", "/terms/t1/clone", cloneBody, { "Idempotency-Key": "b" })).status).toBe(403);
-      expect((await call(admin, "POST", "/terms/t1/clone", { name: "x" }, { "Idempotency-Key": "c" })).status).toBe(422);
-      expect(await t.db.select().from(term).where(and(eq(term.clonedFromTermId, "t1")))).toHaveLength(0);
+      expect(
+        (await call(admin, "POST", "/terms/nope/clone", cloneBody, { "Idempotency-Key": "a" }))
+          .status,
+      ).toBe(404);
+      expect(
+        (await call(plain, "POST", "/terms/t1/clone", cloneBody, { "Idempotency-Key": "b" }))
+          .status,
+      ).toBe(403);
+      expect(
+        (await call(admin, "POST", "/terms/t1/clone", { name: "x" }, { "Idempotency-Key": "c" }))
+          .status,
+      ).toBe(422);
+      expect(
+        await t.db
+          .select()
+          .from(term)
+          .where(and(eq(term.clonedFromTermId, "t1"))),
+      ).toHaveLength(0);
     });
 
     it("audits the clone", async () => {
@@ -501,7 +577,11 @@ describe("terms, series, captains, clone (S3.1)", () => {
   });
 
   it("uses the injected clock for audit timestamps", async () => {
-    await call(admin, "POST", "/terms", { name: "A", startsOn: "2027-01-11", endsOn: "2027-06-24" });
+    await call(admin, "POST", "/terms", {
+      name: "A",
+      startsOn: "2027-01-11",
+      endsOn: "2027-06-24",
+    });
     const [row] = await t.db.select().from(auditLog);
     expect(row?.at.toISOString()).toBe("2027-01-04T09:00:00.000Z");
     expect((await t.db.select().from(member)).length).toBeGreaterThan(0);

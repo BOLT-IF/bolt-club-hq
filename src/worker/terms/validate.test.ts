@@ -24,14 +24,24 @@ const validSeries = {
 
 describe("term input", () => {
   it("accepts a name and a real date range", () => {
-    const parsed = parseTermCreate({ name: "Spring 2027", startsOn: "2027-01-11", endsOn: "2027-06-24" });
+    const parsed = parseTermCreate({
+      name: "Spring 2027",
+      startsOn: "2027-01-11",
+      endsOn: "2027-06-24",
+    });
     expect(parsed.ok).toBe(true);
   });
 
   it("rejects impossible dates, reversed ranges and blank names", () => {
-    expect(parseTermCreate({ name: "x", startsOn: "2027-02-30", endsOn: "2027-06-01" }).ok).toBe(false);
-    expect(parseTermCreate({ name: "x", startsOn: "2027-06-02", endsOn: "2027-06-01" }).ok).toBe(false);
-    expect(parseTermCreate({ name: "  ", startsOn: "2027-01-01", endsOn: "2027-06-01" }).ok).toBe(false);
+    expect(parseTermCreate({ name: "x", startsOn: "2027-02-30", endsOn: "2027-06-01" }).ok).toBe(
+      false,
+    );
+    expect(parseTermCreate({ name: "x", startsOn: "2027-06-02", endsOn: "2027-06-01" }).ok).toBe(
+      false,
+    );
+    expect(parseTermCreate({ name: "  ", startsOn: "2027-01-01", endsOn: "2027-06-01" }).ok).toBe(
+      false,
+    );
     expect(parseTermCreate(null).ok).toBe(false);
   });
 
@@ -95,7 +105,9 @@ describe("clone input", () => {
   it("needs the new term's dates; the name is optional", () => {
     const parsed = parseClone({ startsOn: "2027-07-05", endsOn: "2027-12-20" });
     expect(parsed.ok && parsed.value.name).toBeUndefined();
-    expect(parseClone({ name: "Autumn", startsOn: "2027-07-05", endsOn: "2027-12-20" }).ok).toBe(true);
+    expect(parseClone({ name: "Autumn", startsOn: "2027-07-05", endsOn: "2027-12-20" }).ok).toBe(
+      true,
+    );
   });
 
   it("rejects a missing or reversed range", () => {

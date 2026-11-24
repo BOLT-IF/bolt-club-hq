@@ -2,6 +2,15 @@
 
 Decisions made after `PLAN.md` (v3) was written. Newest first. Every entry gives the decision, the reason, and what it changes.
 
+## 2026-11-24: S5.5 payment claims
+
+- **Routes** (`src/worker/ledger/claims.ts`, mounted from `routes.ts`): `GET/POST /me/payment-claims` (member, `allowInactive`, so an exited member can settle), `GET /admin/payment-claims` (pending only, oldest `paidOn` first, with name, payment reference, current balance and `isOwn`), `POST /admin/payment-claims/:id/confirm` and `/reject` (`{ reason }`). Every POST needs `Idempotency-Key`, scoped per actor and concrete path.
+- **A claim** is `{ amountSek (whole kronor > 0), paidOn "YYYY-MM-DD" not after today in Stockholm, note? (≤ 500) }`. Its id is derived from member + HTTP key, so a double tap makes one claim even if the replay record were lost. A pending claim never touches the ledger.
+- **Confirm** locks the claim (`FOR UPDATE`), then in one transaction: `recordPayment` with ledger key `claim:<claimId>` and `paymentClaimId`, claim → `confirmed` (`decidedBy`, `decidedAt` from the Clock), audit `payment_claim.confirm`, notify `payment_status` "Payment confirmed". Confirming an already confirmed claim (double tap, second admin) returns 200 with the same `entryId` and writes nothing. A rejected claim can't be confirmed (409 `claim_decided`).
+- **Own claims:** an admin can never confirm or reject their own claim (403 `own_claim`), **even as the only admin**. This is stricter than A11's "only admin, flagged" exception: confirming your own claim is exactly the case the guard exists for. The only admin can still record their own payment through `POST /admin/payments` (flagged).
+- **Reject** needs a non-blank reason (≤ 500, trimmed; 400 `reason_required`). Claim → `rejected` with the reason, audit `payment_claim.reject`, notify `payment_status` with the reason in the body and a link to `/money/claims`. Rejecting again keeps the first reason and doesn't notify again. A confirmed claim can't be rejected (409); undo a wrong confirm with an S5.4 reversal of the payment.
+- **Not shipped (wrap-up):** the member and admin claim screens (`src/app/routes/money/claims*`, `src/app/routes/admin/money/claims*`). The API is complete; screens and their links from MoneyPage/AdminBalances are follow-ups.
+
 ## 2026-11-24: S6.6 broadcasts: audiences, mute, audit
 
 - **Route:** `POST /admin/broadcasts` (admin guard + `Idempotency-Key`), body `{ title, body, audience }`, returns `{ broadcastId, recipientCount }`. Title max 100, body max 1000 characters. Unknown event: 404 `event_not_found`.

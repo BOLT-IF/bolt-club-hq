@@ -6,6 +6,7 @@ import { contextMiddleware } from "../core/context";
 import { requireGuard } from "../core/permissions";
 import type { AppEnv } from "../types";
 import pushRoutes from "./push-routes";
+import prefsRoutes from "./prefs";
 
 /** The guard has run, so an actor exists; fail loudly rather than assert. */
 function actorId(c: Context<AppEnv>): string {
@@ -24,6 +25,7 @@ export default new Hono<AppEnv>()
   .use("/notifications", contextMiddleware())
   .use("/notifications/*", contextMiddleware())
   .route("/", pushRoutes)
+  .route("/", prefsRoutes)
   .get("/notifications", requireGuard("member"), async (c) => {
     const memberId = actorId(c);
     const requested = Number.parseInt(c.req.query("limit") ?? "", 10);

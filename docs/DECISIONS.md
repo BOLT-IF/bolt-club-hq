@@ -15,6 +15,51 @@ Decisions made after `PLAN.md` (v3) was written. Newest first. Every entry gives
 - **Delete** removes votes and options too (admin, audited). PLAN lists "CRUD /polls" and nothing references a poll.
 - **Frontend:** `/polls`, `/polls/:id` and `/admin/polls` all register from `src/app/routes/polls/routes.tsx` (S9.1 Owns), behind flag `polls`, which fails closed. `FLAG_POLLS` is not in `wrangler.jsonc` yet (integrator).
 
+## 2026-11-24: Integrator queue: polls migration 0001; push wake-up from notify
+
+- **`docs/DECISIONS.md` uses `merge=union`** (`.gitattributes`). Every story prepends a section, so parallel PRs conflicted on every merge of main; union keeps both sides automatically. Check the order of new sections after a merge.
+
+- **S9.1 ships migration `0001`** (expand-only, tables empty in production): `poll` gains `multi_choice`, `anonymous`, `results_visibility` (enum) and `created_at`; the `poll_vote` key becomes (poll, member, option) so multi-choice votes fit. The initial schema could not store PLAN §10's poll rules. S9.1 owns `db/schema/comms.ts`, `db/migrations/` and the migration test (which now expects a contiguous chain from `0000_initial.sql`) for this change only. The single-chain CI check stays.
+- **S6.2 adds one `markPushDue(...)` call in `notify.ts`** after the `outbound_push` insert, so a queued push wakes the S6.4 scheduler instead of waiting for the daily run.
+
+## 2026-11-24: Owns globs are prefixes; nested backend routes mount through the area's routes.ts
+
+- **`check-owns.sh` treats a trailing `*` as a prefix match.** STORIES.md writes many Owns entries as `close*`, `claims*`, `policies/mute*`, but the check compared them literally, so every file such a story added failed. `close*` now accepts `close.ts`, `close.db.test.ts` and `close/…`, but not `claim.ts`. Found by S6.3.
+- **The backend registry only loads `src/worker/<area>/routes.ts`.** A story whose Owns covers only part of an area (e.g. `prefs*`, `close*`, `claims*`) exports a Hono sub-app from its own file, and the area's `routes.ts` gets a one-line `.route("/", subApp)` mount. The integrator adds that `routes.ts` to the story's Owns line as a sanctioned exception when asked. Pattern first used by S6.3.
+- **Notifications settings live at `/settings/notifications`** (S6.3 owns `src/app/routes/settings/notifications*`). The More menu link moves there from `/profile/notifications`, which S2.1's `profile/` would otherwise have to host.
+## 2026-11-24: S3.1 terms, series, captains, clone: ambiguities resolved
+
+Each is the most conservative reading of PLAN; change here if the product intent differs.
+
+- **Term dates are fixed after draft.** `startsOn`/`endsOn` can change only while the term is a draft (409 `dates_locked` after). Series and passes are priced against them (§6.5). The name can always change.
+- **Status only moves one step forward.** No reopening, no skipping. A closed term takes no new series and no series edits (409 `term_closed`).
+- **Delete is for empty drafts only.** A term with series, or past draft, cannot be deleted; a series with any event or pass cannot be deleted. Nothing else is removed, so history stays intact.
+- **Captains are admin-appointed and edit operations only.** A captain may change `location`, `maxGuestsDefault` and `rsvpCloseOffsetMin` of their own series. Capacity, prices, name, format, schedule and captains stay admin-only (PLAN §4 says captains edit "close time, guest limit, capacity"; capacity is held back because it moves `pass_cap` and the cap-below-sold override is an admin power in §6.6). Say so if captains should edit capacity.
+- **Captains must be active members.** Pending, inactive and erased members are rejected (422 `invalid_captains`). `PUT /series/:id/captains` replaces the whole set.
+- **`pass_cap` counts non-cancelled events only** (A8) and is recomputed on every series edit. Passes counted against it are those with status `active`.
+- **Clone copies series fields only.** Captains are not copied (a new term may have new organisers); skip-dates are not copied (dates differ); `skip_dates_locked` resets to false; `pass_cap` resets to capacity. Name defaults to "Copy of <source>". Clone requires an `Idempotency-Key` because a double tap would otherwise create two terms.
+- **Series slug lives in S3.1 for now.** S3.0 owns event slugs and the shared helper. Series need a unique `share_slug` at creation, so `src/worker/terms/routes.ts` has a small private generator (10 chars, no look-alike characters). Fold into S3.0's helper later if it exports one.
+- **Weekday is ISO 1 to 7** (Monday = 1), matching what S3.2 will need for local-time maths. `start_time` is `HH:MM` in club (Stockholm) local time.
+- **Defaults on create:** `maxGuestsDefault` 1 (PLAN §2), `rsvpCloseOffsetMin` 1440.
+- **Scoped context middleware.** Routes use `.use("/terms", ...)`, `.use("/terms/*", ...)` and the same for `/series`, not `"*"`, per the integrator's contract correction (a `"*"` leaks onto other areas). `scope.test.ts` asserts that.
+- **UI uses a minimal local test helper, not `@testing-library/user-event`** (not installed, no dependency changes in a story).
+
+## 2026-11-24: S1.1 Clerk integration: resolutions
+
+- **Google in the installed iOS app: hidden, provisionally.** S0.6 (device spike) has not run. `GOOGLE_HIDDEN_IN_INSTALLED_IOS = true` in `src/app/auth/google.ts` hides Google when the client is iOS and standalone; everywhere else (Safari, Android, desktop) Google shows, below the email form. Flip the one constant when S0.6 reports. **Provisional pending S0.6.**
+- **Issuer and JWKS come from `CLERK_PUBLISHABLE_KEY`** (it embeds the Frontend API host). Tokens must be issued by `https://<that host>`. No audience or `azp` check: Clerk session tokens carry none, and one Clerk instance serves one site.
+- **JWKS cache:** per isolate, refreshed on unknown `kid` (at most once a minute, so forged tokens cannot force fetches), and after one hour. A failed fetch fails closed (401).
+- **First-sign-in profile** (name, email) is read once from the Clerk Backend API with `CLERK_SECRET_KEY`. The JWT has no email by default and we avoid a custom JWT template. Only the **primary, Clerk-verified** email is used, so an unverified address can never become the bootstrap admin. If the Clerk call fails, nothing is created and the request errors; the client retries.
+- **Bootstrap admin is re-asserted on every request** (not only first sign-in), to "re-apply on every deploy" (PLAN §6) without a deploy hook: a bootstrap-email member who is demoted, deactivated or missing `joined_at` is restored to `admin` + `active`, with an audit row. Erased members are never touched. The cost is that the bootstrap address cannot be demoted by an admin while the variable is set; clear the variable to retire it.
+- **Bootstrap admin starts `active`**, other first-time users start `pending` (PLAN A2).
+- **Race safety:** the member insert is `ON CONFLICT (clerk_user_id) DO NOTHING` inside a transaction with the `member.created` audit row, so concurrent first requests create one member and one audit row. `payment_ref` is a random `BC-XXXXXX` (unambiguous alphabet) retried up to 3 times on collision. S2.1 may replace the format; it only needs to stay unique.
+- **`GET /api/v1/me`** is the one route that lets pending members through (`requireSignedIn()`, marked as a guard for the route-guard lint). Its contextMiddleware is scoped to `/me`, per the W2 contract-2 correction.
+- **Origin check** is a `use("*")` in `src/worker/auth/routes.ts`. Hono mounts it for routes registered after `auth`, i.e. every area that sorts after it in the glob (all current ones). It does not open a database, so the "`*` leaks context" problem does not apply. If an area ever sorts before `auth` it would be unprotected; the integrator may move the guard into `app.ts` later (out of S1.1's Owns).
+- **Sign-in intent** lives in `localStorage` (not sessionStorage) because email-link and Google redirects can reopen the app in a new tab or window. 30-minute expiry, consumed once. This story stores and restores `returnTo` and an opaque `rsvp {eventSlug, response}`; completing the RSVP is S4.x/S1.3's job.
+- **Without `VITE_CLERK_PUBLISHABLE_KEY`** (dev, CI, e2e) the app renders without Clerk; `/sign-in` says sign-in is not set up. **Ashok's queue: set `VITE_CLERK_PUBLISHABLE_KEY` as a build variable, and `CLERK_PUBLISHABLE_KEY`, `CLERK_SECRET_KEY`, `BOOTSTRAP_ADMIN_EMAIL` as Worker secrets.**
+- **Playwright via Clerk testing tokens: deferred.** It needs real Clerk keys in CI and `@clerk/testing`, which is not installed (no dependency changes). Behaviour is covered by Vitest (JWT fixtures, db suite, UI).
+- **`logout`** clears caches even when Clerk sign-out fails (offline), then reports the failure.
+
 ## 2026-11-24: S2.3 club settings: public subset is a guarded route, not part of `/config`
 
 - **Choice:** the member-visible settings are served at `GET /api/v1/settings/public` (`requireGuard("member")`, in `src/worker/settings/routes.ts`). `/config` is unchanged and stays anonymous. This touches nothing outside S2.3's Owns, so no contract-change PR was needed.

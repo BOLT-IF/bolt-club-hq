@@ -373,7 +373,7 @@ Login is off the critical path. From W2 on, stories use the **test-identity over
   - There is no refund path.
 
 ### S5.4 Admin balances, payments, adjustments: M · W3
-- **Depends on:** S5.1, S2.1 · **Owns:** `src/worker/ledger/admin*`, `src/app/routes/admin/money/` (except claims and export)
+- **Depends on:** S5.1, S2.1 · **Owns:** `src/worker/ledger/admin*`, `src/app/routes/admin/money/` (except claims and export), plus integrator-sanctioned (2026-11-24): `src/worker/ledger/routes.ts` (one-line mount of the admin sub-app)
 - **Tests first:**
   - Members get 403.
   - A payment updates the balance and the FIFO allocation.

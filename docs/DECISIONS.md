@@ -2,6 +2,11 @@
 
 Decisions made after `PLAN.md` (v3) was written. Newest first. Every entry gives the decision, the reason, and what it changes.
 
+## 2026-11-24: Integrator queue: polls migration 0001; push wake-up from notify
+
+- **S9.1 ships migration `0001`** (expand-only, tables empty in production): `poll` gains `multi_choice`, `anonymous`, `results_visibility` (enum) and `created_at`; the `poll_vote` key becomes (poll, member, option) so multi-choice votes fit. The initial schema could not store PLAN §10's poll rules. S9.1 owns `db/schema/comms.ts`, `db/migrations/` and the migration test (which now expects a contiguous chain from `0000_initial.sql`) for this change only. The single-chain CI check stays.
+- **S6.2 adds one `markPushDue(...)` call in `notify.ts`** after the `outbound_push` insert, so a queued push wakes the S6.4 scheduler instead of waiting for the daily run.
+
 ## 2026-11-24: Owns globs are prefixes; nested backend routes mount through the area's routes.ts
 
 - **`check-owns.sh` treats a trailing `*` as a prefix match.** STORIES.md writes many Owns entries as `close*`, `claims*`, `policies/mute*`, but the check compared them literally, so every file such a story added failed. `close*` now accepts `close.ts`, `close.db.test.ts` and `close/…`, but not `claim.ts`. Found by S6.3.

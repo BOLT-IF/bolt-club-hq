@@ -410,7 +410,7 @@ Login is off the critical path. From W2 on, stories use the **test-identity over
   - A policy can suppress the push while the inbox entry is still written.
 
 ### S6.2 Web push from the Worker: M · W3
-- **Depends on:** S6.1, S0.3, S0.6 · **Owns:** `src/worker/notifications/push*`, `src/worker/notifications/policies/quiet-hours*`, `src/sw/push*`, plus integrator-sanctioned (2026-11-24): `src/worker/notifications/routes.ts` (one-line mount of the push sub-app), `src/sw/sw.ts` (`import "./push"`), `vitest.config.ts` (ui project also runs `src/sw/**/*.test.ts`)
+- **Depends on:** S6.1, S0.3, S0.6 · **Owns:** `src/worker/notifications/push*`, `src/worker/notifications/policies/quiet-hours*`, `src/sw/push*`, plus integrator-sanctioned (2026-11-24): `src/worker/notifications/routes.ts` (one-line mount of the push sub-app), `src/sw/sw.ts` (`import "./push"`), `vitest.config.ts` (ui project also runs `src/sw/**/*.test.ts`), `src/worker/notifications/notify.ts` (one `markPushDue` call + import after the outbound_push insert)
 - VAPID with a WebCrypto encryption library.
 - Pushes are sent from a cron hook in **batches** sized per the S0.6 measurement.
 - The client re-subscribes on every app open. The service worker always calls `showNotification`.
@@ -521,7 +521,7 @@ Login is off the critical path. From W2 on, stories use the **test-identity over
 ## E9: Polls
 
 ### S9.1 Polls: M · W4
-- **Depends on:** S6.1, S6.4 · **Owns:** `src/worker/polls/`, `src/app/routes/polls/`
+- **Depends on:** S6.1, S6.4 · **Owns:** `src/worker/polls/`, `src/app/routes/polls/`, plus integrator-approved migration (2026-11-24): `db/schema/comms.ts`, `db/migrations/`, `src/worker/core/db/migration.test.ts` (expect a contiguous chain, not exactly one file)
 - **Tests first:**
   - Single- and multi-choice rules are enforced.
   - Voting after close is rejected.

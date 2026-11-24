@@ -2,6 +2,12 @@
 
 Decisions made after `PLAN.md` (v3) was written. Newest first. Every entry gives the decision, the reason, and what it changes.
 
+## 2026-11-24: S6.3 mute policy and preferences
+
+- **Mute is push-only.** `policies/mute.ts` (order 10) suppresses the push when `member.global_mute` is set, else when the member's `notification_pref` row for the category has `muted = true`. Global mute wins even over a per-category `muted = false`. No row means on, so everything is on by default. The inbox row is written before the chain, so a muted member still gets inbox entries (also required by S6.5a and S6.6).
+- **Prefs API** lives in `notifications/prefs.ts` as a sub-app mounted by `notifications/routes.ts` (one added `.route("/", prefsRoutes)` line, because the registry only globs `<area>/routes.ts` and the story Owns line had no routes file). Only `GET`/`PUT /notifications/prefs`, own row only, member guard. `PUT` is partial and sets absolute values, so it needs no `Idempotency-Key` (not money or RSVP). Bad or unknown input is a 400 and nothing is written. `admin_tasks` is neither listed nor settable for non-admins.
+- **Screen path is `/settings/notifications`.** The More menu links `/profile/notifications`, but `routes/profile/` belongs to S2.1 and S6.3 does not own it; two route files cannot claim one path. The integrator repoints `navigation.ts`.
+- **API client stays inside the screen folder** (`routes/settings/notifications/prefsApi.ts`), since `src/app/api/notifications.ts` is S6.1's.
 ## 2026-11-24: S5.4 admin balances, payments, adjustments (ambiguities)
 
 - **One `POST /admin/adjustments` with a `type`**, because PLAN §11 lists a single route. `waiver` + `entryId` reverses a charge or positive adjustment (a reversal with reason `waiver`). `waiver` + `memberId` + `amountSek` writes off part of a balance (a negative adjustment with reason `waiver`). `charge` + `memberId` + `amountSek` is a manual charge (reason `manual`). `reversal` + `entryId` undoes any non-reversal entry, for example a payment recorded on the wrong member, and keeps the original's reason. Amounts in the body are always positive whole kronor; the type sets the sign.

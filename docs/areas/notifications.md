@@ -46,3 +46,10 @@ S6.2 owns the sender: a cron hook that takes `outbound_push` rows with status `q
 ## Screen
 
 `/inbox` (flag `FLAG_INBOX`, still off): list, unread chip, tap opens the deep link and marks read, "Mark all read".
+
+## Mute and preferences (S6.3)
+
+- Policy `policies/mute.ts` (order 10): `member.global_mute` suppresses every push; otherwise a `notification_pref` row with `muted = true` for the category suppresses it. No row means on. The inbox row is always written.
+- `GET /notifications/prefs` → `{ globalMute, categories: [{ category, muted }] }` (all categories, `admin_tasks` for admins only).
+- `PUT /notifications/prefs` body `{ globalMute?: boolean, categories?: { [category]: boolean } }` (`true` = muted). Partial updates; unknown or not-allowed category, or non-boolean → 400. Sets absolute values, so no `Idempotency-Key`.
+- Screen `/settings/notifications`: one switch per category (on = pushed) plus "Mute all notifications". The More menu still points at `/profile/notifications`, which nothing registers yet (integrator: repoint `navigation.ts`).

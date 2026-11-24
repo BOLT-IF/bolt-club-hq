@@ -13,6 +13,13 @@ Decisions made after `PLAN.md` (v3) was written. Newest first. Every entry gives
 - **Exited (inactive) members can still have payments and adjustments recorded**, because their balance stays due (PLAN §6.7).
 - **The balances list returns every member with a balance**, and search (by name or payment reference) and filters run in the browser. That's fine for a club-sized list; paginate if it ever grows past a few hundred rows.
 - **The pages are gated on the `money` flag** (`FLAG_MONEY`, off). The admin index entry already exists; the integrator flips the flag.
+## 2026-11-24: S6.6 broadcasts: audiences, mute, audit
+
+- **Route:** `POST /admin/broadcasts` (admin guard + `Idempotency-Key`), body `{ title, body, audience }`, returns `{ broadcastId, recipientCount }`. Title max 100, body max 1000 characters. Unknown event: 404 `event_not_found`.
+- **Audiences** query the tables directly and only ever include `active` members (pending, exited and erased members get nothing): `all`; `pass_holders` (active passes, optionally one series); `event_rsvps` (RSVPs in `requested`, `confirmed`, `waitlisted`, `offered`; cancelled and late-cancelled are left out; the event may be named by id or share slug); `captains` (`series_captain`, optionally one series). Conservative reading: PLAN names the four audiences but not the RSVP statuses.
+- **Sending** goes through `createNotifyPort` with category `announcements`, one call per member, idempotency key `broadcast:<id>:<memberId>`. The inbox row is always written; mute (S6.3, order 10) and the rest of the policy chain decide only about the push. An event audience deep-links to `/events/<slug>`; others use the category default.
+- **Audit:** one `audit()` row per broadcast (`broadcast.send`, entity `broadcast`), written in the same transaction, also when there are zero recipients. Its id is derived from the broadcast id, which doubles as the "already sent" check, so a retry sends and audits once. The route derives the broadcast id from actor + `Idempotency-Key`.
+- **Not in v1:** scheduling and an event picker (the screen takes an event ID or share slug).
 
 ## 2026-11-24: Integrator queue: polls migration 0001; push wake-up from notify
 

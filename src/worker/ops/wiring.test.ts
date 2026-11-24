@@ -1,8 +1,16 @@
 import { env, exports } from "cloudflare:workers";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import worker from "../index";
 import { registerCronHook, resetCronHooks } from "../core/cron";
+import { resetTickHooks } from "../scheduler/registry";
+import {
+  CRON_FREQUENT,
+  CRON_HOURLY,
+  LAST_RUN_KEY,
+  LOCK_KEY,
+  NEXT_DUE_KEY,
+} from "../scheduler/schedule";
 import { LAST_TICK_KEY } from "./health";
 import { REQUEST_ID_HEADER } from "./logging";
 
@@ -15,9 +23,16 @@ function runCron(cron: string): Promise<void> {
   return worker.scheduled({ cron, scheduledTime: 0, noRetry: () => undefined }, env);
 }
 
+beforeEach(() => {
+  // The built-in maintenance hook needs a real database; these tests only cover wiring.
+  resetTickHooks();
+});
+
 afterEach(async () => {
   resetCronHooks();
-  await env.KV.delete(LAST_TICK_KEY);
+  await Promise.all(
+    [LAST_TICK_KEY, LAST_RUN_KEY, LOCK_KEY, NEXT_DUE_KEY].map((key) => env.KV.delete(key)),
+  );
 });
 
 describe("/healthz (liveness)", () => {
@@ -43,7 +58,7 @@ describe("/healthz/ready (readiness)", () => {
   });
 
   it("is ok right after the scheduled handler runs", async () => {
-    await runCron("0 * * * *");
+    await runCron(CRON_HOURLY);
     const res = await exports.default.fetch(`${base}/healthz/ready`);
     expect(res.status).toBe(200);
     expect(await res.json()).toMatchObject({ status: "ok", tick: { stale: false } });
@@ -53,30 +68,30 @@ describe("/healthz/ready (readiness)", () => {
 describe("scheduled()", () => {
   it("records the tick and runs only the hooks registered for that cron", async () => {
     const ran: string[] = [];
-    registerCronHook("*/10 5-21 * * *", ({ cron }) => {
+    registerCronHook(CRON_FREQUENT, ({ cron }) => {
       ran.push(cron);
       return Promise.resolve();
     });
-    registerCronHook("0 * * * *", () => {
+    registerCronHook(CRON_HOURLY, () => {
       ran.push("wrong cron");
       return Promise.resolve();
     });
 
-    await runCron("*/10 5-21 * * *");
+    await runCron(CRON_FREQUENT);
 
-    expect(ran).toEqual(["*/10 5-21 * * *"]);
+    expect(ran).toEqual([CRON_FREQUENT]);
     expect(await env.KV.get(LAST_TICK_KEY)).toMatch(/^\d+$/);
   });
 
   it("still records the tick and runs the other hooks when one throws, then rethrows", async () => {
     let otherRan = false;
-    registerCronHook("0 * * * *", () => Promise.reject(new Error("hook failed")));
-    registerCronHook("0 * * * *", () => {
+    registerCronHook(CRON_HOURLY, () => Promise.reject(new Error("hook failed")));
+    registerCronHook(CRON_HOURLY, () => {
       otherRan = true;
       return Promise.resolve();
     });
 
-    await expect(runCron("0 * * * *")).rejects.toThrow("hook failed");
+    await expect(runCron(CRON_HOURLY)).rejects.toThrow("hook failed");
     expect(otherRan).toBe(true);
     expect(await env.KV.get(LAST_TICK_KEY)).toMatch(/^\d+$/);
   });

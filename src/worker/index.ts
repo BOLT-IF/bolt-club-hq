@@ -1,8 +1,6 @@
 import { createApp } from "./app";
-import { systemClock } from "./core/clock";
-import { cronHooksFor } from "./core/cron";
-import { recordTick } from "./ops/health";
 import { createSentryReporter } from "./ops/sentry";
+import { runScheduled } from "./scheduler/run";
 
 const app = createApp();
 
@@ -32,19 +30,11 @@ export default {
   },
 
   /**
-   * Cron Triggers (wrangler.jsonc). Records the tick first, so `/healthz/ready` sees
-   * the cron is alive even when a hook fails, then runs the hooks registered for
-   * this cron. A failing hook does not stop the others; the first error is rethrown
-   * so Cloudflare marks the run as failed.
+   * Cron Triggers (wrangler.jsonc). The scheduler (src/worker/scheduler/run.ts) records
+   * the tick, takes the overlap lock, runs the hooks only when `next_due_at` says work
+   * is due, and rethrows the first failure so Cloudflare marks the run as failed.
    */
   async scheduled(controller: ScheduledController, env: Cloudflare.Env): Promise<void> {
-    await recordTick(env.KV, systemClock);
-    const results = await Promise.allSettled(
-      cronHooksFor(controller.cron).map((hook) =>
-        hook({ scheduledAt: new Date(controller.scheduledTime), cron: controller.cron }),
-      ),
-    );
-    const failed = results.find((r): r is PromiseRejectedResult => r.status === "rejected");
-    if (failed) throw failed.reason;
+    await runScheduled(controller, env);
   },
 } satisfies ExportedHandler<Cloudflare.Env>;

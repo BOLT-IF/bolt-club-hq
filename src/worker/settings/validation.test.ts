@@ -100,7 +100,11 @@ describe("validateSettingsInput", () => {
   it("normalises bank details and requires at least one of IBAN or bankgiro", () => {
     const ok = validateSettingsInput({
       ...valid,
-      bank: { accountHolder: " Bolt IF ", iban: "se45 5000 0000 0583 9825 7466", bankgiro: "54029681" },
+      bank: {
+        accountHolder: " Bolt IF ",
+        iban: "se45 5000 0000 0583 9825 7466",
+        bankgiro: "54029681",
+      },
     });
     expect(ok.ok && ok.value.bank).toEqual({
       accountHolder: "Bolt IF",

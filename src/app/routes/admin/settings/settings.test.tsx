@@ -40,15 +40,25 @@ afterEach(() => {
 });
 
 describe("admin settings page", () => {
-  let fetchMock: ReturnType<typeof vi.fn>;
+  type Call = { url: string; method: string; body: unknown };
+  let calls: Call[];
+  let respond: (call: Call) => Response;
 
   beforeEach(() => {
-    fetchMock = vi.fn((_url: string, init?: RequestInit) =>
-      Promise.resolve(
-        init?.method === "PUT" ? json(200, JSON.parse(String(init.body))) : json(200, loaded),
-      ),
-    );
-    configureApiClient({ fetch: fetchMock as never });
+    calls = [];
+    respond = (call) => (call.method === "PUT" ? json(200, call.body) : json(200, loaded));
+    configureApiClient({
+      fetch: (url, init) => {
+        const raw = init?.body;
+        const call: Call = {
+          url,
+          method: init?.method ?? "GET",
+          body: typeof raw === "string" ? (JSON.parse(raw) as unknown) : undefined,
+        };
+        calls.push(call);
+        return Promise.resolve(respond(call));
+      },
+    });
   });
 
   it("registers at /admin/settings", () => {
@@ -73,29 +83,21 @@ describe("admin settings page", () => {
     fireEvent.change(url, { target: { value: "https://roster.example.se" } });
     fireEvent.click(screen.getByRole("button", { name: "Save settings" }));
 
-    await waitFor(() => {
-      expect(fetchMock.mock.calls.some(([, init]) => (init as RequestInit)?.method === "PUT")).toBe(
-        true,
-      );
-    });
-    const put = fetchMock.mock.calls.find(([, init]) => (init as RequestInit)?.method === "PUT")!;
-    expect(put[0]).toBe("/api/v1/admin/settings");
-    expect(JSON.parse(String((put[1] as RequestInit).body))).toMatchObject({
+    expect(await screen.findByText("Settings saved")).toBeTruthy();
+    const put = calls.find((call) => call.method === "PUT")!;
+    expect(put.url).toBe("/api/v1/admin/settings");
+    expect(put.body).toMatchObject({
       clubName: "Bolt IF",
       rosterAppUrl: "https://roster.example.se",
       passUnpaidRevokeDays: 21,
     });
-    expect(await screen.findByText("Settings saved")).toBeTruthy();
   });
 
   it("shows the server's field errors next to the field", async () => {
-    fetchMock.mockImplementation((_url: string, init?: RequestInit) =>
-      Promise.resolve(
-        init?.method === "PUT"
-          ? json(400, { error: "validation", fields: { "bank.iban": "Enter a valid IBAN" } })
-          : json(200, loaded),
-      ),
-    );
+    respond = (call) =>
+      call.method === "PUT"
+        ? json(400, { error: "validation", fields: { "bank.iban": "Enter a valid IBAN" } })
+        : json(200, loaded);
     renderPage();
     await screen.findByLabelText("IBAN");
     fireEvent.click(screen.getByRole("button", { name: "Save settings" }));
@@ -108,7 +110,7 @@ describe("admin settings page", () => {
   });
 
   it("tells a non-admin they cannot open it", async () => {
-    fetchMock.mockImplementation(() => Promise.resolve(json(403, { error: "forbidden" })));
+    respond = () => json(403, { error: "forbidden" });
     renderPage();
     expect(await screen.findByText("Admins only")).toBeTruthy();
   });

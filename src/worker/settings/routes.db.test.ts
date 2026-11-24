@@ -44,8 +44,8 @@ describe("club settings routes", () => {
   const as = (clerkUserId?: string): Record<string, string> =>
     clerkUserId ? { [TEST_IDENTITY_HEADER]: clerkUserId } : {};
 
-  const get = (path: string, who?: string, routes = settingsRoutes) =>
-    routes.request(path, { headers: as(who) }, testEnv);
+  const get = (path: string, who?: string) =>
+    settingsRoutes.request(path, { headers: as(who) }, testEnv);
 
   const put = (payload: unknown, who?: string) =>
     settingsRoutes.request(
@@ -89,9 +89,9 @@ describe("club settings routes", () => {
     const res = await put(body, admin.clerkUserId);
     expect(res.status).toBe(200);
 
-    const saved = await (await get("/admin/settings", admin.clerkUserId)).json<
-      typeof body & { rosterAppUrl: string }
-    >();
+    const saved = await (
+      await get("/admin/settings", admin.clerkUserId)
+    ).json<typeof body & { rosterAppUrl: string }>();
     expect(saved).toMatchObject({
       clubName: "Bolt IF Badminton",
       passUnpaidRevokeDays: 14,
@@ -171,7 +171,13 @@ describe("club settings routes", () => {
       rosterAppUrl: "https://roster.example.se",
     });
     const text = JSON.stringify(pub);
-    for (const secret of ["3010", "accountCodes", "passUnpaidRevokeDays", "autoPromoteCutoffMin", "defaults"]) {
+    for (const secret of [
+      "3010",
+      "accountCodes",
+      "passUnpaidRevokeDays",
+      "autoPromoteCutoffMin",
+      "defaults",
+    ]) {
       expect(text).not.toContain(secret);
     }
   });
@@ -180,7 +186,7 @@ describe("club settings routes", () => {
     const admin = await makeMember(t.db, { role: "admin" });
     await put(body, admin.clerkUserId);
 
-    const res = await get("/config", undefined, configRoutes as unknown as typeof settingsRoutes);
+    const res = await configRoutes.request("/config", {}, testEnv);
     expect(res.status).toBe(200);
     const text = JSON.stringify(await res.json());
     for (const secret of [IBAN, "5402-9681", "3010", "Bolt IF", "passUnpaidRevokeDays"]) {

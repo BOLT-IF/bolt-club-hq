@@ -410,7 +410,7 @@ Login is off the critical path. From W2 on, stories use the **test-identity over
   - A policy can suppress the push while the inbox entry is still written.
 
 ### S6.2 Web push from the Worker: M · W3
-- **Depends on:** S6.1, S0.3, S0.6 · **Owns:** `src/worker/notifications/push*`, `src/worker/notifications/policies/quiet-hours*`, `src/sw/push*`, plus integrator-sanctioned (2026-11-24): `src/worker/notifications/routes.ts` (one-line mount of the push sub-app)
+- **Depends on:** S6.1, S0.3, S0.6 · **Owns:** `src/worker/notifications/push*`, `src/worker/notifications/policies/quiet-hours*`, `src/sw/push*`, plus integrator-sanctioned (2026-11-24): `src/worker/notifications/routes.ts` (one-line mount of the push sub-app), `src/sw/sw.ts` (`import "./push"`), `vitest.config.ts` (ui project also runs `src/sw/**/*.test.ts`)
 - VAPID with a WebCrypto encryption library.
 - Pushes are sent from a cron hook in **batches** sized per the S0.6 measurement.
 - The client re-subscribes on every app open. The service worker always calls `showNotification`.

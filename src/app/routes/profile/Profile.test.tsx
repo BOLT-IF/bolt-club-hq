@@ -69,13 +69,13 @@ describe("profile page", () => {
     fireEvent.change(roster, { target: { value: "Ada" } });
     fireEvent.change(screen.getByLabelText("Display name"), { target: { value: "Ada L" } });
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
-    await waitFor(() =>
+    await waitFor(() => {
       expect(calls).toContainEqual({
         method: "PATCH",
         path: "/members/m1",
         body: { displayName: "Ada L", rosterName: "Ada" },
-      }),
-    );
+      });
+    });
     expect(await screen.findByText("Profile saved")).toBeTruthy();
   });
 

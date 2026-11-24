@@ -2,6 +2,18 @@
 
 Decisions made after `PLAN.md` (v3) was written. Newest first. Every entry gives the decision, the reason, and what it changes.
 
+## 2026-11-24: S2.1 members, roles, exit lifecycle (ambiguities)
+
+- **`rsvp.cancel` is a local port.** The RSVP area does not exist yet, so `src/worker/members/rsvp-cancel.ts` defines `RsvpCancelPort.cancelFutureRsvps({ memberId, at, idempotencyKey })`, a recording fake (`rsvp-cancel.fake.ts`, tests only) and a **production no-op** that cancels nothing. The RSVP story replaces the default (`configureRsvpCancel` or the default value), deletes the no-op, and a test asserts the default is not the fake (`rsvp-cancel.test.ts` already asserts the default is the no-op). Until then, deactivating a member does not cancel their RSVPs in production.
+- **Cancel runs after commit and is retried by repeating the request.** The status change and its audit row commit first. The port is then called with a key derived from `left_at` (`member-deactivate:<id>:<left_at>`). If it throws, the member is already inactive and the admin gets a 500; repeating the deactivate calls the port again with the same key (the port must be idempotent). A deactivate on an already inactive member re-runs the cancel and writes no second audit row.
+- **Inactive members and the guard.** `requireGuard` refused every non-active member, so "403 on events, 200 on own ledger" was impossible. PR #25 adds `allowInactive` (inactive passes; pending and erased do not). Only own-data routes may use it (ledger, attendance). Members-area routes stay behind the plain guard, so an inactive member also gets 403 on `/me/profile`.
+- **Status switching is active/inactive only.** Pending to active is S1.3's approval and erasure is S2.5. `PATCH /members/:id/status` answers 409 `invalid_transition` for pending or erased members and 400 for any other target.
+- **Last admin counts active admins only.** An inactive admin does not count as "another admin". The last active admin can't be demoted or deactivated (409 `last_admin`).
+- **`payment_ref` is admin-editable only**, normalised to upper case so `bc-1` and `BC-1` clash. Format: letters, digits, dashes, 3 to 40 characters. Auto-generation of new references belongs to the member-creation story (S1.1); this story does not generate them.
+- **Profile edits:** `displayName` (1 to 80) and `rosterName` (0 to 40, empty clears) by the member or an admin. `email` is not editable here (it comes from Clerk).
+- **`context` middleware is attached per route**, not `.use("*")` (see the integrator's correction: the sub-app is mounted at `/api/v1`, so a wildcard leaks onto other areas).
+- **No `members` feature flag.** `/config` has no such flag and `wrangler.jsonc` is not ours to edit; the pages are admin-gated or own-data, so the integrator has nothing to flip.
+
 ## 2026-11-24: W2 contract: per-request context, DB test suites, shared Owns
 
 Integrator contract-change PR before the W2 fan-out, so eight parallel stories do not each invent request wiring.

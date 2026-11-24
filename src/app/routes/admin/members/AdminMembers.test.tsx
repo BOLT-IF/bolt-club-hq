@@ -105,14 +105,16 @@ describe("admin members page", () => {
     const calls = setup([ada, bo]);
     const item = await screen.findByRole("listitem", { name: /Bo Berg/ });
     fireEvent.click(within(item).getByRole("button", { name: "Make admin" }));
-    await waitFor(() =>
+    await waitFor(() => {
       expect(calls).toContainEqual({
         method: "PATCH",
         path: "/members/m2/role",
         body: { role: "admin" },
-      }),
-    );
-    await waitFor(() => expect(calls.filter((c) => c.method === "GET")).toHaveLength(2));
+      });
+    });
+    await waitFor(() => {
+      expect(calls.filter((c) => c.method === "GET")).toHaveLength(2);
+    });
   });
 
   it("deactivating goes through a confirmation that names the consequence", async () => {
@@ -123,26 +125,26 @@ describe("admin members page", () => {
     expect(within(dialog).getByText(/future RSVPs/i)).toBeTruthy();
     expect(calls.some((c) => c.method === "PATCH")).toBe(false);
     fireEvent.click(within(dialog).getByRole("button", { name: "Deactivate member" }));
-    await waitFor(() =>
+    await waitFor(() => {
       expect(calls).toContainEqual({
         method: "PATCH",
         path: "/members/m2/status",
         body: { status: "inactive" },
-      }),
-    );
+      });
+    });
   });
 
   it("an inactive member can be reactivated", async () => {
     const calls = setup([ada, cy]);
     const item = await screen.findByRole("listitem", { name: /Cy Dahl/ });
     fireEvent.click(within(item).getByRole("button", { name: "Reactivate" }));
-    await waitFor(() =>
+    await waitFor(() => {
       expect(calls).toContainEqual({
         method: "PATCH",
         path: "/members/m3/status",
         body: { status: "active" },
-      }),
-    );
+      });
+    });
   });
 
   it("shows the server's last-admin refusal in plain words", async () => {
@@ -167,12 +169,12 @@ describe("admin members page", () => {
 
     fireEvent.change(input, { target: { value: "BC-NEW" } });
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
-    await waitFor(() =>
+    await waitFor(() => {
       expect(calls).toContainEqual({
         method: "PATCH",
         path: "/members/m2",
         body: { paymentRef: "BC-NEW" },
-      }),
-    );
+      });
+    });
   });
 });

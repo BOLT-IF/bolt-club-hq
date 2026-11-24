@@ -29,6 +29,13 @@ expect_status "S0.5 real owns: db/schema change fails" 1 -- \
 expect_status "docs/areas and tests/e2e are shared" 0 -- \
   bash "$CI/check-owns.sh" "$FIX/stories.md" S9.8 "$FIX/diff-shared-ok.txt"
 
+# A trailing "*" in an Owns entry is a prefix match (STORIES uses `close*`, `claims*`, ...).
+expect_status "glob Owns: files under the prefix pass" 0 -- \
+  bash "$CI/check-owns.sh" "$FIX/stories.md" S9.7 "$FIX/diff-glob-ok.txt"
+expect_status "glob Owns: a sibling outside the prefix fails" 1 -- \
+  bash "$CI/check-owns.sh" "$FIX/stories.md" S9.7 "$FIX/diff-glob-breaks.txt"
+expect_contains "glob failure names the offending path" "src/worker/rsvp/claim.ts"
+
 # A story whose Owns is "the whole repo" (S0.1) is unrestricted.
 expect_status "whole-repo Owns is unrestricted" 0 -- \
   bash "$CI/check-owns.sh" "$FIX/stories.md" S9.9 "$FIX/diff-breaks-owns.txt"

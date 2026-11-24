@@ -1,0 +1,40 @@
+.bcq-prefs {
+  list-style: none;
+  margin: 1rem 0 0;
+  padding: 0;
+  display: grid;
+  gap: 0.75rem;
+}
+.bcq-prefs__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  min-height: var(--bcq-touch);
+  padding: 0.75rem 1rem;
+  background: var(--bcq-card);
+  border: 1px solid var(--bcq-line);
+  border-radius: var(--bcq-radius);
+  cursor: pointer;
+}
+.bcq-prefs__text {
+  display: grid;
+  gap: 0.125rem;
+}
+.bcq-prefs__hint {
+  color: var(--bcq-muted);
+  font-size: 0.8125rem;
+}
+.bcq-prefs__switch {
+  flex: none;
+  width: 1.75rem;
+  height: 1.75rem;
+  accent-color: var(--bcq-club);
+}
+.bcq-prefs__error {
+  margin-top: 1rem;
+  padding: 0.75rem 1rem;
+  color: var(--bcq-danger-ink);
+  background: var(--bcq-danger-bg);
+  border-radius: var(--bcq-radius-sm);
+}

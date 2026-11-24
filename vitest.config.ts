@@ -61,7 +61,7 @@ export default defineConfig({
         plugins: [react()],
         test: {
           name: "ui",
-          include: ["src/app/**/*.test.{ts,tsx}"],
+          include: ["src/app/**/*.test.{ts,tsx}", "src/sw/**/*.test.ts"],
           environment: "jsdom",
         },
       },

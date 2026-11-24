@@ -1,0 +1,30 @@
+.bcq-broadcast {
+  display: grid;
+  gap: 1rem;
+  margin-top: 1rem;
+  max-width: 36rem;
+}
+.bcq-broadcast__field {
+  display: grid;
+  gap: 0.375rem;
+  font-weight: 600;
+}
+.bcq-broadcast__field :is(input, select, textarea) {
+  min-height: var(--bcq-touch);
+  padding: 0.5rem 0.75rem;
+  font: inherit;
+  font-weight: 400;
+  color: var(--bcq-ink);
+  background: var(--bcq-card);
+  border: 1px solid var(--bcq-line);
+  border-radius: var(--bcq-radius);
+}
+.bcq-broadcast__hint {
+  margin: 0;
+  color: var(--bcq-muted);
+  font-size: 0.875rem;
+}
+.bcq-broadcast__error {
+  margin: 0;
+  color: var(--bcq-danger);
+}

@@ -44,7 +44,10 @@ interface Call {
   key: string | null;
 }
 
-function stub(initial: RsvpView | null, respond?: (call: Call) => { status?: number; body: unknown }) {
+function stub(
+  initial: RsvpView | null,
+  respond?: (call: Call) => { status?: number; body: unknown },
+) {
   const calls: Call[] = [];
   configureApiClient({
     fetch: (input, init) => {
@@ -57,10 +60,10 @@ function stub(initial: RsvpView | null, respond?: (call: Call) => { status?: num
       };
       calls.push(call);
       const res =
-        call.method === "GET" ? { body: { rsvp: initial } } : (respond?.(call) ?? { body: { rsvp: initial } });
-      return Promise.resolve(
-        new Response(JSON.stringify(res.body), { status: res.status ?? 200 }),
-      );
+        call.method === "GET"
+          ? { body: { rsvp: initial } }
+          : (respond?.(call) ?? { body: { rsvp: initial } });
+      return Promise.resolve(new Response(JSON.stringify(res.body), { status: res.status ?? 200 }));
     },
   });
   return calls;
@@ -95,7 +98,8 @@ describe("RsvpPanel (S4.2)", () => {
     fireEvent.change(screen.getByLabelText("Guest 1 name"), { target: { value: "Kim" } });
     fireEvent.click(screen.getByRole("button", { name: "RSVP" }));
 
-    expect(await screen.findByText("Requested")).toBeTruthy();
+    // The member and the guest each show a Requested chip.
+    expect(await screen.findAllByText("Requested")).toHaveLength(2);
     const put = calls.find((c) => c.method === "PUT")!;
     expect(put.path).toBe("/events/evt_1/rsvp");
     expect(put.body).toEqual({ guests: ["Kim"] });
@@ -105,7 +109,9 @@ describe("RsvpPanel (S4.2)", () => {
 
   it("the stepper stops at the event's guest limit and is hidden when guests are not allowed", async () => {
     stub(null);
-    const { unmount } = render(<RsvpPanel event={event({ maxGuestsPerMember: 1 })} viewer={viewer} />);
+    const { unmount } = render(
+      <RsvpPanel event={event({ maxGuestsPerMember: 1 })} viewer={viewer} />,
+    );
     const plus = await screen.findByRole("button", { name: "Increase guests" });
     fireEvent.click(plus);
     expect((plus as HTMLButtonElement).disabled).toBe(true);
@@ -137,7 +143,7 @@ describe("RsvpPanel (S4.2)", () => {
       }),
     );
     render(<RsvpPanel event={event({ allocationMode: "instant" })} viewer={viewer} />);
-    expect(await screen.findByText("Waitlisted")).toBeTruthy();
+    expect(await screen.findAllByText("Waitlisted")).toHaveLength(2);
     const list = screen.getByRole("list", { name: "Your guests" });
     expect(within(list).getByText(/Kim/)).toBeTruthy();
   });
@@ -161,7 +167,8 @@ describe("RsvpPanel (S4.2)", () => {
 
   it("renders nothing for members who may not RSVP (403)", async () => {
     configureApiClient({
-      fetch: () => Promise.resolve(new Response(JSON.stringify({ error: "forbidden" }), { status: 403 })),
+      fetch: () =>
+        Promise.resolve(new Response(JSON.stringify({ error: "forbidden" }), { status: 403 })),
     });
     const { container } = render(<RsvpPanel event={event()} viewer={viewer} />);
     await waitFor(() => {

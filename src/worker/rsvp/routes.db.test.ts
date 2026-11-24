@@ -1,15 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { Hono } from "hono";
-import { and, eq } from "drizzle-orm";
+import { and, asc, eq } from "drizzle-orm";
 
-import {
-  domainEventOutbox,
-  guest,
-  ledgerEntry,
-  rsvp,
-  series,
-  term,
-} from "../../../db/schema";
+import { domainEventOutbox, guest, ledgerEntry, rsvp, series, term } from "../../../db/schema";
 import { FixedClock } from "../core/clock";
 import { configureRequestDeps } from "../core/context";
 import { TEST_IDENTITY_HEADER } from "../core/test-identity";
@@ -46,7 +39,7 @@ describe("rsvp routes (S4.2)", () => {
       .use("*", requestIdMiddleware({ now: () => new Date(NOW).getTime() }))
       .route("/", rsvpRoutes);
 
-  const send = (
+  const send = async (
     method: "GET" | "PUT" | "DELETE",
     eventId: string,
     clerkUserId: string,
@@ -61,13 +54,13 @@ describe("rsvp routes (S4.2)", () => {
       headers["Content-Type"] = "application/json";
       init.body = JSON.stringify(opts.body);
     }
-    return app().request(`/events/${eventId}/rsvp`, init, testEnv);
+    return await app().request(`/events/${eventId}/rsvp`, init, testEnv);
   };
   const put = (eventId: string, clerk: string, body: unknown = {}, key?: string) =>
     send("PUT", eventId, clerk, key === undefined ? { body } : { body, key });
   const del = (eventId: string, clerk: string, key?: string) =>
     send("DELETE", eventId, clerk, key === undefined ? {} : { key });
-  const json = async (res: Response) => (await res.json()) as { rsvp: RsvpDto | null };
+  const json = (res: Response) => res.json<{ rsvp: RsvpDto | null }>();
 
   async function addEvent(over: Partial<Parameters<typeof createEvent>[1]> = {}) {
     const admin = await makeMember(t.db, { role: "admin" });
@@ -299,7 +292,13 @@ describe("rsvp routes (S4.2)", () => {
         .select()
         .from(domainEventOutbox)
         .where(eq(domainEventOutbox.type, "rsvp_changed"));
-      expect(promoted.some((row) => (row.payload as { memberId: string }).memberId === b.id && (row.payload as { reason: string }).reason === "promoted")).toBe(true);
+      expect(
+        promoted.some(
+          (row) =>
+            (row.payload as { memberId: string }).memberId === b.id &&
+            (row.payload as { reason: string }).reason === "promoted",
+        ),
+      ).toBe(true);
     });
 
     it("never goes over capacity under concurrent RSVPs", async () => {
@@ -388,14 +387,30 @@ describe("rsvp routes (S4.2)", () => {
       const e = await addEvent();
       const a = await makeMember(t.db);
       await put(e.id, a.clerkUserId, { guests: ["Kim"] });
+      clock.advance(1000);
       await del(e.id, a.clerkUserId);
       const rows = await t.db
         .select()
         .from(domainEventOutbox)
-        .where(eq(domainEventOutbox.type, "rsvp_changed"));
+        .where(eq(domainEventOutbox.type, "rsvp_changed"))
+        .orderBy(asc(domainEventOutbox.createdAt));
       expect(rows.map((r) => r.payload)).toEqual([
-        expect.objectContaining({ eventId: e.id, memberId: a.id, status: "requested", previousStatus: null, guests: 1, reason: "rsvp" }),
-        expect.objectContaining({ eventId: e.id, memberId: a.id, status: "cancelled", previousStatus: "requested", guests: 0, reason: "cancel" }),
+        expect.objectContaining({
+          eventId: e.id,
+          memberId: a.id,
+          status: "requested",
+          previousStatus: null,
+          guests: 1,
+          reason: "rsvp",
+        }),
+        expect.objectContaining({
+          eventId: e.id,
+          memberId: a.id,
+          status: "cancelled",
+          previousStatus: "requested",
+          guests: 0,
+          reason: "cancel",
+        }),
       ]);
     });
   });
@@ -423,7 +438,10 @@ describe("rsvp routes (S4.2)", () => {
       expect(closedRow!.status).toBe("requested");
       expect(await t.db.select().from(ledgerEntry)).toHaveLength(0);
       const cancels = (
-        await t.db.select().from(domainEventOutbox).where(eq(domainEventOutbox.type, "rsvp_changed"))
+        await t.db
+          .select()
+          .from(domainEventOutbox)
+          .where(eq(domainEventOutbox.type, "rsvp_changed"))
       ).filter((r) => (r.payload as { reason: string }).reason === "member_exit");
       expect(cancels).toHaveLength(1);
     });

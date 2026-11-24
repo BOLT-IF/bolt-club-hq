@@ -274,7 +274,7 @@ Login is off the critical path. From W2 on, stories use the **test-identity over
   - The cap-below-sold block holds.
 
 ### S3.3 One-off events: S · W3
-- **Depends on:** S3.0 · **Owns:** `src/worker/events/oneoff*`, `src/app/routes/events/new*`
+- **Depends on:** S3.0 · **Owns:** `src/worker/events/oneoff*`, `src/app/routes/events/new*`, plus integrator-sanctioned (2026-11-24): `src/worker/events/routes.ts` (one-line mount of the one-off sub-app)
 - Member one-offs: free, instant. Admin one-offs: optional fee, tiered with no tier 1.
 - **Tests first:** a member can't set a fee or tiered allocation; a pass holder is treated as tier 2 at an admin paid one-off; only the owner, a captain or an admin can edit.
 
@@ -292,7 +292,7 @@ Login is off the critical path. From W2 on, stories use the **test-identity over
   - Instant allocation is pure first-come.
 
 ### S4.2 RSVP pre-close: M · W3
-- **Depends on:** S3.0, S4.1 · **Owns:** `src/worker/rsvp/` (pre-close), `src/app/components/rsvp/` (pre-close; fills `RsvpSlot`)
+- **Depends on:** S3.0, S4.1 · **Owns:** `src/worker/rsvp/` (pre-close), `src/app/components/rsvp/` (pre-close; fills `RsvpSlot`), `src/app/routes/events/routes.tsx` (integrator-sanctioned 2026-11-24: import lines that register this story's event-page slots)
 - PUT and DELETE an RSVP, with guests. Tier comes from `isPrepaid` (a fake until S5.3).
 - Status shows Confirmed or Requested. Instant mode confirms straight away. Guest stepper.
 - Emits `rsvp_changed`.
@@ -316,7 +316,7 @@ Login is off the critical path. From W2 on, stories use the **test-identity over
   - Each notification is sent once.
 
 ### S4.4a Late RSVP, cancel, promotion, refill: M · W5
-- **Depends on:** S4.3 · **Owns:** `src/worker/rsvp/postclose*`, `src/app/components/rsvp/postclose*`
+- **Depends on:** S4.3 · **Owns:** `src/worker/rsvp/postclose*`, `src/app/components/rsvp/postclose*`, `src/app/routes/events/routes.tsx` (integrator-sanctioned 2026-11-24: import lines that register this story's event-page slots)
 - **Tests first:**
   - One test per row of the PLAN §6.4 table.
   - Cancelling while spots are free means the charge stands.
@@ -326,7 +326,7 @@ Login is off the critical path. From W2 on, stories use the **test-identity over
   - A guest added after close is tier 3.
 
 ### S4.4b Claim-a-spot + capacity changes: S · W5
-- **Depends on:** S4.3 · **Owns:** `src/worker/rsvp/claim*`, `src/worker/rsvp/capacity*`, `src/app/components/rsvp/claim*`
+- **Depends on:** S4.3 · **Owns:** `src/worker/rsvp/claim*`, `src/worker/rsvp/capacity*`, `src/app/components/rsvp/claim*`, `src/app/routes/events/routes.tsx` (integrator-sanctioned 2026-11-24: import lines that register this story's event-page slots)
 - **Tests first:**
   - In a race between two claims, exactly one wins.
   - Lowering capacity below confirmed tier-1 is blocked without an override.
@@ -334,7 +334,7 @@ Login is off the critical path. From W2 on, stories use the **test-identity over
   - Raising capacity promotes from the waitlist.
 
 ### S4.4c Event cancellation + material changes: S · W5
-- **Depends on:** S4.3, S3.2 · **Owns:** `src/worker/rsvp/eventchange*`, `src/app/components/organizer/edit*`
+- **Depends on:** S4.3, S3.2 · **Owns:** `src/worker/rsvp/eventchange*`, `src/app/components/organizer/edit*`, `src/app/routes/events/routes.tsx` (integrator-sanctioned 2026-11-24: import lines that register this story's event-page slots)
 - **Tests first:**
   - Cancelling an event leaves its net charges at 0.
   - A cancel inside the 24h window after a material change is reversed for free; outside it, normal rules apply.
@@ -410,7 +410,7 @@ Login is off the critical path. From W2 on, stories use the **test-identity over
   - A policy can suppress the push while the inbox entry is still written.
 
 ### S6.2 Web push from the Worker: M · W3
-- **Depends on:** S6.1, S0.3, S0.6 · **Owns:** `src/worker/notifications/push*`, `src/worker/notifications/policies/quiet-hours*`, `src/sw/push*`
+- **Depends on:** S6.1, S0.3, S0.6 · **Owns:** `src/worker/notifications/push*`, `src/worker/notifications/policies/quiet-hours*`, `src/sw/push*`, plus integrator-sanctioned (2026-11-24): `src/worker/notifications/routes.ts` (one-line mount of the push sub-app), `src/sw/sw.ts` (`import "./push"`), `vitest.config.ts` (ui project also runs `src/sw/**/*.test.ts`)
 - VAPID with a WebCrypto encryption library.
 - Pushes are sent from a cron hook in **batches** sized per the S0.6 measurement.
 - The client re-subscribes on every app open. The service worker always calls `showNotification`.
@@ -423,7 +423,7 @@ Login is off the critical path. From W2 on, stories use the **test-identity over
   - The SW handler shows a notification for every payload.
 
 ### S6.3 Preferences + mute: S · W3
-- **Depends on:** S6.1 · **Owns:** `src/worker/notifications/policies/mute*`, `src/worker/notifications/prefs*`, `src/app/routes/settings/notifications*`
+- **Depends on:** S6.1 · **Owns:** `src/worker/notifications/policies/mute*`, `src/worker/notifications/prefs*`, `src/app/routes/settings/notifications*`, plus integrator-sanctioned (2026-11-24): `src/worker/notifications/routes.ts` (one-line mount of the prefs sub-app)
 - **Tests first:** a muted category still writes to the inbox but sends no push; global mute overrides per-category settings; everything is on by default.
 
 ### S6.4 Cron Triggers: S · W2
@@ -458,7 +458,7 @@ Login is off the critical path. From W2 on, stories use the **test-identity over
 ## E7: Sharing
 
 ### S7.1 Share links, edge OG, request-to-join: M · W4
-- **Depends on:** S3.0, S4.2, S1.3, S0.6 · **Owns:** `src/worker/share/`, `src/app/components/share/` (fills `ShareSlot`), `src/app/routes/share/`
+- **Depends on:** S3.0, S4.2, S1.3, S0.6 · **Owns:** `src/worker/share/`, `src/app/components/share/` (fills `ShareSlot`), `src/app/routes/share/`, `src/app/routes/events/routes.tsx` (integrator-sanctioned 2026-11-24: import lines that register this story's event-page slots)
 - `/e` and `/s` pages are built from KV, falling back to Neon and then to a generic page.
 - Pages carry `noindex` and a CSP, and show no attendee names.
 - The real `publishOg` implementation.
@@ -476,7 +476,7 @@ Login is off the critical path. From W2 on, stories use the **test-identity over
 ## E8: Attendance & roster hand-off
 
 ### S8.1 Attendance marking: S · W5
-- **Depends on:** S4.3 · **Owns:** `src/worker/attendance/`, `src/app/components/organizer/attendance*`
+- **Depends on:** S4.3 · **Owns:** `src/worker/attendance/`, `src/app/components/organizer/attendance*`, `src/app/routes/events/routes.tsx` (integrator-sanctioned 2026-11-24: import lines that register this story's event-page slots)
 - Everyone confirmed defaults to attended. The organizer flips no-shows. Editable for 7 days, then admin only.
 - An `admin_tasks` alert fires if attendance is still unmarked 24h after the event. No charges change.
 - **Tests first:**
@@ -490,7 +490,7 @@ Login is off the critical path. From W2 on, stories use the **test-identity over
 - **Tests first:** every ledger row tied to an event links to the history and back, in both directions.
 
 ### S8.3 Roster deep link (club side): S · W5
-- **Depends on:** S4.3, S2.3 · **Owns:** `src/domain/roster-link/`, `src/worker/events/roster-link*`, `src/app/components/organizer/roster*`, `contracts/roster-import-v1/` (copy of the fixtures)
+- **Depends on:** S4.3, S2.3 · **Owns:** `src/domain/roster-link/`, `src/worker/events/roster-link*`, `src/app/components/organizer/roster*`, `contracts/roster-import-v1/` (copy of the fixtures), `src/app/routes/events/routes.tsx` (integrator-sanctioned 2026-11-24: import lines that register this story's event-page slots)
 - Builds the `roster-import/v1` URL (PLAN §8.1) from confirmed members and guests.
 - An "Open in roster generator" button for organizers, captains and admins. A "Copy list" fallback.
 - Hidden when `roster_app_url` is unset.

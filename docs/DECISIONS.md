@@ -2,6 +2,12 @@
 
 Decisions made after `PLAN.md` (v3) was written. Newest first. Every entry gives the decision, the reason, and what it changes.
 
+## 2026-11-24: Owns globs are prefixes; nested backend routes mount through the area's routes.ts
+
+- **`check-owns.sh` treats a trailing `*` as a prefix match.** STORIES.md writes many Owns entries as `close*`, `claims*`, `policies/mute*`, but the check compared them literally, so every file such a story added failed. `close*` now accepts `close.ts`, `close.db.test.ts` and `close/…`, but not `claim.ts`. Found by S6.3.
+- **The backend registry only loads `src/worker/<area>/routes.ts`.** A story whose Owns covers only part of an area (e.g. `prefs*`, `close*`, `claims*`) exports a Hono sub-app from its own file, and the area's `routes.ts` gets a one-line `.route("/", subApp)` mount. The integrator adds that `routes.ts` to the story's Owns line as a sanctioned exception when asked. Pattern first used by S6.3.
+- **Notifications settings live at `/settings/notifications`** (S6.3 owns `src/app/routes/settings/notifications*`). The More menu link moves there from `/profile/notifications`, which S2.1's `profile/` would otherwise have to host.
+
 ## 2026-11-24: S5.1 ledger core resolutions (ambiguities)
 
 - **Sign convention:** positive = the member owes, negative = credit; a payment is stored negative (PLAN §5.1 says `amount_sek (signed)` but not which way). Callers always pass positive kronor for `charge` and `recordPayment`; the kind sets the sign. `adjust` keeps the caller's sign (a waiver must be negative).

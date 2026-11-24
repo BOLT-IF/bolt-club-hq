@@ -48,7 +48,7 @@ export const PRIMARY_NAV: readonly NavItem[] = [
 
 export const moreMenu: readonly NavLink[] = [
   { id: "profile", label: "Profile", path: "/profile", icon: "profile" },
-  { id: "notifications", label: "Notifications", path: "/profile/notifications", icon: "bell" },
+  { id: "notifications", label: "Notifications", path: "/settings/notifications", icon: "bell" },
   { id: "attendance-history", label: "Attendance history", path: "/history", icon: "history" },
   { id: "privacy", label: "Privacy", path: "/privacy", icon: "shield" },
   { id: "install", label: "Install the app", path: "/install", icon: "download" },

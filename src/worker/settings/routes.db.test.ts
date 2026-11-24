@@ -14,8 +14,8 @@ const testEnv = { ENV: "test" } as unknown as Cloudflare.Env;
 
 const IBAN = "SE4550000000058398257466";
 const body = {
-  clubName: "Bolt IF Badminton",
-  bank: { accountHolder: "Bolt IF", iban: IBAN, bankgiro: "5402-9681" },
+  clubName: "BOLT IF Badminton",
+  bank: { accountHolder: "BOLT IF", iban: IBAN, bankgiro: "5402-9681" },
   paymentInstructions: "Use your payment reference.",
   quietHours: { start: "21:30", end: "07:30" },
   passUnpaidRevokeDays: 14,
@@ -93,7 +93,7 @@ describe("club settings routes", () => {
       await get("/admin/settings", admin.clerkUserId)
     ).json<typeof body & { rosterAppUrl: string }>();
     expect(saved).toMatchObject({
-      clubName: "Bolt IF Badminton",
+      clubName: "BOLT IF Badminton",
       passUnpaidRevokeDays: 14,
       autoPromoteCutoffMin: 120,
       rosterAppUrl: "https://roster.example.se",
@@ -116,7 +116,7 @@ describe("club settings routes", () => {
       entityId: "1",
     });
     expect(audits[0]?.at.toISOString()).toBe("2027-01-01T10:00:00.000Z");
-    expect(audits[1]?.before).toContain("Bolt IF Badminton");
+    expect(audits[1]?.before).toContain("BOLT IF Badminton");
   });
 
   it.each([
@@ -166,7 +166,7 @@ describe("club settings routes", () => {
       ["bank", "clubName", "paymentInstructions", "quietHours", "rosterAppUrl"].sort(),
     );
     expect(pub).toMatchObject({
-      clubName: "Bolt IF Badminton",
+      clubName: "BOLT IF Badminton",
       bank: { iban: IBAN, bankgiro: "5402-9681" },
       rosterAppUrl: "https://roster.example.se",
     });
@@ -189,7 +189,7 @@ describe("club settings routes", () => {
     const res = await configRoutes.request("/config", {}, testEnv);
     expect(res.status).toBe(200);
     const text = JSON.stringify(await res.json());
-    for (const secret of [IBAN, "5402-9681", "3010", "Bolt IF", "passUnpaidRevokeDays"]) {
+    for (const secret of [IBAN, "5402-9681", "3010", "BOLT IF", "passUnpaidRevokeDays"]) {
       expect(text).not.toContain(secret);
     }
   });

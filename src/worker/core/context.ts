@@ -10,7 +10,10 @@ import { testIdentityFromRequest } from "./test-identity";
 
 /**
  * Per-request context for /api/v1 feature routes (W2 contract, DECISIONS 2026-11-24).
- * An area opts in with `new Hono<AppEnv>().use("*", contextMiddleware())`, then reads
+ * An area opts in for its own paths only, e.g.
+ * `new Hono<AppEnv>().use("/events", contextMiddleware()).use("/events/*", contextMiddleware())`.
+ * Never `use("*")`: every area is mounted at /api/v1, so "*" would run for other areas too.
+ * Handlers then read
  * `c.var.db`, `c.var.clock` and `c.var.actor` (null when signed out). The permission
  * guards read `actor`. Money and RSVP POSTs add
  * `idempotencyKeyMiddleware({ db, route, actorOf: (c) => c.var.actor!.id })` after the guard.

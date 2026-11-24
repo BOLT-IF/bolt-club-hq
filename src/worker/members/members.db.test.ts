@@ -190,11 +190,11 @@ describe("members (S2.1)", () => {
       expect(after.status).toBe("inactive");
       expect(after.leftAt?.toISOString()).toBe(NOW);
       expect(rsvp.calls).toEqual([
-        {
+        expect.objectContaining({
           memberId: target.id,
           at: new Date(NOW),
           idempotencyKey: `member-deactivate:${target.id}:${NOW}`,
-        },
+        }),
       ]);
       const [entry] = await auditFor(target.id);
       expect(entry).toMatchObject({ actorId: admin.id, action: "member.status_change" });
@@ -286,8 +286,10 @@ describe("members (S2.1)", () => {
       const as = { headers: { [TEST_IDENTITY_HEADER]: gone.clerkUserId } };
       expect((await app.request("/events", as, testEnv)).status).toBe(403);
       expect((await app.request("/me/ledger", as, testEnv)).status).toBe(200);
-      // Members area routes are not exit-exempt: the profile is not Money or attendance.
-      expect((await call(gone, "GET", "/me/profile")).status).toBe(403);
+      // Exited members keep access to their payment reference on /me/profile to settle balances (PLAN §6.7).
+      expect((await call(gone, "GET", "/me/profile")).status).toBe(200);
+      const pending = await makeMember(t.db, { status: "pending" });
+      expect((await call(pending, "GET", "/me/profile")).status).toBe(403);
     });
   });
 

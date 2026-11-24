@@ -141,7 +141,8 @@ routes.get("/members", context, requireGuard("member"), async (c) => {
   return c.json({ members: rows });
 });
 
-routes.get("/me/profile", context, requireGuard("member"), async (c) => {
+// allowInactive: exited members still need their payment reference to settle balances (PLAN §6.7).
+routes.get("/me/profile", context, requireGuard("member", { allowInactive: true }), async (c) => {
   const actor = actorOf(c);
   const [row] = await c.var.db.select().from(member).where(eq(member.id, actor.id));
   return row ? c.json(profileView(row)) : c.json({ error: "not_found" }, 404);
@@ -295,6 +296,8 @@ routes.patch("/members/:id/status", context, requireGuard("admin"), async (c) =>
 
   if (result.ok && cancel.at) {
     await getRsvpCancel().cancelFutureRsvps({
+      db: c.var.db,
+      clock: c.var.clock,
       memberId: id,
       at: cancel.at,
       idempotencyKey: `member-deactivate:${id}:${cancel.at.toISOString()}`,

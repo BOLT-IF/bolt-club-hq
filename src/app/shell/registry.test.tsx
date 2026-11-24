@@ -9,22 +9,22 @@ afterEach(() => {
   cleanup();
 });
 
-describe("probe route registration with the shell", () => {
-  it("registers the probe route and renders it inside the shell with a back control", () => {
-    const route = registeredFrontendRoutes().find((r) => r.path === "/probe");
+describe("route registration with the shell", () => {
+  it("registers feature routes and renders them inside the shell with a back control", () => {
+    const route = registeredFrontendRoutes().find((r) => r.path === "/install");
     expect(route).toBeDefined();
 
     const Page = route!.component;
     render(
       <FeatureFlagsProvider flags={{}}>
-        <AppShell path="/probe">
+        <AppShell path="/install">
           <Page />
         </AppShell>
       </FeatureFlagsProvider>,
     );
 
     expect(screen.getByTestId("app-shell")).toBeTruthy();
-    expect(screen.getByTestId("probe-route")).toBeTruthy();
+    expect(screen.getByRole("heading", { name: /install/i })).toBeTruthy();
     expect(screen.getByRole("button", { name: "Back" })).toBeTruthy();
   });
 });

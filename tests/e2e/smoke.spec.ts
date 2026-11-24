@@ -5,7 +5,7 @@ test("serves /healthz and the SPA from the same origin", async ({ page, request,
   expect(health.ok()).toBe(true);
   expect(await health.json()).toMatchObject({ status: "ok" });
 
-  await page.goto("/probe");
-  await expect(page.getByTestId("probe-route")).toBeVisible();
+  await page.goto("/");
+  await expect(page.getByTestId("app-shell")).toBeVisible();
   expect(new URL(page.url()).origin).toBe(new URL(baseURL!).origin);
 });

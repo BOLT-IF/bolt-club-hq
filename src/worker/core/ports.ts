@@ -18,6 +18,7 @@ export interface NotifyPort {
     category: string;
     title: string;
     body: string;
+    link?: string | null;
     idempotencyKey: string;
   }): Promise<void>;
 }
@@ -32,6 +33,10 @@ export interface ChargePort {
     amountSek: number;
     reason: string;
     idempotencyKey: string;
+    eventId?: string | null;
+    passId?: string | null;
+    guestId?: string | null;
+    note?: string;
   }): Promise<void>;
 }
 

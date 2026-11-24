@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { ApiError } from "../../api/client";
 import { getEventBySlug, type EventWithViewer } from "../../api/events";
 import { EmptyState, ErrorState, Skeleton, StatusChip } from "../../components/ui";
+import { navigate } from "../../lib/navigate";
 import { useRouteParams } from "../registry";
 import { formatWhen } from "./format";
 import { Slot } from "./slots";
@@ -44,8 +45,24 @@ export function EventDetailPage() {
     );
   }
   if (state.kind === "blocked") {
+    const joinPath = `/join/event/${encodeURIComponent(slug)}`;
     return (
-      <EmptyState title="Events are for approved members">
+      <EmptyState
+        title="Events are for approved members"
+        action={
+          <a
+            className="bcq-btn bcq-btn--secondary"
+            href={joinPath}
+            onClick={(click) => {
+              if (click.metaKey || click.ctrlKey || click.shiftKey || click.button !== 0) return;
+              click.preventDefault();
+              navigate(joinPath);
+            }}
+          >
+            Request to join
+          </a>
+        }
+      >
         You can see this event once an admin approves your membership.
       </EmptyState>
     );

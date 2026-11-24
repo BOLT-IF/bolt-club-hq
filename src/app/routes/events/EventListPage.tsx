@@ -36,9 +36,22 @@ export function EventListPage() {
 
   return (
     <section aria-labelledby="events-title">
-      <h1 id="events-title" className="bcq-page__title">
-        Events
-      </h1>
+      <div className="bcq-events__head">
+        <h1 id="events-title" className="bcq-page__title">
+          Events
+        </h1>
+        <a
+          className="bcq-events__new"
+          href="/events/new"
+          onClick={(click) => {
+            if (click.metaKey || click.ctrlKey || click.shiftKey || click.button !== 0) return;
+            click.preventDefault();
+            navigate("/events/new");
+          }}
+        >
+          New event
+        </a>
+      </div>
       {state.kind === "loading" ? <Skeleton label="Loading events" /> : null}
       {state.kind === "error" ? (
         <ErrorState onRetry={retry}>We couldn&apos;t load the events.</ErrorState>

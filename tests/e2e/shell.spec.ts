@@ -35,11 +35,9 @@ test("bottom nav reaches every primary destination", async ({ page }) => {
   await expect(page.getByRole("dialog", { name: "More" })).toBeVisible();
 });
 
-test("the probe route registers and renders inside the shell with a back control", async ({
-  page,
-}) => {
-  await page.goto("/probe");
-  await expect(page.getByTestId("probe-route")).toBeVisible();
+test("a registered route renders inside the shell with a back control", async ({ page }) => {
+  await page.goto("/install");
+  await expect(page.getByTestId("app-shell")).toBeVisible();
   await expect(page.getByRole("button", { name: "Back" })).toBeVisible();
 });
 

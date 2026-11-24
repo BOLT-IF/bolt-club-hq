@@ -305,7 +305,7 @@ Login is off the critical path. From W2 on, stories use the **test-identity over
   - A double-submitted PUT has a single effect.
 
 ### S4.3 Close processing + charges: M · W4
-- **Depends on:** S4.2, S5.1, S6.1 · **Owns:** `src/worker/rsvp/close*`
+- **Depends on:** S4.2, S5.1, S6.1 · **Owns:** `src/worker/rsvp/close*`, plus integrator-sanctioned (2026-11-24): `src/worker/rsvp/routes.ts` (close hook import + close-on-read wiring), `src/worker/events/routes.ts` (close-on-read wiring on event reads), `src/worker/events/oneoff-routes.ts` (`markDue` on one-off creation)
 - Implements PLAN §6.3: a row lock with `SKIP LOCKED`, close-on-read capped at 5 events, registered as a cron hook, charges via the ledger, notifications, and an `event_closed` outbox row.
 - **Tests first:**
   - Running close twice gives an identical result.
@@ -316,7 +316,7 @@ Login is off the critical path. From W2 on, stories use the **test-identity over
   - Each notification is sent once.
 
 ### S4.4a Late RSVP, cancel, promotion, refill: M · W5
-- **Depends on:** S4.3 · **Owns:** `src/worker/rsvp/postclose*`, `src/app/components/rsvp/postclose*`, `src/app/routes/events/routes.tsx` (integrator-sanctioned 2026-11-24: import lines that register this story's event-page slots)
+- **Depends on:** S4.3 · **Owns:** `src/worker/rsvp/postclose*`, `src/app/components/rsvp/postclose*`, `src/app/routes/events/routes.tsx` (integrator-sanctioned 2026-11-24: import lines that register this story's event-page slots), `src/worker/rsvp/routes.ts` (integrator-sanctioned 2026-11-24: one-line mount of the postclose sub-app)
 - **Tests first:**
   - One test per row of the PLAN §6.4 table.
   - Cancelling while spots are free means the charge stands.
@@ -326,7 +326,7 @@ Login is off the critical path. From W2 on, stories use the **test-identity over
   - A guest added after close is tier 3.
 
 ### S4.4b Claim-a-spot + capacity changes: S · W5
-- **Depends on:** S4.3 · **Owns:** `src/worker/rsvp/claim*`, `src/worker/rsvp/capacity*`, `src/app/components/rsvp/claim*`, `src/app/routes/events/routes.tsx` (integrator-sanctioned 2026-11-24: import lines that register this story's event-page slots)
+- **Depends on:** S4.3 · **Owns:** `src/worker/rsvp/claim*`, `src/worker/rsvp/capacity*`, `src/app/components/rsvp/claim*`, `src/app/routes/events/routes.tsx` (integrator-sanctioned 2026-11-24: import lines that register this story's event-page slots), `src/worker/rsvp/routes.ts` (integrator-sanctioned 2026-11-24: one-line mount of the claim/capacity sub-apps)
 - **Tests first:**
   - In a race between two claims, exactly one wins.
   - Lowering capacity below confirmed tier-1 is blocked without an override.
@@ -334,7 +334,7 @@ Login is off the critical path. From W2 on, stories use the **test-identity over
   - Raising capacity promotes from the waitlist.
 
 ### S4.4c Event cancellation + material changes: S · W5
-- **Depends on:** S4.3, S3.2 · **Owns:** `src/worker/rsvp/eventchange*`, `src/app/components/organizer/edit*`, `src/app/routes/events/routes.tsx` (integrator-sanctioned 2026-11-24: import lines that register this story's event-page slots)
+- **Depends on:** S4.3, S3.2 · **Owns:** `src/worker/rsvp/eventchange*`, `src/app/components/organizer/edit*`, `src/app/routes/events/routes.tsx` (integrator-sanctioned 2026-11-24: import lines that register this story's event-page slots), `src/worker/rsvp/routes.ts` (integrator-sanctioned 2026-11-24: one-line mount of the eventchange sub-app)
 - **Tests first:**
   - Cancelling an event leaves its net charges at 0.
   - A cancel inside the 24h window after a material change is reversed for free; outside it, normal rules apply.
@@ -363,7 +363,7 @@ Login is off the critical path. From W2 on, stories use the **test-identity over
   - Requesting another member's ledger returns 403.
 
 ### S5.3 Passes: offers, cap, proration, revocation: M · W4
-- **Depends on:** S3.2, S5.1, S4.2 · **Owns:** `src/domain/proration*`, `src/worker/passes/`, `src/app/routes/money/passes*`
+- **Depends on:** S3.2, S5.1, S4.2 · **Owns:** `src/domain/proration*`, `src/worker/passes/`, `src/app/routes/money/passes*`, plus integrator-sanctioned (2026-11-24): `src/worker/rsvp/deps.ts` (replace `nobodyPrepaid` with real `isPrepaid`), `src/app/routes/admin/money/AdminBalances.tsx` ("revocable" filter and pass revocation), `src/app/routes/admin/money/moneyApi.ts`
 - Implements `isPrepaid`.
 - **Tests first:**
   - Proration table, including round half-up, and a pass is not offered when 0 events remain.
@@ -458,7 +458,7 @@ Login is off the critical path. From W2 on, stories use the **test-identity over
 ## E7: Sharing
 
 ### S7.1 Share links, edge OG, request-to-join: M · W4
-- **Depends on:** S3.0, S4.2, S1.3, S0.6 · **Owns:** `src/worker/share/`, `src/app/components/share/` (fills `ShareSlot`), `src/app/routes/share/`, `src/app/routes/events/routes.tsx` (integrator-sanctioned 2026-11-24: import lines that register this story's event-page slots)
+- **Depends on:** S3.0, S4.2, S1.3, S0.6 · **Owns:** `src/worker/share/`, `src/app/components/share/` (fills `ShareSlot`), `src/app/routes/share/`, `src/app/routes/events/routes.tsx` (integrator-sanctioned 2026-11-24: import lines that register this story's event-page slots), plus integrator-sanctioned (2026-11-24): `src/worker/events/deps.ts` (replace no-op `publishOg`), `wrangler.jsonc` (`"/e/*"`, `"/s/*"` in `run_worker_first`), `src/worker/index.ts`, `src/worker/app.ts`
 - `/e` and `/s` pages are built from KV, falling back to Neon and then to a generic page.
 - Pages carry `noindex` and a CSP, and show no attendee names.
 - The real `publishOg` implementation.
@@ -486,11 +486,11 @@ Login is off the critical path. From W2 on, stories use the **test-identity over
   - The 7-day lock holds.
 
 ### S8.2 Member attendance & "why" history: S · W6
-- **Depends on:** S8.1, S5.2 · **Owns:** `src/app/routes/me/attendance*`, `src/worker/attendance/me*`
+- **Depends on:** S8.1, S5.2 · **Owns:** `src/app/routes/me/attendance*`, `src/worker/attendance/me*`, plus integrator-sanctioned (2026-11-24): `src/worker/attendance/routes.ts` (one-line mount of the me-attendance sub-app)
 - **Tests first:** every ledger row tied to an event links to the history and back, in both directions.
 
 ### S8.3 Roster deep link (club side): S · W5
-- **Depends on:** S4.3, S2.3 · **Owns:** `src/domain/roster-link/`, `src/worker/events/roster-link*`, `src/app/components/organizer/roster*`, `contracts/roster-import-v1/` (copy of the fixtures), `src/app/routes/events/routes.tsx` (integrator-sanctioned 2026-11-24: import lines that register this story's event-page slots)
+- **Depends on:** S4.3, S2.3 · **Owns:** `src/domain/roster-link/`, `src/worker/events/roster-link*`, `src/app/components/organizer/roster*`, `contracts/roster-import-v1/` (copy of the fixtures), `src/app/routes/events/routes.tsx` (integrator-sanctioned 2026-11-24: import lines that register this story's event-page slots), plus integrator-sanctioned (2026-11-24): `src/worker/events/routes.ts` (one-line mount of the roster-link sub-app)
 - Builds the `roster-import/v1` URL (PLAN §8.1) from confirmed members and guests.
 - An "Open in roster generator" button for organizers, captains and admins. A "Copy list" fallback.
 - Hidden when `roster_app_url` is unset.
@@ -529,7 +529,7 @@ Login is off the critical path. From W2 on, stories use the **test-identity over
   - Visibility modes behave as set.
 
 ### S9.2 Image options on R2: S · W5
-- **Depends on:** S9.1 · **Owns:** `src/worker/media/`, `src/app/components/ImagePicker*`
+- **Depends on:** S9.1 · **Owns:** `src/worker/media/`, `src/app/components/ImagePicker*`, plus integrator-sanctioned (2026-11-24): `wrangler.jsonc` (`"/media/*"` in `run_worker_first`), `src/worker/index.ts`, `src/worker/app.ts`, `src/worker/polls/routes.ts`, `src/worker/polls/rules.ts`, `src/worker/polls/model.ts`, `src/app/routes/polls/AdminPollsPage.tsx`, `src/app/routes/polls/PollDetailPage.tsx`, `src/app/routes/polls/api.ts`, `src/app/routes/polls/polls.css`
 - Images are resized on the client to ≤ 300 KB. The server checks the real file type, allows at most 8 per poll, and stores them in R2.
 - `/media/{key}` serves images to members only, with cache headers.
 - A purge cron hook removes images 6 months after the poll closes.
@@ -568,7 +568,7 @@ Login is off the critical path. From W2 on, stories use the **test-identity over
 - The final ledger is asserted line by line.
 
 ### S11.2 Member import with opening balances: S · W6
-- **Depends on:** S2.1, S5.1 · **Owns:** `src/worker/importer/`
+- **Depends on:** S2.1, S5.1 · **Owns:** `src/worker/importer/`, plus integrator-sanctioned (2026-11-24): `src/worker/auth/wiring.ts` (link pre-provisioned members by verified email on first sign-in)
 - Imported members are pre-provisioned as members without a Clerk link. The link is made on first sign-in, matched by verified email.
 - **Tests first:**
   - Balances import exactly.

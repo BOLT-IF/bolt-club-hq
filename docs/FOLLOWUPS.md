@@ -6,24 +6,24 @@ Everything the story agents and the integrator said still needs doing, collected
 
 ## A. Integrator chore PR (small wiring stories could not do)
 
-- [ ] **"New event" link** on `src/app/routes/events/EventListPage.tsx` pointing to `/events/new`. Nothing links to the page today. _(S3.3)_
-- [ ] **"Schedule and occurrences" link** on `src/app/routes/admin/terms/SeriesPage.tsx` pointing to `/admin/terms/series/:id/schedule`. Nothing links to the screen. _(S3.2)_
+- [x] **"New event" link** on `src/app/routes/events/EventListPage.tsx` pointing to `/events/new`. Nothing links to the page today. _(S3.3)_ — done in integrator chore PR
+- [x] **"Schedule and occurrences" link** on `src/app/routes/admin/terms/SeriesPage.tsx` pointing to `/admin/terms/series/:id/schedule`. Nothing links to the screen. _(S3.2)_ — done in integrator chore PR
 - [ ] **Claims links** on `src/app/routes/money/MoneyPage.tsx` (to `/money/claims`) and `src/app/routes/admin/money/AdminBalances.tsx` (to `/admin/money/claims`), after the S5.5 screens exist. _(S5.5)_
-- [ ] **"Request to join" link** to `/join/event/<slug>` on the event page's 403 state in `EventDetailPage.tsx`. A pending member sees no call to action there. May overlap S7.1. _(S1.3)_
-- [ ] **Complete the saved RSVP after approval:** call `completeJoinRsvpIntent()` (`src/app/routes/join/joinIntent.ts`) from `src/app/shell/AppRoot.tsx`. Today the saved RSVP only completes when the approved member opens `/join`. _(S1.3)_
-- [ ] **Inbox unread badge:** wire `badges.inbox` in the shell; `GET /notifications` already returns `unreadCount`. _(S6.1)_
-- [ ] **Unsubscribe push on sign-out:** call `unsubscribePush()` from `src/sw/push-client.ts`. (S10.2 already re-subscribes on app open.) _(S6.2)_
-- [ ] **Push-permission trigger:** call `noteRsvpSaved()` (`src/app/components/install/`) in `RsvpPanel` after a successful RSVP save. Until then the push card never appears on its own; members can still opt in at `/install`. _(S10.2)_
-- [ ] **Pass holders must not be tier 1 at one-offs:** make `src/worker/rsvp/` use `rsvpTier(event, isPrepaid)` from `src/worker/events/oneoff-rules.ts` instead of reading `isPrepaid` directly. Verified 2026-11-24: nothing calls `rsvpTier` yet. _(S3.3, S4.2)_
-- [ ] **Deactivating a member must cancel their RSVPs:** wire `configureRsvpCancel(rsvpCancelAdapter(db, clock))`. S2.1's port has no db parameter, so this needs per-request wiring or a port change. Until then production runs `noopRsvpCancel`. Add a test that the production default is not the no-op. _(S2.1, S4.2)_
-- [ ] **Exited members can't see how to pay:** add `allowInactive: true` to `GET /settings/public` and `GET /me/profile`. They see their balance but not the bank details or payment reference. _(S5.2)_
-- [ ] **`NotifyPort` link:** optionally add `link?` to `NotifyPort` in `src/worker/core/ports.ts` so callers typed against the port can pass a deep link. _(S6.1)_
-- [ ] **`ChargePort` fields:** optionally add `eventId`, `passId`, `guestId`, `note` to the shared `ChargePort` interface; the production adapter already accepts them. _(S5.1)_
-- [ ] **Move the Clerk origin guard** from a `use("*")` in `src/worker/auth/routes.ts` to `src/worker/app.ts`. Today it only covers areas whose `routes.ts` sorts after `auth`, which is every current area. _(S1.1)_
-- [ ] **Remove the S0.1 probe route** (`src/worker/probe/`, `src/app/routes/probe/`) and its allowlist entry in `src/worker/core/route-guard.test.ts`. _(S0.1)_
-- [ ] **Align `src/worker/ops/health.ts`** with `scheduler/schedule.ts`. It still treats UTC 05–21 as the frequent window, so during UTC 22:00–22:59 the `/healthz/ready` staleness check is lenient (2 h instead of 20 min). Harmless. Use `cronIntervalMs`. _(S6.4)_
-- [ ] **Fold the series slug generator** in `src/worker/terms/routes.ts` into `src/worker/events/slugs.ts` (`randomSlug`, `uniqueSlug`). _(S3.1)_
-- [ ] **Add `FLAG_POLLS`** to `wrangler.jsonc` and `worker-configuration.d.ts`; it does not exist yet, so polls can't be switched on. _(S9.1)_
+- [x] **"Request to join" link** to `/join/event/<slug>` on the event page's 403 state in `EventDetailPage.tsx`. A pending member sees no call to action there. May overlap S7.1. _(S1.3)_ — done in integrator chore PR
+- [x] **Complete the saved RSVP after approval:** call `completeJoinRsvpIntent()` (`src/app/routes/join/joinIntent.ts`) from `src/app/shell/AppRoot.tsx`. Today the saved RSVP only completes when the approved member opens `/join`. _(S1.3)_ — done in integrator chore PR
+- [x] **Inbox unread badge:** wire `badges.inbox` in the shell; `GET /notifications` already returns `unreadCount`. _(S6.1)_ — done in integrator chore PR
+- [x] **Unsubscribe push on sign-out:** call `unsubscribePush()` from `src/sw/push-client.ts`. (S10.2 already re-subscribes on app open.) _(S6.2)_ — done in integrator chore PR
+- [x] **Push-permission trigger:** call `noteRsvpSaved()` (`src/app/components/install/`) in `RsvpPanel` after a successful RSVP save. Until then the push card never appears on its own; members can still opt in at `/install`. _(S10.2)_ — done in integrator chore PR
+- [x] **Pass holders must not be tier 1 at one-offs:** make `src/worker/rsvp/` use `rsvpTier(event, isPrepaid)` from `src/worker/events/oneoff-rules.ts` instead of reading `isPrepaid` directly. Verified 2026-11-24: nothing calls `rsvpTier` yet. _(S3.3, S4.2)_ — done in integrator chore PR
+- [x] **Deactivating a member must cancel their RSVPs:** wire `configureRsvpCancel(rsvpCancelAdapter(db, clock))`. S2.1's port has no db parameter, so this needs per-request wiring or a port change. Until then production runs `noopRsvpCancel`. Add a test that the production default is not the no-op. _(S2.1, S4.2)_ — done in integrator chore PR
+- [x] **Exited members can't see how to pay:** add `allowInactive: true` to `GET /settings/public` and `GET /me/profile`. They see their balance but not the bank details or payment reference. _(S5.2)_ — done in integrator chore PR
+- [x] **`NotifyPort` link:** optionally add `link?` to `NotifyPort` in `src/worker/core/ports.ts` so callers typed against the port can pass a deep link. _(S6.1)_ — done in integrator chore PR
+- [x] **`ChargePort` fields:** optionally add `eventId`, `passId`, `guestId`, `note` to the shared `ChargePort` interface; the production adapter already accepts them. _(S5.1)_ — done in integrator chore PR
+- [x] **Move the Clerk origin guard** from a `use("*")` in `src/worker/auth/routes.ts` to `src/worker/app.ts`. Today it only covers areas whose `routes.ts` sorts after `auth`, which is every current area. _(S1.1)_ — done in integrator chore PR
+- [x] **Remove the S0.1 probe route** (`src/worker/probe/`, `src/app/routes/probe/`) and its allowlist entry in `src/worker/core/route-guard.test.ts`. _(S0.1)_ — done in integrator chore PR
+- [x] **Align `src/worker/ops/health.ts`** with `scheduler/schedule.ts`. It still treats UTC 05–21 as the frequent window, so during UTC 22:00–22:59 the `/healthz/ready` staleness check is lenient (2 h instead of 20 min). Harmless. Use `cronIntervalMs`. _(S6.4)_ — done in integrator chore PR
+- [x] **Fold the series slug generator** in `src/worker/terms/routes.ts` into `src/worker/events/slugs.ts` (`randomSlug`, `uniqueSlug`). _(S3.1)_ — done in integrator chore PR
+- [x] **Add `FLAG_POLLS`** to `wrangler.jsonc` and `worker-configuration.d.ts`; it does not exist yet, so polls can't be switched on. _(S9.1)_ — done in integrator chore PR
 - [ ] **Flip flags** `FLAG_EVENTS`, `FLAG_MONEY`, `FLAG_INBOX` to "on", last, after sign-in works end to end. _(all)_
 - [ ] **`FLAG_EVENTS` area is usable only once** S3.0, S3.1, S3.2, S3.3 and S4.2 all work together: do one manual pass before flipping.
 - [ ] **Decide on gating the broadcast screen:** `/admin/broadcast` has no flag because no admin flag exists. _(S6.6)_

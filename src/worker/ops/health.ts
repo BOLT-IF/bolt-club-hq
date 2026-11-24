@@ -1,16 +1,12 @@
 import type { Context } from "hono";
 
 import type { Clock } from "../core/clock";
+import { cronIntervalMs, isTickStale } from "../scheduler/schedule";
+
+export { cronIntervalMs, isTickStale };
 
 /** KV key holding the epoch-ms time of the most recent cron tick (PLAN §11.2 scheduler state). */
 export const LAST_TICK_KEY = "ops:last_tick_at";
-
-const MINUTE_MS = 60_000;
-// The every-10-minutes trigger runs at 05:00–21:59 UTC (PLAN §11.1, DECISIONS S0.1).
-const FREQUENT_CRON_MS = 10 * MINUTE_MS;
-const HOURLY_CRON_MS = 60 * MINUTE_MS;
-/** Stale means no tick for more than two cron intervals. */
-const STALE_FACTOR = 2;
 
 export type DbStatus = "ok" | "error" | "unknown";
 
@@ -19,19 +15,6 @@ export interface HealthDeps {
   probeDb: () => Promise<DbStatus>;
   lastTickAt: () => Promise<number | null>;
   queueDepth: () => Promise<number | null>;
-}
-
-/** The cron cadence in effect at `nowMs` (UTC hour 05–21 is the frequent window). */
-export function cronIntervalMs(nowMs: number): number {
-  const hour = new Date(nowMs).getUTCHours();
-  return hour >= 5 && hour <= 21 ? FREQUENT_CRON_MS : HOURLY_CRON_MS;
-}
-
-export function isTickStale(lastTick: number | null, nowMs: number): boolean {
-  if (lastTick === null) {
-    return true;
-  }
-  return nowMs - lastTick > STALE_FACTOR * cronIntervalMs(nowMs);
 }
 
 /** Builds the `/healthz` handler from injected probes. Returns 503 when the DB or the tick is unhealthy. */

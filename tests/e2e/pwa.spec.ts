@@ -33,7 +33,7 @@ test("manifest is valid, icons are served and the service worker registers", asy
   page,
   request,
 }) => {
-  await page.goto("/probe");
+  await page.goto("/");
 
   const href = await page.locator('link[rel="manifest"]').getAttribute("href");
   expect(href).toBeTruthy();
@@ -76,7 +76,7 @@ test("manifest is valid, icons are served and the service worker registers", asy
 });
 
 test("offline reload still shows the app shell", async ({ page, context }) => {
-  await page.goto("/probe");
+  await page.goto("/");
   await waitForController(page);
 
   await context.setOffline(true);
@@ -86,7 +86,7 @@ test("offline reload still shows the app shell", async ({ page, context }) => {
 });
 
 test("/api requests never receive the app-shell fallback", async ({ page, context }) => {
-  await page.goto("/probe");
+  await page.goto("/");
   await waitForController(page);
 
   // Online: an unknown API path is a real API 404, not index.html.
@@ -118,7 +118,7 @@ test("/api requests never receive the app-shell fallback", async ({ page, contex
 });
 
 test("caches are empty after logout", async ({ page }) => {
-  await page.goto("/probe");
+  await page.goto("/");
   await waitForController(page);
   expect(await page.evaluate(() => caches.keys())).not.toEqual([]);
 
@@ -153,7 +153,7 @@ test.describe("update prompt", () => {
   });
 
   test("a new service worker version shows an update prompt", async ({ page, context }) => {
-    await page.goto("/probe");
+    await page.goto("/");
     await waitForController(page);
 
     await context.addInitScript(() => {

@@ -52,6 +52,7 @@
     "FLAG_EVENTS": "off",
     "FLAG_MONEY": "off",
     "FLAG_INBOX": "off",
+    "FLAG_POLLS": "off",
     // Optional. Sentry DSN for Worker error reports. Set the real value as a secret
     // (`wrangler secret put SENTRY_DSN`); unset means no reporting (see docs/DECISIONS.md, S0.7).
     // "SENTRY_DSN": "",

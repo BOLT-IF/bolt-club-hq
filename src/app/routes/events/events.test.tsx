@@ -73,6 +73,9 @@ describe("EventListPage", () => {
     const link = await screen.findByRole("link", { name: /Thu Mixed Doubles/ });
     expect(link.getAttribute("href")).toBe("/events/k3f9xq2m");
     expect(screen.getByRole("link", { name: /Sat Open/ })).toBeTruthy();
+    expect(screen.getByRole("link", { name: "New event" }).getAttribute("href")).toBe(
+      "/events/new",
+    );
   });
 
   it("shows an empty state, and an error with retry", async () => {
@@ -161,5 +164,8 @@ describe("EventDetailPage", () => {
     await waitFor(() => {
       expect(screen.getByText(/approved members/i)).toBeTruthy();
     });
+    expect(screen.getByRole("link", { name: "Request to join" }).getAttribute("href")).toBe(
+      "/join/event/k3f9xq2m",
+    );
   });
 });

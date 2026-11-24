@@ -2,6 +2,13 @@
 
 Decisions made after `PLAN.md` (v3) was written. Newest first. Every entry gives the decision, the reason, and what it changes.
 
+## 2026-11-24: No workflow waits for a manual approval
+
+- **Found:** every time the lockfile bot pushed (S0.1, S0.2, the dependency trim), the PR's CI run sat as `action_required` until a person clicked Approve. GitHub does this on purpose: a push made with `GITHUB_TOKEN` cannot start a PR workflow by itself.
+- **Fix:** after it pushes, the bot starts CI with `gh workflow run ci.yml --ref <branch>`. A `workflow_dispatch` made with `GITHUB_TOKEN` is allowed to start a run, so no approval is needed. The run reports on the branch head, which is the PR head, so the PR's checks update. The workflow gets `actions: write` for this.
+- **Checked, no approval needed:** CI (push and pull_request from our own branches), Deploy (`production` environment has no required reviewers), the scheduled backup, restore drill and Lighthouse (scheduled runs never wait for approval). Fork-PR approval does not apply to a private repo.
+- **Deliberate future gate:** STATUS lists a required reviewer on the `production` environment as Ashok's choice. Adding it makes each deploy wait for his approval by design.
+
 ## 2026-11-24: Postgres 18 everywhere (Ashok)
 
 - **Why 18, not "latest":** match production. Neon runs PostgreSQL 18.7. 17 was only the scaffold's default from before Neon existed. Testing on a newer major than production is the same mismatch the other way, so the rule is "same major as the Neon project". Moving production to a new major is a Neon upgrade first, then this set of pins.

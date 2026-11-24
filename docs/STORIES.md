@@ -170,7 +170,7 @@ Login is off the critical path. From W2 on, stories use the **test-identity over
 ## E1: Identity (Clerk)
 
 ### S1.1 Clerk integration: M · W2
-- **Depends on:** S0.2, S0.4, S0.6 · **Owns:** `src/worker/auth/`, `src/app/routes/auth/`, `src/app/auth/`
+- **Depends on:** S0.2, S0.4, S0.6 · **Owns:** `src/worker/auth/`, `src/app/routes/auth/`, `src/app/auth/`, plus integrator-sanctioned (2026-11-24): `src/app/main.tsx` (wrap the app in `AuthProvider`)
 - **Frontend:**
   - `<ClerkProvider>` and sign-in screens.
   - The installed iOS app leads with **email code**. Google is shown according to the S0.6 rule.

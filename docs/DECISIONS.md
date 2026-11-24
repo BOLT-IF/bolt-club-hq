@@ -2,6 +2,18 @@
 
 Decisions made after `PLAN.md` (v3) was written. Newest first. Every entry gives the decision, the reason, and what it changes.
 
+## 2026-11-24: Integrator queue: polls migration 0001; push wake-up from notify
+
+- **`docs/DECISIONS.md` uses `merge=union`** (`.gitattributes`). Every story prepends a section, so parallel PRs conflicted on every merge of main; union keeps both sides automatically. Check the order of new sections after a merge.
+
+- **S9.1 ships migration `0001`** (expand-only, tables empty in production): `poll` gains `multi_choice`, `anonymous`, `results_visibility` (enum) and `created_at`; the `poll_vote` key becomes (poll, member, option) so multi-choice votes fit. The initial schema could not store PLAN §10's poll rules. S9.1 owns `db/schema/comms.ts`, `db/migrations/` and the migration test (which now expects a contiguous chain from `0000_initial.sql`) for this change only. The single-chain CI check stays.
+- **S6.2 adds one `markPushDue(...)` call in `notify.ts`** after the `outbound_push` insert, so a queued push wakes the S6.4 scheduler instead of waiting for the daily run.
+
+## 2026-11-24: Owns globs are prefixes; nested backend routes mount through the area's routes.ts
+
+- **`check-owns.sh` treats a trailing `*` as a prefix match.** STORIES.md writes many Owns entries as `close*`, `claims*`, `policies/mute*`, but the check compared them literally, so every file such a story added failed. `close*` now accepts `close.ts`, `close.db.test.ts` and `close/…`, but not `claim.ts`. Found by S6.3.
+- **The backend registry only loads `src/worker/<area>/routes.ts`.** A story whose Owns covers only part of an area (e.g. `prefs*`, `close*`, `claims*`) exports a Hono sub-app from its own file, and the area's `routes.ts` gets a one-line `.route("/", subApp)` mount. The integrator adds that `routes.ts` to the story's Owns line as a sanctioned exception when asked. Pattern first used by S6.3.
+- **Notifications settings live at `/settings/notifications`** (S6.3 owns `src/app/routes/settings/notifications*`). The More menu link moves there from `/profile/notifications`, which S2.1's `profile/` would otherwise have to host.
 ## 2026-11-24: S3.1 terms, series, captains, clone: ambiguities resolved
 
 Each is the most conservative reading of PLAN; change here if the product intent differs.

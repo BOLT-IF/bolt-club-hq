@@ -76,7 +76,12 @@ describe("ledger service", () => {
       const m = await makeMember(t.db);
       const results = await Promise.all(
         Array.from({ length: 5 }, () =>
-          ledger.charge({ memberId: m.id, amountSek: 90, reason: "guest", idempotencyKey: "k-race" }),
+          ledger.charge({
+            memberId: m.id,
+            amountSek: 90,
+            reason: "guest",
+            idempotencyKey: "k-race",
+          }),
         ),
       );
       expect(results.filter((r) => r.created)).toHaveLength(1);
@@ -87,7 +92,12 @@ describe("ledger service", () => {
     it("reusing a key for a different charge is a conflict, not a silent no-op", async () => {
       const m = await makeMember(t.db);
       const other = await makeMember(t.db);
-      await ledger.charge({ memberId: m.id, amountSek: 120, reason: "adhoc", idempotencyKey: "k-x" });
+      await ledger.charge({
+        memberId: m.id,
+        amountSek: 120,
+        reason: "adhoc",
+        idempotencyKey: "k-x",
+      });
       expect(
         await codeOf(
           ledger.charge({ memberId: m.id, amountSek: 130, reason: "adhoc", idempotencyKey: "k-x" }),
@@ -95,7 +105,12 @@ describe("ledger service", () => {
       ).toBe("idempotency_conflict");
       expect(
         await codeOf(
-          ledger.charge({ memberId: other.id, amountSek: 120, reason: "adhoc", idempotencyKey: "k-x" }),
+          ledger.charge({
+            memberId: other.id,
+            amountSek: 120,
+            reason: "adhoc",
+            idempotencyKey: "k-x",
+          }),
         ),
       ).toBe("idempotency_conflict");
       expect(await rowsOf(m.id)).toHaveLength(1);
@@ -134,7 +149,12 @@ describe("ledger service", () => {
     it("refuses an unknown member", async () => {
       expect(
         await codeOf(
-          ledger.charge({ memberId: "nobody", amountSek: 10, reason: "adhoc", idempotencyKey: "k-nm" }),
+          ledger.charge({
+            memberId: "nobody",
+            amountSek: 10,
+            reason: "adhoc",
+            idempotencyKey: "k-nm",
+          }),
         ),
       ).toBe("member_not_found");
     });
@@ -144,7 +164,12 @@ describe("ledger service", () => {
     it("is stored negative, only an admin can record it, and it lowers the balance", async () => {
       const admin = await makeMember(t.db, { role: "admin" });
       const plain = await makeMember(t.db);
-      await ledger.charge({ memberId: plain.id, amountSek: 300, reason: "pass", idempotencyKey: "c1" });
+      await ledger.charge({
+        memberId: plain.id,
+        amountSek: 300,
+        reason: "pass",
+        idempotencyKey: "c1",
+      });
 
       const paid = await ledger.recordPayment({
         memberId: plain.id,
@@ -217,7 +242,12 @@ describe("ledger service", () => {
     it("blocks an admin recording a payment or adjustment on their own ledger when another admin exists", async () => {
       const admin = await makeMember(t.db, { role: "admin" });
       await makeMember(t.db, { role: "admin" });
-      await ledger.charge({ memberId: admin.id, amountSek: 200, reason: "pass", idempotencyKey: "c" });
+      await ledger.charge({
+        memberId: admin.id,
+        amountSek: 200,
+        reason: "pass",
+        idempotencyKey: "c",
+      });
 
       expect(
         await codeOf(
@@ -290,7 +320,10 @@ describe("ledger service", () => {
       expect(result.created).toBe(true);
       expect(await ledger.balance(admin.id)).toBe(-75);
 
-      const [audit] = await t.db.select().from(auditLog).where(eq(auditLog.entityId, result.entryId));
+      const [audit] = await t.db
+        .select()
+        .from(auditLog)
+        .where(eq(auditLog.entityId, result.entryId));
       expect(audit?.action).toBe("ledger.payment");
       expect(audit?.actorId).toBe(admin.id);
       expect(JSON.parse(audit?.after ?? "{}")).toMatchObject({
@@ -309,7 +342,10 @@ describe("ledger service", () => {
         actor: actorOf(admin),
         idempotencyKey: "other-pay",
       });
-      const audits = await t.db.select().from(auditLog).where(eq(auditLog.entityId, result.entryId));
+      const audits = await t.db
+        .select()
+        .from(auditLog)
+        .where(eq(auditLog.entityId, result.entryId));
       expect(audits).toHaveLength(1);
       expect(JSON.parse(audits[0]?.after ?? "{}")).toMatchObject({ selfLedgerFlagged: false });
     });
@@ -317,10 +353,17 @@ describe("ledger service", () => {
     it("a replayed admin write does not audit twice", async () => {
       const admin = await makeMember(t.db, { role: "admin" });
       const plain = await makeMember(t.db);
-      const input = { memberId: plain.id, amountSek: 40, actor: actorOf(admin), idempotencyKey: "r" };
+      const input = {
+        memberId: plain.id,
+        amountSek: 40,
+        actor: actorOf(admin),
+        idempotencyKey: "r",
+      };
       const first = await ledger.recordPayment(input);
       await ledger.recordPayment(input);
-      expect(await t.db.select().from(auditLog).where(eq(auditLog.entityId, first.entryId))).toHaveLength(1);
+      expect(
+        await t.db.select().from(auditLog).where(eq(auditLog.entityId, first.entryId)),
+      ).toHaveLength(1);
     });
 
     it("system writes (no actor) are never subject to the guard and write no audit row", async () => {
@@ -341,14 +384,21 @@ describe("ledger service", () => {
     it("a waiver is negative and needs a reason note", async () => {
       const admin = await makeMember(t.db, { role: "admin" });
       const plain = await makeMember(t.db);
-      await ledger.charge({ memberId: plain.id, amountSek: 100, reason: "adhoc", idempotencyKey: "c" });
+      await ledger.charge({
+        memberId: plain.id,
+        amountSek: 100,
+        reason: "adhoc",
+        idempotencyKey: "c",
+      });
 
       const base = { memberId: plain.id, actor: actorOf(admin), reason: "waiver" as const };
       expect(
         await codeOf(ledger.adjust({ ...base, amountSek: 30, note: "x", idempotencyKey: "w-pos" })),
       ).toBe("invalid_reason");
       expect(
-        await codeOf(ledger.adjust({ ...base, amountSek: -30, note: "  ", idempotencyKey: "w-note" })),
+        await codeOf(
+          ledger.adjust({ ...base, amountSek: -30, note: "  ", idempotencyKey: "w-note" }),
+        ),
       ).toBe("note_required");
       const ok = await ledger.adjust({
         ...base,
@@ -371,14 +421,23 @@ describe("ledger service", () => {
       const admin = await makeMember(t.db, { role: "admin" });
       const plain = await makeMember(t.db);
       const base = { memberId: plain.id, actor: actorOf(admin), note: "imported" };
-      await ledger.adjust({ ...base, amountSek: 500, reason: "opening_balance", idempotencyKey: "o" });
+      await ledger.adjust({
+        ...base,
+        amountSek: 500,
+        reason: "opening_balance",
+        idempotencyKey: "o",
+      });
       await ledger.adjust({ ...base, amountSek: -50, reason: "manual", idempotencyKey: "m" });
       expect(await ledger.balance(plain.id)).toBe(450);
       expect(
-        await codeOf(ledger.adjust({ ...base, amountSek: 1.25, reason: "manual", idempotencyKey: "f" })),
+        await codeOf(
+          ledger.adjust({ ...base, amountSek: 1.25, reason: "manual", idempotencyKey: "f" }),
+        ),
       ).toBe("invalid_amount");
       expect(
-        await codeOf(ledger.adjust({ ...base, amountSek: 0, reason: "manual", idempotencyKey: "z" })),
+        await codeOf(
+          ledger.adjust({ ...base, amountSek: 0, reason: "manual", idempotencyKey: "z" }),
+        ),
       ).toBe("invalid_amount");
     });
 
@@ -432,9 +491,9 @@ describe("ledger service", () => {
         idempotencyKey: "c",
       });
       const reversed = await ledger.reverse({ entryId: charged.entryId, idempotencyKey: "r" });
-      expect(await codeOf(ledger.reverse({ entryId: reversed.entryId, idempotencyKey: "rr" }))).toBe(
-        "cannot_reverse_reversal",
-      );
+      expect(
+        await codeOf(ledger.reverse({ entryId: reversed.entryId, idempotencyKey: "rr" })),
+      ).toBe("cannot_reverse_reversal");
       expect(await rowsOf(m.id)).toHaveLength(2);
       expect(await ledger.balance(m.id)).toBe(0);
     });
@@ -554,7 +613,12 @@ describe("ledger service", () => {
       const admin = await makeMember(t.db, { role: "admin" });
       const a = await makeMember(t.db);
       const b = await makeMember(t.db);
-      await ledger.charge({ memberId: a.id, amountSek: 120, reason: "adhoc", idempotencyKey: "a1" });
+      await ledger.charge({
+        memberId: a.id,
+        amountSek: 120,
+        reason: "adhoc",
+        idempotencyKey: "a1",
+      });
       await ledger.charge({ memberId: a.id, amountSek: 80, reason: "guest", idempotencyKey: "a2" });
       await ledger.recordPayment({
         memberId: a.id,
@@ -573,9 +637,19 @@ describe("ledger service", () => {
     it("itemize allocates FIFO from the database rows: a partial payment splits, credit carries", async () => {
       const admin = await makeMember(t.db, { role: "admin" });
       const m = await makeMember(t.db);
-      const c1 = await ledger.charge({ memberId: m.id, amountSek: 100, reason: "adhoc", idempotencyKey: "c1" });
+      const c1 = await ledger.charge({
+        memberId: m.id,
+        amountSek: 100,
+        reason: "adhoc",
+        idempotencyKey: "c1",
+      });
       clock.advance(1000);
-      const c2 = await ledger.charge({ memberId: m.id, amountSek: 200, reason: "adhoc", idempotencyKey: "c2" });
+      const c2 = await ledger.charge({
+        memberId: m.id,
+        amountSek: 200,
+        reason: "adhoc",
+        idempotencyKey: "c2",
+      });
       clock.advance(1000);
       await ledger.recordPayment({
         memberId: m.id,
@@ -597,11 +671,19 @@ describe("ledger service", () => {
         actor: actorOf(admin),
         idempotencyKey: "p2",
       });
-      expect(await ledger.itemize(m.id)).toMatchObject({ balanceSek: -100, owedSek: 0, creditSek: 100 });
+      expect(await ledger.itemize(m.id)).toMatchObject({
+        balanceSek: -100,
+        owedSek: 0,
+        creditSek: 100,
+      });
 
       clock.advance(1000);
       await ledger.charge({ memberId: m.id, amountSek: 60, reason: "adhoc", idempotencyKey: "c3" });
-      expect(await ledger.itemize(m.id)).toMatchObject({ balanceSek: -40, owedSek: 0, creditSek: 40 });
+      expect(await ledger.itemize(m.id)).toMatchObject({
+        balanceSek: -40,
+        owedSek: 0,
+        creditSek: 40,
+      });
     });
   });
 });

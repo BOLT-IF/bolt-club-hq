@@ -21,8 +21,16 @@ type Op =
   | { t: "reverse"; pick: number; dt: number };
 
 const opArb: fc.Arbitrary<Op> = fc.oneof(
-  fc.record({ t: fc.constant("charge" as const), amount: fc.integer({ min: 1, max: 500 }), dt: fc.nat(3) }),
-  fc.record({ t: fc.constant("payment" as const), amount: fc.integer({ min: 1, max: 500 }), dt: fc.nat(3) }),
+  fc.record({
+    t: fc.constant("charge" as const),
+    amount: fc.integer({ min: 1, max: 500 }),
+    dt: fc.nat(3),
+  }),
+  fc.record({
+    t: fc.constant("payment" as const),
+    amount: fc.integer({ min: 1, max: 500 }),
+    dt: fc.nat(3),
+  }),
   fc.record({
     t: fc.constant("adjust" as const),
     amount: fc.integer({ min: -300, max: 300 }).filter((v) => v !== 0),
@@ -167,9 +175,7 @@ describe("ledger properties (fast-check)", () => {
         const reversed = new Set(
           rows.filter((r) => r.kind === "reversal").map((r) => r.reversesEntryId),
         );
-        const without = rows.filter(
-          (r) => !(r.kind === "reversal" || reversed.has(r.id)),
-        );
+        const without = rows.filter((r) => !(r.kind === "reversal" || reversed.has(r.id)));
         const full = itemize(rows);
         const clean = itemize(without);
         expect(full.owedSek).toBe(clean.owedSek);

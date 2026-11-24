@@ -30,7 +30,12 @@ describe("ChargePort / ReversePort production adapters", () => {
 
   it("charge writes a ledger charge, once per idempotency key", async () => {
     const m = await makeMember(t.db);
-    const input = { memberId: m.id, amountSek: 120, reason: "adhoc", idempotencyKey: "close:e1:m1" };
+    const input = {
+      memberId: m.id,
+      amountSek: 120,
+      reason: "adhoc",
+      idempotencyKey: "close:e1:m1",
+    };
     await charge.charge(input);
     await charge.charge(input);
     const rows = await rowsOf(m.id);

@@ -47,13 +47,21 @@ describe("itemize: FIFO allocation", () => {
     expect(result.balanceSek).toBe(200);
     expect(result.owedSek).toBe(200);
     expect(result.creditSek).toBe(0);
-    expect(byId(result, c1.id)).toMatchObject({ allocatedSek: 100, outstandingSek: 0, status: "paid" });
+    expect(byId(result, c1.id)).toMatchObject({
+      allocatedSek: 100,
+      outstandingSek: 0,
+      status: "paid",
+    });
     expect(byId(result, c2.id)).toMatchObject({
       allocatedSek: 50,
       outstandingSek: 150,
       status: "partly_paid",
     });
-    expect(byId(result, c3.id)).toMatchObject({ allocatedSek: 0, outstandingSek: 50, status: "unpaid" });
+    expect(byId(result, c3.id)).toMatchObject({
+      allocatedSek: 0,
+      outstandingSek: 50,
+      status: "unpaid",
+    });
     expect(byId(result, p.id)).toMatchObject({ allocatedSek: 150, outstandingSek: 0 });
   });
 
@@ -100,8 +108,16 @@ describe("itemize: FIFO allocation", () => {
     const p = row("payment", -100, 4);
     const result = itemize([c1, c2, r1, p]);
     expect(result).toMatchObject({ balanceSek: 0, owedSek: 0, creditSek: 0 });
-    expect(byId(result, c1.id)).toMatchObject({ status: "reversed", allocatedSek: 0, outstandingSek: 0 });
-    expect(byId(result, r1.id)).toMatchObject({ status: "reversal", allocatedSek: 0, outstandingSek: 0 });
+    expect(byId(result, c1.id)).toMatchObject({
+      status: "reversed",
+      allocatedSek: 0,
+      outstandingSek: 0,
+    });
+    expect(byId(result, r1.id)).toMatchObject({
+      status: "reversal",
+      allocatedSek: 0,
+      outstandingSek: 0,
+    });
     expect(byId(result, c2.id).status).toBe("paid");
   });
 

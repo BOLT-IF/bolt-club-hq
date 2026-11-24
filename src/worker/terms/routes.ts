@@ -9,6 +9,7 @@ import type { Db, Tx } from "../core/db/client";
 import { idempotencyKeyMiddleware } from "../core/idempotency";
 import { requireGuard } from "../core/permissions";
 import type { AppEnv } from "../types";
+import recurrenceRoutes from "./recurrence-routes";
 import { canTransition, derivePassCap } from "./rules";
 import {
   CAPTAIN_EDITABLE_FIELDS,
@@ -118,6 +119,7 @@ export default new Hono<AppEnv>()
   .use("/terms/*", contextMiddleware())
   .use("/series", contextMiddleware())
   .use("/series/*", contextMiddleware())
+  .route("/", recurrenceRoutes)
 
   // ---- Terms (admin) ------------------------------------------------------------------
 

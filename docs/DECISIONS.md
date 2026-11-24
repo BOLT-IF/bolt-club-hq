@@ -9,6 +9,37 @@ Decisions made after `PLAN.md` (v3) was written. Newest first. Every entry gives
 - **The first RSVP is a device flag** set by `noteRsvpSaved()`. Integrator follow-up: call it from `RsvpPanel` after a successful save (S4.2). Until then the push card never appears on its own (safe default); `/install` still works.
 - **Re-subscribe on every open:** `InstallPrompt` (mounted in the shell) calls S6.2's `resubscribePush()` on mount when permission is already `granted`, lazily imported. It never asks. This closes S6.2's "wire resubscribePush into the shell" follow-up.
 
+## 2026-11-24: S5.2 member money screen
+
+- **Payment reference comes from `GET /me/profile`.** `/me/ledger` does not carry it and S5.2 owns no backend file, so the screen reads it from the existing profile route rather than widening the ledger response.
+- **Ledger required, payment details best effort.** The screen loads `/me/ledger`, `/settings/public` and `/me/profile` in parallel; only a ledger failure shows the error state. Missing bank details show "Ask the treasurer for the club's bank details".
+- **Exited members (follow-up for the integrator):** `/settings/public` and `/me/profile` use `requireGuard("member")` without `allowInactive`, so an exited member sees their balance and entries but not the bank details or their payment reference. PLAN §6.7 suggests they need them to settle a remaining balance. The fix is adding `allowInactive: true` in S2.3's and S2.1's routes; not done here because those files are outside S5.2's Owns.
+- **Entries newest first**, each with a FIFO chip: Paid / Partly paid, N kr left / Unpaid for charges; Used / N kr credit left for money in; Cancelled / Cancellation for reversal pairs. Money in shows with a minus sign (−150 kr). Credit is shown as "Credit 100 kr", never as a negative debt.
+- **"Another member's ledger is 403"** is covered server-side by S5.1's `src/worker/ledger/routes.db.test.ts`. The S5.2 Playwright spec checks the screen never sends a member id and shows an error (no data) on a 403.
+## 2026-11-24: S6.5a reminder rules engine: ambiguities resolved
+
+- **Two rule kinds now: `payment_due` and `event_unrsvped`**, stored in `reminder_rule.category`. Poll closing (PLAN §10) is left for S9.1 (polls), which owns that data. No migration.
+- **Categories for mute:** payment reminders use `payment_due`; un-RSVPed reminders use `new_events` (closest PLAN §10 category).
+- **"At publish" means within 7 days of the event's start.** Events have no publish timestamp and a term's events are created all at once, so a literal "at creation" would remind about every event of the term on day one. The publish stage fires once, on the first run where the event is open and starts within 7 days. The pre-close stage fires once from `hoursBeforeClose` before RSVP close. A member first reached inside the pre-close window gets only that one.
+- **"Responded" means any `rsvp` row, cancelled included.** Someone who cancelled has answered.
+- **Payment interval counts Stockholm calendar days** since that rule's last send to the member, so 2027-01-01 → 2027-04-01 (90 days) fires regardless of tick time or DST. Inactive (exited) members are included while they owe (PLAN §6.7). Pending and erased members are not.
+- **Exactly-once:** the send key is both the `notification_send_log.id` and the notify idempotency key, inserted in one transaction, so a retried tick never sends twice.
+- **Preview equals the send** because both call the same `planRule`. A preview writes nothing, so it needs no `Idempotency-Key`. Create does (a double tap would make two rules).
+- **A rule that has sent cannot be deleted** (409 `rule_has_sends`; the send log references it). Disable it instead. Writes are audited.
+- **Scheduler wake-up:** the tick hook calls `markDue(ctx.kv, …)` for the next publish or pre-close moment (needs `TickContext.kv`, PR #46).
+## 2026-11-24: S3.2 recurrence, skip-dates, occurrence edits: ambiguities resolved
+
+Each is the most conservative reading of PLAN; change here if the product intent differs.
+
+- **Occurrence identity is the local (Stockholm) date.** `POST /series/:id/generate-events` creates an event only for a term date that has **no** event of that series yet, whatever its status. So re-running is idempotent, manual edits survive, and a cancelled night is never recreated. Series-level edits (time, capacity) apply to nights generated afterwards only; existing nights are changed one by one (or by S4.4c).
+- **Never generate the past.** A date whose RSVP close has already passed is not generated (it would be born closed).
+- **DST rules** (`src/domain/recurrence.ts`, via `Intl`, no dependency): a wall time that occurs twice (autumn) resolves to the first (summer time); a time skipped in spring moves forward by the gap (02:30 → 03:30). Club sessions never sit in that hour, so this only matters for odd input.
+- **Skip-dates:** admin only, must be the series weekday inside the term. Locked after `open_for_passes`; `overrideLock: true` (admin) saves anyway and is recorded in the audit row (PLAN §6.5 "override with a warning"). Skipping a date that already has a live event is 409 `skip_date_has_event`: cancelling a generated night is S4.4c (it reverses charges and notifies).
+- **Occurrence edits** (`PATCH /series/:id/occurrences/:eventId`): location, guests per member and RSVP close offset for captains of the series; capacity, start time and duration for admins only (same split as the S3.1 series edit). Start time is local Stockholm time on the same date; `rsvp_close_at` and `ends_at` are recomputed as absolute minutes from start. Only before RSVP close: after close a date/time/location change is a material change (PLAN §6.6), owned by S4.4c, so it is 409 `event_closed` here.
+- **Cap below sold** applies to an occurrence's capacity exactly as to the series': if the new `pass_cap` (A8 minimum) falls and is below active passes, 409 `cap_below_passes_sold` unless an admin sends `overrideCapBelowSold: true` (audited). Raising capacity never needs an override; promotion from the waitlist on raise belongs to S4.4b/c.
+- **Scheduler:** generation and occurrence edits call `markDue(env.KV, earliest rsvp_close_at)`. Skipped when `KV` is absent (tests); a KV failure is logged and never fails the write.
+- **OG:** `createEvent` is called with a no-op publisher inside the generation transaction; OG is published after commit for the created events, so a rolled-back run never leaves KV entries.
+- **No SeriesPage link yet:** the schedule screen is `/admin/terms/series/:id/schedule`; the integrator adds the link from the series page (outside S3.2 Owns).
 ## 2026-11-24: S9.1 polls resolutions (migration approved by integrator)
 
 - **Migration `0001_polls` (integrator-approved, shipped in the S9.1 PR).** The initial schema could not store multi-choice votes (`poll_vote` PK was `(poll_id, member_id)`) or any poll setting. Adds `poll.multi_choice`, `poll.anonymous`, `poll.results_visibility` (pgEnum `poll_results_visibility`: `always | after_vote | after_close | admins`, default `always`), `poll.created_at`, and changes the `poll_vote` PK to `(poll_id, member_id, option_id)`. Generated with drizzle-kit (SQL, `0001_snapshot.json` and journal). The PK change is not expand-only in general, but the tables are empty in production.

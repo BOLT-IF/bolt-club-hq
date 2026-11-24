@@ -11,6 +11,15 @@ Decisions made after `PLAN.md` (v3) was written. Newest first. Every entry gives
 - **Reject** needs a non-blank reason (≤ 500, trimmed; 400 `reason_required`). Claim → `rejected` with the reason, audit `payment_claim.reject`, notify `payment_status` with the reason in the body and a link to `/money/claims`. Rejecting again keeps the first reason and doesn't notify again. A confirmed claim can't be rejected (409); undo a wrong confirm with an S5.4 reversal of the payment.
 - **Not shipped (wrap-up):** the member and admin claim screens (`src/app/routes/money/claims*`, `src/app/routes/admin/money/claims*`). The API is complete; screens and their links from MoneyPage/AdminBalances are follow-ups.
 
+## 2026-11-24: S2.4 audit-log viewer (ambiguities)
+
+- **Admin only, active admins only.** `GET /admin/audit` uses `requireGuard("admin")`: members, pending and inactive admins get 403, anonymous 401. Captains see nothing (PLAN lists Audit under Admin only).
+- **Keyset pagination on `(at, id)`, newest first.** The response is `{ entries, nextCursor }`; the cursor is opaque (base64 of `[at, id]`) and the next page is `(at, id) < cursor`. Rows inserted between page loads therefore never shift, skip or repeat entries on later pages. The cursor keeps Postgres' microseconds (formatted in SQL), because `audit_log.at` defaults to `now()` and a millisecond JS `Date` would collapse distinct rows. `limit` defaults to 50, max 100; a malformed `limit`, `cursor`, `from` or `to` is 400.
+- **Filters are exact matches combined with AND:** `actor` (member id), `entity`, `entityId`, `action`. No prefix or substring matching (conservative; a prefix filter is a cheap follow-up if admins ask). `from` is inclusive, `to` exclusive, both full ISO instants with an offset (a bare date is rejected, so the server never guesses a time zone).
+- **The UI's date range is Stockholm days, inclusive.** The page turns "From" into 00:00 Stockholm of that day and "To" into 00:00 Stockholm of the next day, as UTC instants. Times are shown in Stockholm time.
+- **Before/after are returned parsed** (stored as JSON text); unparsable text is returned as written. `actorName` comes from a join on `member`; a system write (`actor_id` null) shows as "System". The actor dropdown reuses `GET /admin/members`.
+- **No index added.** The table is small at club scale; an `(at DESC, id DESC)` index needs a migration through the integrator queue. Follow-up if it grows.
+- **No feature flag:** there is no audit flag in `/config`, and the page and API are admin-gated.
 ## 2026-11-24: S6.6 broadcasts: audiences, mute, audit
 
 - **Route:** `POST /admin/broadcasts` (admin guard + `Idempotency-Key`), body `{ title, body, audience }`, returns `{ broadcastId, recipientCount }`. Title max 100, body max 1000 characters. Unknown event: 404 `event_not_found`.

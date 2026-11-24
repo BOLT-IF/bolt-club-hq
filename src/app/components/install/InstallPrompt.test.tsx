@@ -78,9 +78,7 @@ describe("InstallPrompt", () => {
   it("iOS Safari: shows Add to Home Screen instructions, no push", async () => {
     const push = fakePush(null);
     const { container } = render(<InstallPrompt context={IOS} push={push} />);
-    expect(
-      screen.getByRole("heading", { name: /add bolt hq to your home screen/i }),
-    ).toBeTruthy();
+    expect(screen.getByRole("heading", { name: /add bolt hq to your home screen/i })).toBeTruthy();
     expect(screen.getByText(/add to home screen/i, { selector: "strong" })).toBeTruthy();
     await expectAxeClean(container);
   });

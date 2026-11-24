@@ -1,0 +1,4 @@
+src/fixture/a.ts
+docs/areas/fixture.md
+tests/e2e/s9.8-fixture.spec.ts
+docs/DECISIONS.md

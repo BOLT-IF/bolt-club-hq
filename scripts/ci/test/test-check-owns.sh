@@ -25,6 +25,10 @@ expect_status "S0.5 real owns: workflows, scripts/ci, docs/ops and DECISIONS pas
 expect_status "S0.5 real owns: db/schema change fails" 1 -- \
   bash "$CI/check-owns.sh" "$STORIES" S0.5 "$FIX/diff-s05-breaks-owns.txt"
 
+# Area docs and per-story e2e specs are on the shared allow-list for every story.
+expect_status "docs/areas and tests/e2e are shared" 0 -- \
+  bash "$CI/check-owns.sh" "$FIX/stories.md" S9.8 "$FIX/diff-shared-ok.txt"
+
 # A story whose Owns is "the whole repo" (S0.1) is unrestricted.
 expect_status "whole-repo Owns is unrestricted" 0 -- \
   bash "$CI/check-owns.sh" "$FIX/stories.md" S9.9 "$FIX/diff-breaks-owns.txt"

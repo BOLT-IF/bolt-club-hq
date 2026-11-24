@@ -4,7 +4,7 @@ Last updated 2026-11-24, end of day. **The app is deployed (as an empty shell). 
 
 ## Resume prompt (copy and paste this to a new agent)
 
-> You are the integrator (root agent) for the BOLT HQ build in `BOLT-IF/bolt-club-hq`. Read `docs/STATUS.md`, `docs/WORKER-BRIEF.md`, `AGENTS.md`, `docs/STORIES.md` and the top of `docs/DECISIONS.md`. Then carry on delivery as the "Next steps" section says: land the integrator follow-up chore PR first, then fan out the stories in the "Not started" table in dependency order, in parallel where the dependencies allow, one story per PR on `story/<id>-<slug>` branches. Spawn story agents on your own model (the Sonnet override stopped working on this account), and give each one `docs/WORKER-BRIEF.md`. Merge each PR to `main` only when every GitHub Actions check is SUCCESS. Ignore Cloudflare's "Workers Builds" check on branches. Ask me only for the human-only items in "Needs Ashok". When you stop, update `docs/STATUS.md`.
+> You are the integrator (root agent) for the BOLT HQ build in `BOLT-IF/bolt-club-hq`. Read `docs/STATUS.md`, `docs/FOLLOWUPS.md`, `docs/WORKER-BRIEF.md`, `AGENTS.md`, `docs/STORIES.md` and the top of `docs/DECISIONS.md`. Then carry on delivery as the "Next steps" section says: land the integrator follow-up chore PR first, then fan out the stories in the "Not started" table in dependency order, in parallel where the dependencies allow, one story per PR on `story/<id>-<slug>` branches. Spawn story agents on your own model (the Sonnet override stopped working on this account), and give each one `docs/WORKER-BRIEF.md`. Merge each PR to `main` only when every GitHub Actions check is SUCCESS. Ignore Cloudflare's "Workers Builds" check on branches. Ask me only for the human-only items in "Needs Ashok". Tick items in `docs/FOLLOWUPS.md` as you finish them and add any new ones your agents report. When you stop, update `docs/STATUS.md`.
 
 ## What is built (all on `main`)
 
@@ -49,6 +49,8 @@ Two migrations exist: `0000_initial` and `0001_polls`. Neither has been applied 
 Fan-out order: **S4.3, S5.3, S2.5, S11.2, S6.5b, S9.2 and the S5.5 screens in parallel first**. Then S4.4a/b/c, S8.1 and S8.3 as soon as S4.3 merges. Then S8.2, S10.1, S7.1 (after S0.6), S11.1 and S11.3. Run at most about 10 agents at once.
 
 ## Next steps (do these first)
+
+**Every follow-up the earlier agents reported is in `docs/FOLLOWUPS.md`** (sections A to F, with an owner for each). The list below is the short version.
 
 1. **Integrator follow-up chore PR** (one PR). These are small things the stories could not do inside their Owns:
    - **Links:** "New event" on `EventListPage.tsx` to `/events/new`; "Schedule and occurrences" on `admin/terms/SeriesPage.tsx` to `/admin/terms/series/:id/schedule`; claims links on `MoneyPage.tsx` and `AdminBalances.tsx` once the S5.5 screens exist; "Request to join" on the event page's 403 state to `/join/event/<slug>` (may overlap S7.1).

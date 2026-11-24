@@ -427,7 +427,7 @@ Login is off the critical path. From W2 on, stories use the **test-identity over
 - **Tests first:** a muted category still writes to the inbox but sends no push; global mute overrides per-category settings; everything is on by default.
 
 ### S6.4 Cron Triggers: S · W2
-- **Depends on:** S0.2 · **Owns:** `src/worker/scheduler/`, the cron section of `wrangler.jsonc`, `wrangler.jsonc`, plus integrator-sanctioned (2026-11-24): `src/worker/index.ts` (`scheduled()` delegates to the scheduler)
+- **Depends on:** S0.2 · **Owns:** `src/worker/scheduler/`, the cron section of `wrangler.jsonc`, `wrangler.jsonc`, plus integrator-sanctioned (2026-11-24): `src/worker/index.ts` (`scheduled()` delegates to the scheduler), `src/worker/ops/wiring.test.ts` (KV cleanup between tests)
 - `scheduled()` takes an overlap lock, then reads `next_due_at` from KV. If nothing is due, it never touches Neon. Otherwise it runs the registered hooks within a time bound.
 - Pings healthchecks.io. Raises an `admin_tasks` alert when the tick is stale.
 - **Tests first:**

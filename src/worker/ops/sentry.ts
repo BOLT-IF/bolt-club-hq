@@ -1,9 +1,7 @@
 /**
- * Worker Sentry reporter. It posts Sentry envelopes with `fetch` instead of
- * importing toucan-js. toucan-js's type declarations reference
- * `@cloudflare/workers-types`, which shadows the generated `Cloudflare.Env` and
- * breaks `npm run typecheck` for `ASSETS` (verified in a clean clone; see
- * docs/DECISIONS.md, S0.7). The reporter needs no dependency and no Sentry SDK.
+ * Worker Sentry reporter. It posts Sentry envelopes with `fetch`, so it needs no
+ * Sentry SDK. toucan-js was tried and dropped: its types shadow the generated
+ * `Cloudflare.Env` (see docs/DECISIONS.md, S0.7 and "dependency trim").
  */
 
 /** Sentry DSN from the `SENTRY_DSN` secret or var. Unset means reporting is off. */

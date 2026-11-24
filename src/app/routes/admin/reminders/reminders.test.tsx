@@ -115,7 +115,10 @@ describe("admin reminders screen (S6.5b)", () => {
       if (url === "/api/v1/admin/reminder-rules" && (init?.method ?? "GET") === "GET") {
         return json({ items: [], placeholders: PLACEHOLDERS });
       }
-      return json({ error: "validation", fields: { template: "unknown placeholder: {bogus}" } }, 400);
+      return json(
+        { error: "validation", fields: { template: "unknown placeholder: {bogus}" } },
+        400,
+      );
     });
     renderPage();
 

@@ -2,6 +2,12 @@
 
 Decisions made after `PLAN.md` (v3) was written. Newest first. Every entry gives the decision, the reason, and what it changes.
 
+## 2026-11-24: S6.5b reminder admin UI
+
+- **Placeholders sourced from `/admin/reminder-rules`:** `RuleForm` renders tap-to-insert chips directly from the `GET /admin/reminder-rules` response's `placeholders[kind]` list and validates unknown `{placeholder}` tokens client-side against that list before submitting (while still mapping server `400 { error: "validation", fields }` onto fields).
+- **409 `rule_has_sends` flow:** Deleting a rule asks for confirmation first; if the API answers `409 rule_has_sends`, the UI explains that sent rules stay in the send log and offers "Disable instead" (sending `PUT` with `enabled: false`), or notes it is already disabled if `enabled` is already `false`.
+- **403 handling:** A non-admin who navigates directly to `/admin/reminders` gets an "Admins only" empty state matching `/admin/settings` rather than a generic error banner.
+
 ## 2026-11-24: Integrator follow-up chore & Owns pre-grants
 
 - **Member deactivation (`rsvp.cancel` port):** `RsvpCancelPort.cancelFutureRsvps` takes `{ db, clock, memberId, at, idempotencyKey }` so `members/routes.ts` passes the request `db` and `clock` directly to `realRsvpCancel` (`src/worker/rsvp/cancel.ts`). `noopRsvpCancel` is deleted; `rsvp-cancel.test.ts` verifies the production default is `realRsvpCancel`.

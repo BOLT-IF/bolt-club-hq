@@ -1,155 +1,110 @@
-# Session handoff — 2026-11-24 (afternoon)
+# BOLT HQ: handoff and how to resume
 
-Status of the parallel build of `docs/STORIES.md` (48 stories). Read this, then `docs/STORIES.md`, `docs/DECISIONS.md` (newest first) and `docs/PLAN.md` before continuing. Area docs live in `docs/areas/`. Update this file at the end of every session.
+Last updated 2026-11-24, end of day. **The app is deployed (as an empty shell). 30 of 48 stories are on `main` and 18 are not started; S5.5 is merged but still needs its screens.** Read this file top to bottom, then `docs/STORIES.md`, `docs/DECISIONS.md` (newest first) and `docs/PLAN.md`. Update this file at the end of every session.
 
-## Where things stand
+## Resume prompt (copy and paste this to a new agent)
 
-- **W0, W1 and W2 are done. Most of W3 and part of W4 are done or in final landing.** 29 of 48 stories have code on `main` or in a PR (table below).
-- **BLOCKER (fix first): GitHub Actions billing.** Since ~10:50 UTC every Playwright e2e job is refused with "recent account payments have failed or your spending limit needs to be increased" (zero steps run). The `ci` job still runs. Until Ashok fixes Billing & plans on BOLT-IF, no PR can go fully green, so nothing more can merge under the "all checks SUCCESS" rule. After fixing it, re-run the failed jobs on main and on each open PR (`gh run rerun <id> --failed`).
-- **Merged this session:** S1.1, S1.3, S2.1, S2.3, S2.4, S3.0, S3.1, S3.3, S4.2, S5.1, S5.4, S6.1, S6.2, S6.3, S6.4, S6.6, S9.1 plus contract PRs #24, #25, #37, #46, #52.
-- **Still open at hand-off, `ci` green, blocked only by billing or a re-sync:** #45 S3.2, #48 S6.5a, #49 S10.2, #44 S5.2 (needs `git merge origin/main`), #50 S5.5 (needs `git merge origin/main`; test fix pushed), #51 this handoff. See "Finishing open PRs".
-- **Cloudflare "Workers Builds" check** now appears on PRs and on main and fails because Cloudflare isn't set up yet. It is not a GitHub Actions check. Either connect it properly (Ashok's queue item 1) or disconnect the Cloudflare Git integration; until then decide explicitly whether it counts for "all green".
-- **No feature flag is on.** `FLAG_EVENTS`, `FLAG_MONEY` and `FLAG_INBOX` in `wrangler.jsonc` are all "off", and `FLAG_POLLS` does not exist yet. Flip them in one integrator chore PR once the open PRs are merged.
-- **Deploy still skips** (no Cloudflare secrets), so nothing has run against production.
+> You are the integrator (root agent) for the BOLT HQ build in `BOLT-IF/bolt-club-hq`. Read `docs/STATUS.md`, `docs/FOLLOWUPS.md`, `docs/WORKER-BRIEF.md`, `AGENTS.md`, `docs/STORIES.md` and the top of `docs/DECISIONS.md`. Then carry on delivery as the "Next steps" section says: land the integrator follow-up chore PR first, then fan out the stories in the "Not started" table in dependency order, in parallel where the dependencies allow, one story per PR on `story/<id>-<slug>` branches. Spawn story agents on your own model (the Sonnet override stopped working on this account), and give each one `docs/WORKER-BRIEF.md`. Merge each PR to `main` only when every GitHub Actions check is SUCCESS. Ignore Cloudflare's "Workers Builds" check on branches. Ask me only for the human-only items in "Needs Ashok". Tick items in `docs/FOLLOWUPS.md` as you finish them and add any new ones your agents report. When you stop, update `docs/STATUS.md`.
 
-## Story status
+## What is built (all on `main`)
 
-**merged** = on `main`. **landing** = PR open, green or one `git merge origin/main` away from green. **partial** = PR open, work incomplete.
+| Area | Stories | State |
+|---|---|---|
+| Foundations | R1 roster import, S0.1–S0.5, S0.7 | merged: repo, CI, deploy workflow, PWA, UI kit, observability, schema, core contracts |
+| Identity | S1.1 Clerk sign-in, S1.3 invites and approval | merged |
+| Members | S2.1 members and roles, S2.3 club settings, S2.4 audit viewer | merged |
+| Events | S3.0 events core, S3.1 terms and series, S3.2 recurrence, S3.3 one-off events | merged |
+| RSVP | S4.1 allocation engine, S4.2 RSVP before close | merged |
+| Money | S5.1 ledger, S5.2 member money screen, S5.4 admin money, S5.5 payment claims | merged. S5.5 is API only: the two claim screens are not built |
+| Notifications | S6.1 inbox and policies, S6.2 web push, S6.3 preferences and mute, S6.4 scheduler, S6.5a reminder engine, S6.6 broadcasts | merged |
+| Polls and install | S9.1 polls, S10.2 install and push onboarding | merged |
+| Brand and deploy | BOLT HQ theme, logo icons, KV/Hyperdrive/R2 config (#53) | merged |
 
-| Story | State | PR | Notes for the next agent |
+Two migrations exist: `0000_initial` and `0001_polls`. Neither has been applied to Neon yet.
+
+## Not started (18 stories plus the S5.5 screens). Dependencies are all met unless noted
+
+| Story | Size | Needs | Owns (summary) |
 |---|---|---|---|
-| R1, S0.1–S0.5, S0.7, S4.1, S0.2 | merged | #2–#12, roster#53 | W0/W1. |
-| S0.6 device spike | **not started** | – | Human: Clerk prod instance + real iPhone/Android. Push batch cap (20) and the Google-in-installed-iOS rule are provisional until it runs. |
-| S1.1 Clerk | merged | #34 | Needs secrets (Ashok's queue). Origin guard is a `use("*")` in `auth/routes.ts`; move it to `app.ts`. |
-| S1.3 Invites, join, approval | merged | #47 | RSVP intent completed client-side (`bcq.join-rsvp-intent`). |
-| S2.1 Members | merged | #30 | `noopRsvpCancel` still wired (see follow-ups). |
-| S2.3 Settings | merged | #27 | Public subset at `GET /settings/public` (members), not `/config`. |
-| S2.4 Audit viewer | merged | #41 | |
-| S2.5 Privacy | not started | – | All deps merged or landing. |
-| S3.0 Events core | merged | #28 | Slot registry: `src/app/routes/events/slots`. |
-| S3.1 Terms, series | merged | #31 | Captains cannot edit capacity (decision). |
-| S3.2 Recurrence | landing | #45 | Needs the "Schedule and occurrences" link (follow-ups). |
-| S3.3 One-offs | merged | #38 | S4.2 must use `rsvpTier` (follow-ups). |
-| S4.2 RSVP pre-close | merged | #40 | Prepaid is `nobodyPrepaid` until S5.3. |
-| S4.3 Close + charges | not started | – | **Next on the critical path.** Use `registerTickHook` + `markDue(ctx.kv, rsvp_close_at)`. |
-| S4.4a/b/c | not started | – | After S4.3. Their Owns already include the slot-import line in `events/routes.tsx`. |
-| S5.1 Ledger | merged | #36 | |
-| S5.2 Member money | landing | #44 | |
-| S5.3 Passes | not started | – | Implements `isPrepaid`; replace `nobodyPrepaid` via `configureRsvpDeps({ prepaid })`. |
-| S5.4 Admin money | merged | #43 | Exports `LEDGER_ERROR_STATUS`. |
-| S5.5 Claims | **partial** | #50 | API and db tests done. **Screens not built** (`src/app/routes/money/claims*`, `src/app/routes/admin/money/claims*`). `docs/areas/ledger.md` lacks the claim routes. Finish on the same branch or a follow-up story PR. |
-| S5.6 manager.io export | not started | – | Treasurer must confirm the import format first. |
-| S6.1 Notifications | merged | #26 | |
-| S6.2 Web push | merged | #39 | The `notifications/routes.ts` conflict with S6.3 is resolved (both mounts kept). Needs VAPID secrets. |
-| S6.3 Prefs + mute | merged | #33 | |
-| S6.4 Cron, scheduler | merged | #29 | |
-| S6.5a Reminder engine | landing | #48 | `ci` (incl. db tests) green; e2e blocked by billing. Tests and code are in one commit and the db tests have not run yet. Lint may flag a spread in the test helper. |
-| S6.5b Reminder UI | not started | – | Uses S6.5a's API (`/admin/reminder-rules`, preview, placeholder list). |
-| S6.6 Broadcasts | merged | #35 | |
-| S7.1 Share/OG | not started | – | Must call `configureEventsDeps({ publishOg })` and remove the no-op. |
-| S8.1, S8.2, S8.3 | not started | – | After S4.3. |
-| S9.1 Polls | merged | #42 | Ships migration `0001_polls` (approved by Ashok). |
-| S9.2 Images (R2) | not started | – | After S9.1. |
-| S10.1 Home | not started | – | After S4.4a, S5.5, S9.1. May take over `<InstallPrompt/>` from `AppShell`. |
-| S10.2 Install, push onboarding | landing | #49 | `ci` green; e2e blocked by billing. |
-| S11.1 Club-week scenarios | not started | – | The integrator should start growing it now. |
-| S11.2 Member import | not started | – | Deps (S2.1, S5.1) are merged; can start any time. |
-| S11.3 Launch checklist | not started | – | Last. |
+| **S4.3 Close processing and charges** | M | S4.2, S5.1, S6.1 (met) | `src/worker/rsvp/close*`. **Critical path: start first.** Use `registerTickHook` plus `markDue(ctx.kv, rsvp_close_at)`; charges go through the ledger with keys like `close:<eventId>:<memberId>` |
+| S5.3 Passes | M | S3.2, S5.1, S4.2 (met) | `src/domain/proration*`, `src/worker/passes/`, `src/app/routes/money/passes*`. Implements `isPrepaid`; replaces `nobodyPrepaid` via `configureRsvpDeps({ prepaid })` |
+| S2.5 Privacy: export, erasure, retention | M | all met | `src/worker/privacy/`, `src/app/routes/privacy/` |
+| S11.2 Member import with opening balances | S | S2.1, S5.1 (met) | `src/worker/importer/` |
+| S6.5b Reminder admin UI | S | S6.5a (met) | `src/app/routes/admin/reminders/`. Uses `/admin/reminder-rules` and its preview and placeholder list |
+| S9.2 Image options on R2 | S | S9.1 (met) | `src/worker/media/`, `src/app/components/ImagePicker*`. The R2 bucket `bolt-club-hq-media` exists |
+| S5.5 screens (follow-up) | S | S5.5 API (merged) | `src/app/routes/money/claims*`, `src/app/routes/admin/money/claims*`. Also add the claim routes to `docs/areas/ledger.md` |
+| S5.6 manager.io export | S | S5.4, S2.3 (met) | `src/worker/accounting/`, `src/app/routes/admin/money/export*`. **Blocked on the treasurer confirming the import format** |
+| S4.4a Late RSVP, cancel, promotion, refill | M | S4.3 | `src/worker/rsvp/postclose*`, `src/app/components/rsvp/postclose*` |
+| S4.4b Claim-a-spot, capacity changes | S | S4.3 | `src/worker/rsvp/claim*`, `src/worker/rsvp/capacity*`, `src/app/components/rsvp/claim*` |
+| S4.4c Event cancellation, material changes | S | S4.3, S3.2 | `src/worker/rsvp/eventchange*`, `src/app/components/organizer/edit*` |
+| S8.1 Attendance marking | S | S4.3 | `src/worker/attendance/`, `src/app/components/organizer/attendance*` |
+| S8.3 Roster deep link (club side) | S | S4.3, S2.3 | `src/domain/roster-link/`, `src/worker/events/roster-link*`, `contracts/roster-import-v1/` |
+| S8.2 Member attendance history | S | S8.1, S5.2 | `src/app/routes/me/attendance*`, `src/worker/attendance/me*` |
+| S10.1 Home dashboard | S | S4.4a, S5.5, S9.1 | `src/app/routes/home/`. May take over `<InstallPrompt/>` from `AppShell` |
+| S7.1 Share links, OG, request to join | M | S3.0, S4.2, S1.3 (met), **S0.6 (not done)** | `src/worker/share/`, `src/app/components/share/`, `src/app/routes/share/`. Must call `configureEventsDeps({ publishOg })` and drop the no-op |
+| S11.1 Club-week scenarios | M | all functional stories | `tests/scenarios/`, `tests/e2e/club-week*`. Start growing it early |
+| S11.3 Device QA and launch checklist | S | S11.1, S10.2 | `docs/LAUNCH.md` |
+| **S0.6 Real-device spike** | M | human | Needs a Clerk production instance and a real iPhone and Android. Until it runs, the push batch cap (20) and "hide Google sign-in in the installed iOS app" are provisional |
 
-Integrator/contract PRs this session: #24, #25, #37, #46 (`TickContext.kv`, Owns grants), #52 (Owns check keeps the story letter suffix: S6.5a) merged. #32 was closed and superseded by #37.
+Fan-out order: **S4.3, S5.3, S2.5, S11.2, S6.5b, S9.2 and the S5.5 screens in parallel first**. Then S4.4a/b/c, S8.1 and S8.3 as soon as S4.3 merges. Then S8.2, S10.1, S7.1 (after S0.6), S11.1 and S11.3. Run at most about 10 agents at once.
 
-## Finishing open PRs (do this first)
+## Next steps (do these first)
 
-Order: fix billing first, then #45, #48, #49, #44, #50, #51.
+**Every follow-up the earlier agents reported is in `docs/FOLLOWUPS.md`** (sections A to F, with an owner for each). The list below is the short version.
 
-1. `git fetch origin`. If `origin/main` has commits the branch lacks, merge main in a temp worktree (`git worktree add --detach .worktrunk/land-N origin/<branch>`, `git merge origin/main`, push to `<branch>`). `docs/DECISIONS.md` merges itself (`merge=union`). Any other conflict needs a real look; two one-line mounts in the same `routes.ts` means keep both.
-2. `gh pr checks N --watch --fail-fast`, then merge only if every check is SUCCESS: `gh pr checks N --json state --jq '[.[].state]|unique|join(",")' | grep -qx SUCCESS && gh pr merge N --squash`.
-3. If only "Install Playwright browsers" failed on one shard: `gh run rerun <run-id> --failed`.
+1. **Integrator follow-up chore PR** (one PR). These are small things the stories could not do inside their Owns:
+   - **Links:** "New event" on `EventListPage.tsx` to `/events/new`; "Schedule and occurrences" on `admin/terms/SeriesPage.tsx` to `/admin/terms/series/:id/schedule`; claims links on `MoneyPage.tsx` and `AdminBalances.tsx` once the S5.5 screens exist; "Request to join" on the event page's 403 state to `/join/event/<slug>` (may overlap S7.1).
+   - **Shell wiring:** call `completeJoinRsvpIntent()` (`src/app/routes/join/joinIntent.ts`) from `AppRoot.tsx`; add the inbox unread badge (`badges.inbox`; the API returns `unreadCount`); call `unsubscribePush()` on sign-out.
+   - **RSVP:** call `noteRsvpSaved()` (`src/app/components/install/`) in `RsvpPanel` after a successful save; make S4.2 use `rsvpTier` from `src/worker/events/oneoff-rules.ts` (pass holders must not be tier 1 at one-offs); wire `configureRsvpCancel(rsvpCancelAdapter(db, clock))` so deactivating a member cancels their RSVPs (S2.1's port has no db parameter, so this needs per-request wiring or a port change).
+   - **Inactive members:** add `allowInactive: true` to `GET /settings/public` and `GET /me/profile`, so exited members can see how to pay.
+   - **Cleanup:** remove the S0.1 probe route and its allowlist entry in the route-guard test; align the frequent window in `src/worker/ops/health.ts` with `scheduler/schedule.ts`; fold the series slug generator in `terms/routes.ts` into S3.0's `slugs.ts`; move the Clerk origin guard from `auth/routes.ts` to `app.ts`. Optional migration-queue items: unique index `rsvp(event_id, member_id)` and an index `audit_log(at desc, id desc)`.
+   - **Flags:** do this last, only after the site works end to end (see "Needs Ashok").
+2. **Fan out the stories** above.
+3. **Update `docs/STATUS.md`** at the end of every session.
 
-## Integrator follow-ups (one chore PR is fine)
+## Needs Ashok (human-only: ask, don't guess)
 
-Small wiring that stories could not do inside their Owns:
+The site is live at **https://bolt-club-hq.bashok001.workers.dev** but cannot be used yet:
 
-- **Links:**
-  - "New event" on `EventListPage.tsx` → `/events/new` (S3.3).
-  - "Schedule and occurrences" on `admin/terms/SeriesPage.tsx` → `/admin/terms/series/:id/schedule` (S3.2).
-  - Claims links on `MoneyPage.tsx` and `AdminBalances.tsx`, once the S5.5 screens exist.
-  - "Request to join" on the event page's 403 state → `/join/event/<slug>` (S1.3; may overlap S7.1).
-- **Shell wiring:** call `completeJoinRsvpIntent()` (`src/app/routes/join/joinIntent.ts`) from `AppRoot.tsx`; add the inbox unread badge (`badges.inbox`; the API returns `unreadCount`); call `unsubscribePush()` on sign-out (S10.2 already re-subscribes on open).
-- **RSVP:**
-  - Call `noteRsvpSaved()` (`src/app/components/install/`) in `RsvpPanel` after a successful save.
-  - Make S4.2 use `rsvpTier` from `src/worker/events/oneoff-rules.ts`, so pass holders aren't tier 1 at one-offs.
-  - Wire `configureRsvpCancel(rsvpCancelAdapter(db, clock))` so deactivating a member cancels their RSVPs. S2.1's port has no db parameter, so this needs per-request wiring or a port change.
-- **Inactive members:** add `allowInactive: true` to `GET /settings/public` and `GET /me/profile` so exited members can see how to pay.
-- **Flags:** flip `FLAG_EVENTS`, `FLAG_MONEY` and `FLAG_INBOX`; add `FLAG_POLLS` to `wrangler.jsonc` and `worker-configuration.d.ts`.
-- **Cleanup:**
-  - Remove the S0.1 probe route and its route-guard allowlist entry.
-  - Align the frequent window in `src/worker/ops/health.ts` with `scheduler/schedule.ts`.
-  - Fold the series slug generator in `terms/routes.ts` into S3.0's `slugs.ts`.
-  - Optional migration-queue items: a unique index on `rsvp(event_id, member_id)` and an index on `audit_log(at desc, id desc)`.
-
-## Repo settings (GitHub)
-
-- Squash merge only. Branches auto-delete on merge.
-- **No branch protection** (it needs GitHub Pro on a private repo). "Merge only on green" is a working agreement, not a gate.
-- No workflow waits for manual approval. The `production` environment has **no** required reviewer.
-- No GitHub secrets or variables are set yet.
-- `docs/DECISIONS.md` uses `merge=union` (`.gitattributes`).
+1. **Neon tables.** The database is empty. Rotate the Neon password first (the old one passed through chat and the repo is public). Then either add the new connection string as the `DATABASE_URL` GitHub repo secret (the deploy workflow then runs `npx drizzle-kit migrate` on the next merge), or get an explicit OK to run the migration from the laptop. Raw port 5432 is blocked from the laptop, so only Neon's HTTPS route works there.
+2. **Sign-in.** Cloudflare Worker secrets: `CLERK_SECRET_KEY`, `CLERK_PUBLISHABLE_KEY`, `BOOTSTRAP_ADMIN_EMAIL`. Build variable in the Cloudflare build settings: `VITE_CLERK_PUBLISHABLE_KEY` (needed at build time, so trigger a rebuild afterwards). Set the app name in the Clerk dashboard to BOLT HQ.
+3. **Flags.** Set `FLAG_EVENTS`, `FLAG_MONEY`, `FLAG_INBOX` to "on" in `wrangler.jsonc` once sign-in works. Add `FLAG_POLLS` to `wrangler.jsonc` and `worker-configuration.d.ts` first (it does not exist yet).
+4. **Push and health.** Secrets `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` (back them up; never rotate casually) and `HEALTHCHECK_PING_URL` (a healthchecks.io check with about a 1 hour period). Optional `SENTRY_DSN`.
+5. **GitHub secrets** so the other workflows can run: `DATABASE_URL`, `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`, `RESTORE_TARGET_URL`, `BACKUP_ENCRYPTION_KEY`, `BACKUP_BUCKET_TOKEN`, `LHCI_TARGET_URL`; repo variable `PUBLIC_BASE_URL`. See `docs/ops/secrets.md`. Decide on a required reviewer for the `production` environment before adding the deploy secrets.
+6. **S0.6 device spike:** a Clerk production instance and real iPhone and Android devices.
+7. **Treasurer:** confirm the manager.io import format (S5.6) and the provisional account-code keys (`pass`, `adhoc`, `guest`, `payment`).
+8. **Off-site backup store** with 90-day retention (GitHub artifacts keep only 30).
+9. Optional: GitHub Pro, so "merge only on green" becomes a real rule instead of a convention.
 
 ## Production state
 
-- **Neon:** live, PostgreSQL 18.7 (project `autumn-term-77415320`, branch `production`, database `neondb`). The connection string is in `.env.local` (gitignored; never commit it). This machine reaches Neon only over HTTPS.
-- **Local Postgres:** `~/.rd/bin/docker compose up -d postgres` (Postgres 18.7, database `club_test`).
-- **Migrations:** `0000_initial` and `0001_polls` (once #42 merges). Deploy runs `drizzle-kit migrate`.
-- **Cloudflare:** the KV, R2 and Hyperdrive ids in `wrangler.jsonc` are still `REPLACE_WITH_*`.
+- **Site:** https://bolt-club-hq.bashok001.workers.dev (Cloudflare Worker `bolt-club-hq`, account `440a16d9fbe436e7133d5985ebd2a492`). Cloudflare Workers Builds builds it from GitHub `main`; every merge to `main` redeploys.
+- **Resources (all created, ids in `wrangler.jsonc`):** KV namespace `KV` plus a preview namespace, Hyperdrive `bolt-club-hq` pointing at Neon, R2 bucket `bolt-club-hq-media`.
+- **Health:** `/healthz` returns 200. `/healthz/ready` returns 503 ("degraded") until the Neon tables exist and a cron tick has run. That is expected for now.
+- **Neon:** PostgreSQL 18.7 (project `autumn-term-77415320`, branch `production`, database `neondb`), empty. The connection string is in `.env.local` (gitignored; never commit it).
+- **Brand:** the app is **BOLT HQ**, the club is **BOLT IF** (always upper case). Palette from the logo: orange `#fd8d27` actions with dark text, amber `#febe1d` highlights, burnt orange `#a63406` links, slate `#272e38` chrome. Tokens are in `src/app/components/ui/ui.css`.
+- **CI:** GitHub Actions. The repo is public, which keeps Actions free; while it was private a "payments failed" block stopped every job. Cloudflare's own "Workers Builds" check also runs on PRs. It is not a GitHub Actions check, it failed while the config had placeholder ids, and it passes on `main` now.
+- **GitHub settings:** squash merge only, branches auto-delete on merge, no branch protection (it needs GitHub Pro on a private repo, and "merge on green" is an agreement), no workflow waits for a manual approval, and `production` has no required reviewer.
 
-## Ashok's queue
+## Rules learned the hard way (keep following them)
 
-1. Cloudflare API token + account ID → GitHub secrets; create real KV, R2 and Hyperdrive; replace the `REPLACE_WITH_*` ids.
-2. Decide on a required reviewer for the `production` environment **before** adding deploy secrets.
-3. GitHub secrets: `DATABASE_URL`, `RESTORE_TARGET_URL`, `BACKUP_ENCRYPTION_KEY`, `BACKUP_BUCKET_TOKEN`, `LHCI_TARGET_URL`. Repo variable `PUBLIC_BASE_URL`. **Build variable `VITE_CLERK_PUBLISHABLE_KEY`.** See `docs/ops/secrets.md`.
-4. Worker secrets: `CLERK_SECRET_KEY`, `CLERK_PUBLISHABLE_KEY`, `BOOTSTRAP_ADMIN_EMAIL`, `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` (back them up; never rotate casually), `HEALTHCHECK_PING_URL` (healthchecks.io, ~1 h period), `SENTRY_DSN`.
-5. Off-site backup store (90-day retention).
-6. Clerk production instance + the S0.6 device spike.
-7. Treasurer: confirm the manager.io import format (S5.6) and the provisional account-code keys (`pass`, `adhoc`, `guest`, `payment`).
-8. GitHub Pro, if "merge only on green" should be enforced.
-9. Rotate the Neon password eventually.
+- **Contracts:** an area mounts `contextMiddleware()` on its own paths only, never `use("*")`. Exited members on own-data routes use `requireGuard("member", { allowInactive: true })`. A trailing `*` in an Owns entry is a prefix match. `docs/areas/` and `tests/e2e/` are shared. `docs/DECISIONS.md` merges with `merge=union`.
+- **Owns exceptions:** one line elsewhere (a route mount, a slot import) is added to the story's Owns line in a contract PR. UI links on other stories' pages are integrator follow-ups, not grants.
+- **Landing a PR:** one visible command per merge: `gh pr checks N --json state --jq '[.[].state]|unique|join(",")' | grep -qx SUCCESS && gh pr merge N --squash`. If GitHub says the branch is out of date, merge `origin/main` into the story branch in a temp worktree (`git worktree add --detach .worktrunk/land-N origin/<branch>`, `git merge origin/main`, push to `<branch>`), then wait for CI again. To rerun a failed job: `gh run rerun <id> --failed` (the Playwright browser install flakes).
+- **Auto-reviewer:** it blocks pushes, PR creation and merges it can't tie to an explicit approval, even when a standing one exists. What works: one visible command per action, the exact approval quoted in the justification, no unseen helper scripts for merges, and never a `reset --hard` or force-removal of a worktree without first showing it is clean. When a sub-agent is blocked, it commits locally and asks the integrator to push. Ask Ashok for Full Access at the start of a long fan-out; it removes most of these prompts.
+- **Commits** are unsigned (`git -c commit.gpgsign=false commit`); the 1Password SSH agent keeps failing here.
+- **Models:** the Sonnet override returns 403 "model not allowed" on this account; spawn workers on the inherited model.
+- **Machine quirks:**
+  - `npm ci` fails (the PayPal mirror blocks some packages). `pg` was installed by hand with `npm install --no-save --registry https://registry.npmjs.org/ pg @types/pg`.
+  - Worktrees go under `.worktrunk/` with a symlinked `node_modules`; remove the link before each commit.
+  - The `db` tests need Postgres: `~/.rd/bin/docker compose up -d postgres`.
+  - `gh` and `git` need escalated permissions in the sandbox.
+  - Dependencies change only on a `deps/<slug>` branch, through the lockfile bot.
+- **Process:** tests first, one story per PR, Owns paths only, decisions logged at the top of `docs/DECISIONS.md`, money in whole kronor, time via `Clock`.
 
-## Open technical follow-ups
+## Decisions Ashok made
 
-- **Vitest pool:** `@cloudflare/vitest-pool-workers` 0.23 is deprecated (now `@cloudflare/vitest-plugin`). Migrating may let the db suites back into the Worker pool.
-- **`worker-configuration.d.ts`:** hand-edited for the `FLAG_*` vars. A `wrangler types` refresh rewrites 28k lines; do it alone in its own PR.
-- Done this session: stale idempotency-claim cleanup and the winter cron window (both S6.4).
-
-## How this session worked (keep doing it)
-
-- **Request context:** in `src/worker/core/context.ts`, an area mounts `contextMiddleware()` on **its own paths only** (never `use("*")`) and reads `c.var.db`, `c.var.clock` and `c.var.actor`. Postgres-backed tests are `*.db.test.ts` (db project, CI only).
-- **Frontend routes:** any `src/app/routes/**/routes.tsx`, exporting one route or an array, with `:param` paths and `useRouteParams()`.
-- **Owns:**
-  - A trailing `*` is a prefix match. `docs/areas/` and `tests/e2e/` are shared.
-  - When a story needs one line elsewhere (a route mount in another area's `routes.ts`, a slot import), the integrator adds it to that story's Owns line in a contract PR.
-  - UI links on other stories' pages are integrator follow-ups, not grants.
-- **Tick hooks** get `{ db, clock, now, cron, kv }`. Use `markDue(kv, at)` for the next wake-up.
-- **Worker brief:** `.worktrunk/WORKER-BRIEF.md` (local, git-ignored). Sub-agents cannot read the root session folder, so keep the brief inside the repo.
-
-## Environment / infra recipes (this machine is hostile)
-
-- **Worktrees:** `git worktree add .worktrunk/<slug> -b story/<id>-<slug> origin/main`. Symlink `node_modules` (`ln -s ../../node_modules node_modules`) and remove the link before every commit. `npm ci` fails here.
-- **Local tests:** typecheck, lint and the `domain`, `worker` and `ui` Vitest projects run (escalated). The `db` project only runs in CI (`pg` can't be installed). Locally, typecheck errors in `db/client.ts`, `test-support/database.ts` and `migration.test.ts` are expected.
-- **Dependencies:** never install locally. Use a `deps/<slug>` branch and the lockfile bot.
-- **Commits:** Ashok approved **unsigned** commits for this run (`git -c commit.gpgsign=false commit`) because the 1Password agent kept failing. Ask before assuming that still holds.
-- **GitHub CLI:** `gh` needs escalated permissions.
-- **Auto-reviewer:** it blocks pushes, PR creation and merges it can't tie to an explicit approval, even with standing approvals. What worked:
-  - One visible command per action, with the exact approval quoted in the justification.
-  - No unseen helper scripts for merges.
-  - Never `reset --hard` or force-remove a worktree without first showing it is clean.
-
-  Sub-agents get blocked more often; let them hand "push <branch>" back to root. Consider Full Access for the next fan-out.
-- **Sonnet is no longer allowed** on this account (403 "model not allowed"). Spawn workers on the inherited model.
-- **Playwright CI:** the browser install flakes; run `gh run rerun <id> --failed`.
-
-## Working agreements (from Ashok)
-
-- The orchestrator decides with maximum autonomy. Merge on green (squash), with no per-PR asking where the reviewer allows it.
-- Tests first, one story per PR, Owns paths only, decisions logged in DECISIONS.md (newest first).
-- Turn repeat work into reusable scripts. This session's merge loop is the "Finishing open PRs" recipe above.
+- Merge on green CI (squash) without asking per PR; the integrator decides the order. Story agents may push `story/*` branches and open PRs. Unsigned commits are fine. Contract fixes and one-line Owns grants may go through without a question each time.
+- The polls migration `0001` was approved; later migrations need his OK.
+- Naming: BOLT HQ for the app, BOLT IF for the club.
+- He wants direct, opinionated recommendations and works Stockholm hours.

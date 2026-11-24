@@ -102,7 +102,8 @@ function stub(post: (path: string, body: unknown) => Response = () => json(201, 
       calls.push({ method, path, body, key });
       if (method === "GET" && path === "/admin/balances")
         return Promise.resolve(json(200, { members: [bo, cy, di] }));
-      if (method === "GET" && path === "/admin/balances/m2") return Promise.resolve(json(200, detail));
+      if (method === "GET" && path === "/admin/balances/m2")
+        return Promise.resolve(json(200, detail));
       return Promise.resolve(post(path, body));
     }),
   });
@@ -245,5 +246,28 @@ describe("member ledger page", () => {
     fireEvent.change(screen.getByLabelText(/amount/i), { target: { value: "100" } });
     fireEvent.click(screen.getByRole("button", { name: /save payment/i }));
     expect(await screen.findByText(/another admin must record it/i)).toBeTruthy();
+  });
+
+  it("uses a fresh Idempotency-Key after a definite refusal, so the corrected retry is not a replay", async () => {
+    let attempts = 0;
+    const calls = stub(() => {
+      attempts += 1;
+      return attempts === 1
+        ? json(404, { error: "member_not_found" })
+        : json(201, { entryId: "led_p", balanceSek: 0 });
+    });
+    renderWith(<AdminMemberLedger />);
+    await screen.findByRole("heading", { name: "Bo Berg" });
+    fireEvent.click(screen.getByRole("button", { name: /record payment/i }));
+    fireEvent.change(screen.getByLabelText(/amount/i), { target: { value: "100" } });
+    fireEvent.click(screen.getByRole("button", { name: /save payment/i }));
+    expect(await screen.findByText(/no longer exists/i)).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: /save payment/i }));
+    await waitFor(() => {
+      expect(calls.filter((c) => c.method === "POST")).toHaveLength(2);
+    });
+    const [first, second] = calls.filter((c) => c.method === "POST");
+    expect(second?.key).toBeTruthy();
+    expect(second?.key).not.toBe(first?.key);
   });
 });

@@ -205,7 +205,11 @@ describe("admin money routes", () => {
     it("needs an Idempotency-Key", async () => {
       const admin = await makeMember(t.db, { role: "admin" });
       const m = await makeMember(t.db);
-      const res = await post("/admin/payments", { memberId: m.id, amountSek: 10 }, admin.clerkUserId);
+      const res = await post(
+        "/admin/payments",
+        { memberId: m.id, amountSek: 10 },
+        admin.clerkUserId,
+      );
       expect(res.status).toBe(400);
       expect(await entriesOf(m.id)).toHaveLength(0);
     });

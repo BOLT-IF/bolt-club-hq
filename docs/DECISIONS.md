@@ -2,6 +2,18 @@
 
 Decisions made after `PLAN.md` (v3) was written. Newest first. Every entry gives the decision, the reason, and what it changes.
 
+## 2026-11-24: S5.4 admin balances, payments, adjustments (ambiguities)
+
+- **One `POST /admin/adjustments` with a `type`**, because PLAN §11 lists a single route. `waiver` + `entryId` reverses a charge or positive adjustment (a reversal with reason `waiver`). `waiver` + `memberId` + `amountSek` writes off part of a balance (a negative adjustment with reason `waiver`). `charge` + `memberId` + `amountSek` is a manual charge (reason `manual`). `reversal` + `entryId` undoes any non-reversal entry, for example a payment recorded on the wrong member, and keeps the original's reason. Amounts in the body are always positive whole kronor; the type sets the sign.
+- **Every adjustment needs a note**, including a manual charge and a reversal of a payment (PLAN §9 "reason required"; conservative reading). A payment's note is optional.
+- **A payment or credit entry can't be waived** (409 `not_waivable`), because a waiver reduces what is owed. Use `reversal` to undo a payment.
+- **Pass revocation is not in S5.4.** PLAN §9 lists it on the admin screen, but S5.3 owns revocation (it also frees the seat and downgrades RSVPs), so the "revocable" filter is S5.3's to add. S5.4 ships the "owes", "in credit" and "inactive with balance" filters.
+- **Error mapping:** `LedgerError.code` maps to 400 (`invalid_amount`, `invalid_reason`, `note_required`), 403 (`forbidden`, `self_ledger_blocked`), 404 (`member_not_found`, `entry_not_found`) or 409 (`cannot_reverse_reversal`, `already_reversed`, `idempotency_conflict`), with body `{ error: code }`. The map is exported as `LEDGER_ERROR_STATUS` from `admin-routes.ts` so S5.5 can reuse it.
+- **Two idempotency layers.** The HTTP `Idempotency-Key` (core middleware, scoped per admin and route) replays the stored response for a double tap. The ledger key is derived from it (`admin-payment:<adminId>:<key>`, `admin-adjustment:…`), so even if the replay record were lost, no second row could be written. The middleware stores a 4xx like any other answer, so the UI creates a new key after a definite refusal and keeps the same key after a timeout or a 409 "in progress".
+- **Exited (inactive) members can still have payments and adjustments recorded**, because their balance stays due (PLAN §6.7).
+- **The balances list returns every member with a balance**, and search (by name or payment reference) and filters run in the browser. That's fine for a club-sized list; paginate if it ever grows past a few hundred rows.
+- **The pages are gated on the `money` flag** (`FLAG_MONEY`, off). The admin index entry already exists; the integrator flips the flag.
+
 ## 2026-11-24: S2.1 members, roles, exit lifecycle (ambiguities)
 
 - **`rsvp.cancel` is a local port.** The RSVP area does not exist yet, so `src/worker/members/rsvp-cancel.ts` defines `RsvpCancelPort.cancelFutureRsvps({ memberId, at, idempotencyKey })`, a recording fake (`rsvp-cancel.fake.ts`, tests only) and a **production no-op** that cancels nothing. The RSVP story replaces the default (`configureRsvpCancel` or the default value), deletes the no-op, and a test asserts the default is not the fake (`rsvp-cancel.test.ts` already asserts the default is the no-op). Until then, deactivating a member does not cancel their RSVPs in production.

@@ -39,6 +39,10 @@ S6.2 owns the sender: a cron hook that takes `outbound_push` rows with status `q
 - `GET /notifications?limit=` → `{ items, unreadCount }`, newest first (default 50, max 100).
 - `POST /notifications/read` body `{ ids: string[] }` or `{ all: true }` → `{ updated }`. Only unread rows of the caller are stamped, so it needs no `Idempotency-Key`.
 
+## Broadcasts (S6.6)
+
+`POST /admin/broadcasts` (admin, `Idempotency-Key`) sends an `announcements` notification to all active members, pass holders, an event's RSVPs or captains (`src/worker/broadcasts/`, screen `/admin/broadcast`). Each recipient goes through `createNotifyPort`, so the inbox row is always written and the policy chain (mute) decides about the push. Every broadcast is audited as `broadcast.send`. See DECISIONS 2026-11-24 (S6.6).
+
 ## Screen
 
 `/inbox` (flag `FLAG_INBOX`, still off): list, unread chip, tap opens the deep link and marks read, "Mark all read".

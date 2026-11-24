@@ -1,0 +1,53 @@
+/* Club settings form: mobile-first, one column, 48px controls. */
+.bcq-settings {
+  display: grid;
+  gap: 1.25rem;
+  max-width: 560px;
+}
+.bcq-settings fieldset {
+  display: grid;
+  gap: 0.9rem;
+  margin: 0;
+  padding: 1rem;
+  border: 1px solid var(--bcq-line);
+  border-radius: var(--bcq-radius);
+  background: var(--bcq-card);
+}
+.bcq-settings legend {
+  padding: 0 0.4rem;
+  font: 700 1rem/1.2 var(--bcq-font);
+}
+.bcq-field {
+  display: grid;
+  gap: 0.3rem;
+}
+.bcq-field label {
+  font-weight: 600;
+}
+.bcq-field input,
+.bcq-field textarea {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: var(--bcq-touch);
+  padding: 0.6rem 0.8rem;
+  border: 2px solid var(--bcq-line);
+  border-radius: var(--bcq-radius-sm);
+  background: #fff;
+  color: var(--bcq-ink);
+  font: 400 1rem/1.4 var(--bcq-font);
+}
+.bcq-field input[aria-invalid="true"],
+.bcq-field textarea[aria-invalid="true"] {
+  border-color: var(--bcq-danger);
+}
+.bcq-field__hint {
+  margin: 0;
+  color: var(--bcq-muted);
+  font-size: 0.875rem;
+}
+.bcq-field__error {
+  margin: 0;
+  color: var(--bcq-danger-ink);
+  font-size: 0.875rem;
+  font-weight: 600;
+}

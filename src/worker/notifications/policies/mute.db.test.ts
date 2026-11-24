@@ -70,7 +70,9 @@ describe("mute policy (through notify)", () => {
 
   it("global mute overrides per-category settings", async () => {
     const m = await makeMember(t.db);
-    await t.db.insert(notificationPref).values({ memberId: m.id, category: "payment_due", muted: false });
+    await t.db
+      .insert(notificationPref)
+      .values({ memberId: m.id, category: "payment_due", muted: false });
     await t.db.update(member).set({ globalMute: true }).where(eq(member.id, m.id));
     await send(m.id, "payment_due", "k1");
     await send(m.id, "rsvp_status", "k2");

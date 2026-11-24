@@ -65,9 +65,9 @@ describe("notification settings", () => {
     stubApi(initial());
     renderPage();
     expect(await screen.findByRole("heading", { level: 1, name: /notifications/i })).toBeTruthy();
-    const rsvp = await screen.findByRole("switch", { name: /RSVP/i });
-    expect((rsvp as HTMLInputElement).checked).toBe(true);
-    expect((screen.getByRole("switch", { name: /new events/i }) as HTMLInputElement).checked).toBe(
+    const rsvp = await screen.findByRole<HTMLInputElement>("switch", { name: /RSVP/i });
+    expect(rsvp.checked).toBe(true);
+    expect(screen.getByRole<HTMLInputElement>("switch", { name: /new events/i }).checked).toBe(
       false,
     );
     expect(screen.getAllByRole("switch").length).toBe(8); // 7 categories + mute-all
@@ -85,7 +85,7 @@ describe("notification settings", () => {
   it("the mute-all switch saves globalMute and explains that the inbox still fills", async () => {
     const puts = stubApi(initial({ globalMute: true }));
     renderPage();
-    const all = (await screen.findByRole("switch", { name: /mute all/i })) as HTMLInputElement;
+    const all = await screen.findByRole<HTMLInputElement>("switch", { name: /mute all/i });
     expect(all.checked).toBe(true);
     expect(screen.getByText(/inbox/i)).toBeTruthy();
     fireEvent.click(all);
@@ -97,7 +97,7 @@ describe("notification settings", () => {
   it("reverts the switch and shows an error when saving fails", async () => {
     stubApi(initial(), 500);
     renderPage();
-    const rsvp = (await screen.findByRole("switch", { name: /RSVP/i })) as HTMLInputElement;
+    const rsvp = await screen.findByRole<HTMLInputElement>("switch", { name: /RSVP/i });
     fireEvent.click(rsvp);
     expect(await screen.findByRole("alert")).toBeTruthy();
     expect(rsvp.checked).toBe(true);

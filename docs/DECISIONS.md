@@ -2,6 +2,14 @@
 
 Decisions made after `PLAN.md` (v3) was written. Newest first. Every entry gives the decision, the reason, and what it changes.
 
+## 2026-11-24: S6.3 mute policy and preferences
+
+- **Mute is push-only.** `policies/mute.ts` (order 10) suppresses the push when `member.global_mute` is set, else when the member's `notification_pref` row for the category has `muted = true`. Global mute wins even over a per-category `muted = false`. No row means on, so everything is on by default. The inbox row is written before the chain, so a muted member still gets inbox entries (also required by S6.5a and S6.6).
+- **Prefs API** lives in `notifications/prefs.ts` as a sub-app mounted by `notifications/routes.ts` (one added `.route("/", prefsRoutes)` line, because the registry only globs `<area>/routes.ts` and the story Owns line had no routes file). Only `GET`/`PUT /notifications/prefs`, own row only, member guard. `PUT` is partial and sets absolute values, so it needs no `Idempotency-Key` (not money or RSVP). Bad or unknown input is a 400 and nothing is written. `admin_tasks` is neither listed nor settable for non-admins.
+- **Screen path is `/settings/notifications`.** The More menu links `/profile/notifications`, but `routes/profile/` belongs to S2.1 and S6.3 does not own it; two route files cannot claim one path. The integrator repoints `navigation.ts`.
+- **API client stays inside the screen folder** (`routes/settings/notifications/prefsApi.ts`), since `src/app/api/notifications.ts` is S6.1's.
+- **Owns patterns:** `check-owns.sh` matches Owns entries literally, so the `mute*` / `prefs*` / `notifications*` glob entries in this story's Owns line do not match any new file. Needs an integrator fix to the script (trailing `*` = prefix) or an Owns rewrite.
+
 ## 2026-11-24: W2 contract 2: inactive members on own-data routes; S6.4 owns `scheduled()`
 
 - **`requireGuard(kind, { allowInactive: true })`** lets `inactive` (exited) members through; `pending` and `erased` still get 403. PLAN §6.7: exited members keep Money and attendance history. S5.1/S5.2 (own ledger), S8.2 (own attendance) and S2.5 (own export) set it on their own-data routes; nothing else does. Asked for by S2.1.

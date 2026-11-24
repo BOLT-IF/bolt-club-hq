@@ -2,6 +2,19 @@
 
 Decisions made after `PLAN.md` (v3) was written. Newest first. Every entry gives the decision, the reason, and what it changes.
 
+## 2026-11-24: S3.0 events core resolutions (ambiguities)
+
+- **Scope the context middleware to the area's paths, not `"*"`.** The backend registry mounts every `routes.ts` at `/api/v1`, and a Hono `.use("*")` inside a sub-app becomes `/api/v1/*` for the whole parent app. With `"*"`, `contextMiddleware()` ran for `/probe` and `/config` too and opened the database (workerd probe test went 500: no `HYPERDRIVE`). `events/routes.ts` uses `.use("/events/*")` and `.use("/series/*")` (both also match the bare path). **Contract note for the integrator:** the W2 text says `.use("*", contextMiddleware())`; every later area should scope it the same way, or `/config` and other public routes start opening Postgres.
+- **`publishOg` goes through `PublishOgPort`, production no-op.** `src/worker/events/deps.ts` holds the port and `configureEventsDeps({ publishOg })`. S7.1 supplies the KV implementation and removes the no-op (DoD 8). Key `og:event:<slug>`; the value is a JSON snapshot of public fields (title, format, location, times, status), never the creator or any attendee. S7.1 turns it into HTML. A publish failure is logged and does not fail the write.
+- **Slugs:** 10 characters from a 32-character URL-safe alphabet (no `l`, `o`, `0`, `1`), about 50 bits, from `crypto.getRandomValues`. Uniqueness is checked with a select before insert, with the DB unique index as the backstop. Series slugs belong to S3.1 and reuse `randomSlug`/`uniqueSlug`.
+- **"Past" means read-only:** `endsAt <= now`, or status `completed` or `cancelled`. A `closed` event (RSVPs closed, not yet played) stays editable. `PATCH` on a read-only event is 409 `event_read_only`.
+- **`next` skips** cancelled, closed and completed events, events whose `rsvp_close_at` has passed (even if the close job has not flipped the status yet; PLAN §6 closes lazily on read), and events that already ended.
+- **Edit scope in S3.0 is `title` and `location` only.** Time, capacity, fee and close-time changes carry allocation and money rules (S3.2, S4.4c). Unknown fields are rejected with 400, not ignored.
+- **Permissions:** every route has `requireGuard("member")`, which already rejects pending members (403). Edit rights are checked in the handler with `canManageEvent` (admin; creator of a one-off; captain of the event's series), because the event's series is only known after loading the row. The creator of a **series** event gets no edit right from creating it.
+- **Pending members see nothing:** they get 403 on every events route, so no attendee data. The page also hides `AttendeesSlot` unless `viewer.canSeeAttendees`. Attendee data itself arrives with S4.2/S8.1.
+- **Event DTO omits `createdBy`.** Members do not need to see who created an event.
+- **Events nav entry stays flag-gated.** `FLAG_EVENTS` is untouched (off); the integrator flips it.
+
 ## 2026-11-24: W2 contract: per-request context, DB test suites, shared Owns
 
 Integrator contract-change PR before the W2 fan-out, so eight parallel stories do not each invent request wiring.

@@ -33,7 +33,10 @@ describe("events routes (S3.0)", () => {
 
   const as = (clerkUserId: string, init: RequestInit = {}): RequestInit => ({
     ...init,
-    headers: { ...(init.headers as Record<string, string> | undefined), [TEST_IDENTITY_HEADER]: clerkUserId },
+    headers: {
+      ...(init.headers as Record<string, string> | undefined),
+      [TEST_IDENTITY_HEADER]: clerkUserId,
+    },
   });
 
   const get = (path: string, clerkUserId: string) => app().request(path, as(clerkUserId), testEnv);
@@ -142,12 +145,16 @@ describe("events routes (S3.0)", () => {
       const soon = await addEvent(admin.id, { startsInHours: 24 });
       const past = await addEvent(admin.id, { startsInHours: -48, rsvpCloseAt: at(-72) });
 
-      const upcoming = await (await get("/events", viewer.clerkUserId)).json<{
+      const upcoming = await (
+        await get("/events", viewer.clerkUserId)
+      ).json<{
         events: Array<{ id: string }>;
       }>();
       expect(upcoming.events.map((e) => e.id)).toEqual([soon.id, later.id]);
 
-      const history = await (await get("/events?scope=past", viewer.clerkUserId)).json<{
+      const history = await (
+        await get("/events?scope=past", viewer.clerkUserId)
+      ).json<{
         events: Array<{ id: string }>;
       }>();
       expect(history.events.map((e) => e.id)).toEqual([past.id]);
@@ -194,7 +201,9 @@ describe("events routes (S3.0)", () => {
     it("series next is 404 when nothing is open, or the slug is unknown", async () => {
       const admin = await makeMember(t.db, { role: "admin" });
       await addEvent(admin.id, { status: "cancelled" });
-      expect((await get("/series/by-slug/series-slug-ser_1/next", admin.clerkUserId)).status).toBe(404);
+      expect((await get("/series/by-slug/series-slug-ser_1/next", admin.clerkUserId)).status).toBe(
+        404,
+      );
       expect((await get("/series/by-slug/missing/next", admin.clerkUserId)).status).toBe(404);
     });
   });
@@ -242,9 +251,15 @@ describe("events routes (S3.0)", () => {
       await t.db.insert(seriesCaptain).values({ seriesId: "ser_1", memberId: captain.id });
       const row = await addEvent(admin.id);
 
-      expect((await patch(`/events/${row.id}`, other.clerkUserId, { title: "x" })).status).toBe(403);
-      expect((await patch(`/events/${row.id}`, captain.clerkUserId, { title: "By captain" })).status).toBe(200);
-      expect((await patch(`/events/${row.id}`, admin.clerkUserId, { title: "By admin" })).status).toBe(200);
+      expect((await patch(`/events/${row.id}`, other.clerkUserId, { title: "x" })).status).toBe(
+        403,
+      );
+      expect(
+        (await patch(`/events/${row.id}`, captain.clerkUserId, { title: "By captain" })).status,
+      ).toBe(200);
+      expect(
+        (await patch(`/events/${row.id}`, admin.clerkUserId, { title: "By admin" })).status,
+      ).toBe(200);
     });
 
     it("past events are read-only: 409, nothing saved, nothing published", async () => {
@@ -266,8 +281,12 @@ describe("events routes (S3.0)", () => {
     it("rejects an empty title and unknown fields", async () => {
       const admin = await makeMember(t.db, { role: "admin" });
       const row = await addEvent(admin.id);
-      expect((await patch(`/events/${row.id}`, admin.clerkUserId, { title: "  " })).status).toBe(400);
-      expect((await patch(`/events/${row.id}`, admin.clerkUserId, { capacity: 1 })).status).toBe(400);
+      expect((await patch(`/events/${row.id}`, admin.clerkUserId, { title: "  " })).status).toBe(
+        400,
+      );
+      expect((await patch(`/events/${row.id}`, admin.clerkUserId, { capacity: 1 })).status).toBe(
+        400,
+      );
     });
 
     it("404 for an unknown event", async () => {

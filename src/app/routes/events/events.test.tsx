@@ -64,7 +64,11 @@ describe("events routes registration", () => {
 
 describe("EventListPage", () => {
   it("lists upcoming events as links to their page", async () => {
-    stubApi({ "/events": { body: { events: [detail(), detail({ id: "evt_2", slug: "zz9y8x7w", title: "Sat Open" })] } } });
+    stubApi({
+      "/events": {
+        body: { events: [detail(), detail({ id: "evt_2", slug: "zz9y8x7w", title: "Sat Open" })] },
+      },
+    });
     render(<EventListPage />);
     const link = await screen.findByRole("link", { name: /Thu Mixed Doubles/ });
     expect(link.getAttribute("href")).toBe("/events/k3f9xq2m");
@@ -91,7 +95,11 @@ describe("EventDetailPage", () => {
   });
 
   it("shows the event, and renders each registered slot", async () => {
-    stubApi({ "/events/by-slug/k3f9xq2m": { body: { event: detail(), viewer: viewer({ canManage: true }) } } });
+    stubApi({
+      "/events/by-slug/k3f9xq2m": {
+        body: { event: detail(), viewer: viewer({ canManage: true }) },
+      },
+    });
     registerSlot("RsvpSlot", () => <p>rsvp panel</p>);
     registerSlot("ShareSlot", () => <p>share button</p>);
     registerSlot("OrganizerToolsSlot", () => <p>organizer tools</p>);
@@ -116,7 +124,9 @@ describe("EventDetailPage", () => {
 
   it("a pending member sees no attendees, even if the slot is filled", async () => {
     stubApi({
-      "/events/by-slug/k3f9xq2m": { body: { event: detail(), viewer: viewer({ canSeeAttendees: false }) } },
+      "/events/by-slug/k3f9xq2m": {
+        body: { event: detail(), viewer: viewer({ canSeeAttendees: false }) },
+      },
     });
     registerSlot("AttendeesSlot", () => <p>attendee list</p>);
     registerSlot("RsvpSlot", () => <p>rsvp panel</p>);
@@ -128,7 +138,10 @@ describe("EventDetailPage", () => {
   it("marks a past event read-only and hides organizer tools", async () => {
     stubApi({
       "/events/by-slug/k3f9xq2m": {
-        body: { event: detail({ readOnly: true, status: "completed" }), viewer: viewer({ canManage: true }) },
+        body: {
+          event: detail({ readOnly: true, status: "completed" }),
+          viewer: viewer({ canManage: true }),
+        },
       },
     });
     registerSlot("OrganizerToolsSlot", () => <p>organizer tools</p>);

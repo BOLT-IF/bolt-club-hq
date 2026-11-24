@@ -14,7 +14,12 @@ afterEach(() => {
 
 describe("event page slots", () => {
   it("offers exactly the four slots from PLAN §12", () => {
-    expect([...SLOT_NAMES]).toEqual(["RsvpSlot", "ShareSlot", "OrganizerToolsSlot", "AttendeesSlot"]);
+    expect([...SLOT_NAMES]).toEqual([
+      "RsvpSlot",
+      "ShareSlot",
+      "OrganizerToolsSlot",
+      "AttendeesSlot",
+    ]);
   });
 
   it("renders nothing for a slot nobody filled", () => {
@@ -37,7 +42,10 @@ describe("event page slots", () => {
     registerSlot("ShareSlot", () => <p>second</p>);
     registerSlot("RsvpSlot", () => <p>elsewhere</p>);
     render(<Slot name="ShareSlot" event={event} viewer={viewer} />);
-    expect(screen.getAllByText(/first|second/).map((n) => n.textContent)).toEqual(["first", "second"]);
+    expect(screen.getAllByText(/first|second/).map((n) => n.textContent)).toEqual([
+      "first",
+      "second",
+    ]);
     expect(screen.queryByText("elsewhere")).toBeNull();
   });
 

@@ -11,7 +11,7 @@ import {
 } from "./policy";
 
 const ctx = {
-  db: {} as Tx,
+  db: undefined as unknown as Tx,
   clock: { now: () => new Date("2027-01-01T10:00:00Z") } satisfies Clock,
   notification: {
     id: "ntf_1",

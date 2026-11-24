@@ -43,7 +43,7 @@ function stubApi(items: Item[], unreadCount = items.filter((i) => i.readAt === n
   return fetchMock;
 }
 
-async function renderInbox() {
+function renderInbox() {
   const route = registeredFrontendRoutes().find((r) => r.path === "/inbox");
   expect(route).toBeDefined();
   const Component = route!.component;
@@ -70,7 +70,7 @@ describe("inbox screen", () => {
 
   it("lists notifications and flags the unread ones", async () => {
     stubApi([item({ id: "a" }), item({ id: "b", readAt: "2027-01-01T11:00:00.000Z" })]);
-    await renderInbox();
+    renderInbox();
     expect(await screen.findByRole("heading", { level: 1, name: "Inbox" })).toBeTruthy();
     expect(await screen.findByText("Title a")).toBeTruthy();
     expect(screen.getByText("Body b")).toBeTruthy();
@@ -79,20 +79,20 @@ describe("inbox screen", () => {
 
   it("shows an empty state", async () => {
     stubApi([]);
-    await renderInbox();
+    renderInbox();
     expect(await screen.findByText(/nothing here yet|no notifications/i)).toBeTruthy();
   });
 
   it("shows an error state with retry", async () => {
     configureApiClient({ fetch: () => Promise.resolve(json({ error: "boom" }, 500)) });
-    await renderInbox();
+    renderInbox();
     expect(await screen.findByRole("alert")).toBeTruthy();
     expect(screen.getByRole("button", { name: "Try again" })).toBeTruthy();
   });
 
   it("opening an item marks it read and goes to its deep link", async () => {
     const fetchMock = stubApi([item({ id: "a", link: "/events/mon-1" })]);
-    await renderInbox();
+    renderInbox();
     fireEvent.click(await screen.findByRole("button", { name: /Title a/ }));
     await waitFor(() => {
       expect(window.location.pathname).toBe("/events/mon-1");
@@ -104,7 +104,7 @@ describe("inbox screen", () => {
     const fetchMock = stubApi([
       item({ id: "a", link: "/money", readAt: "2027-01-01T11:00:00.000Z" }),
     ]);
-    await renderInbox();
+    renderInbox();
     fireEvent.click(await screen.findByRole("button", { name: /Title a/ }));
     await waitFor(() => {
       expect(window.location.pathname).toBe("/money");
@@ -114,7 +114,7 @@ describe("inbox screen", () => {
 
   it("never navigates to an external or malformed link", async () => {
     stubApi([item({ id: "a", link: "https://evil.example/x" }), item({ id: "b", link: "//evil" })]);
-    await renderInbox();
+    renderInbox();
     fireEvent.click(await screen.findByRole("button", { name: /Title a/ }));
     fireEvent.click(screen.getByRole("button", { name: /Title b/ }));
     expect(window.location.pathname).toBe("/inbox");
@@ -122,7 +122,7 @@ describe("inbox screen", () => {
 
   it("mark all read sends all:true and clears the unread flags", async () => {
     const fetchMock = stubApi([item({ id: "a" }), item({ id: "b" })]);
-    await renderInbox();
+    renderInbox();
     fireEvent.click(await screen.findByRole("button", { name: "Mark all read" }));
     await waitFor(() => {
       expect(screen.queryAllByText("Unread")).toHaveLength(0);

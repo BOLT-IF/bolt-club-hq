@@ -56,7 +56,7 @@ describe("notification routes", () => {
       env,
     );
   const list = async (clerk: string, query = "") =>
-    (await (await routes.request(`/notifications${query}`, as(clerk), env)).json()) as List;
+    (await routes.request(`/notifications${query}`, as(clerk), env)).json<List>();
 
   async function seed(memberId: string, n: number, prefix: string) {
     for (let i = 1; i <= n; i++) {

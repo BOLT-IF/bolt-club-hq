@@ -6,6 +6,7 @@ import { saveIntent } from "../../auth/intent";
 import { ToastProvider } from "../../components/ui/Toast";
 import { registeredFrontendRoutes, resolveRoute } from "../registry";
 import { peekJoinRsvpIntent } from "./joinIntent";
+import { installMemoryStorage } from "./memoryStorage.test-helper";
 
 function json(status: number, body: unknown): Response {
   return new Response(JSON.stringify(body), {
@@ -47,7 +48,9 @@ const waitingHandler =
   (method, path, body) => {
     if (path === "/me") return json(200, pending);
     if (method === "POST" && path === "/join-requests")
-      return json(201, { request: { id: "jr1", via: "invite", createdAt: "2027-03-01T09:00:00Z" } });
+      return json(201, {
+        request: { id: "jr1", via: "invite", createdAt: "2027-03-01T09:00:00Z" },
+      });
     if (path === "/join-requests/mine")
       return json(200, {
         status: "pending",
@@ -57,7 +60,7 @@ const waitingHandler =
   };
 
 beforeEach(() => {
-  window.localStorage.clear();
+  installMemoryStorage();
 });
 afterEach(() => {
   cleanup();
@@ -95,7 +98,10 @@ describe("join flow", () => {
   });
 
   it("an event link keeps the RSVP from sign-in so approval can complete it", async () => {
-    saveIntent({ returnTo: "/events/eventslug1", rsvp: { eventSlug: "eventslug1", response: "in" } });
+    saveIntent({
+      returnTo: "/events/eventslug1",
+      rsvp: { eventSlug: "eventslug1", response: "in" },
+    });
     const calls = renderAt("/join/event/eventslug1", waitingHandler());
     expect(await screen.findByRole("heading", { name: /waiting for approval/i })).toBeTruthy();
     expect(calls).toContainEqual({

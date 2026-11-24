@@ -8,6 +8,7 @@ import {
   peekJoinRsvpIntent,
   saveJoinRsvpIntent,
 } from "./joinIntent";
+import { installMemoryStorage } from "./memoryStorage.test-helper";
 
 const T0 = 1_800_000_000_000;
 
@@ -41,7 +42,7 @@ const pending = { ...active, status: "pending" };
 const eventBody = { event: { id: "evt_1", slug: "eventslug1" }, viewer: {} };
 
 beforeEach(() => {
-  window.localStorage.clear();
+  installMemoryStorage();
 });
 afterEach(() => {
   configureApiClient({});
@@ -56,7 +57,8 @@ describe("join RSVP intent", () => {
     expect(first?.idempotencyKey).toMatch(/.{8,}/);
     saveJoinRsvpIntent("eventslug1", T0 + 1000);
     expect(peekJoinRsvpIntent(T0 + 2000)?.idempotencyKey).toBe(first?.idempotencyKey);
-    expect(peekJoinRsvpIntent(T0 + JOIN_INTENT_TTL_MS + 1)).toBeNull();
+    expect(peekJoinRsvpIntent(T0 + 1000 + JOIN_INTENT_TTL_MS)).not.toBeNull();
+    expect(peekJoinRsvpIntent(T0 + 1000 + JOIN_INTENT_TTL_MS + 1)).toBeNull();
     clearJoinRsvpIntent();
     expect(peekJoinRsvpIntent(T0)).toBeNull();
   });

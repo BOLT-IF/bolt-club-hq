@@ -74,7 +74,12 @@ describe("invites (S1.3)", () => {
     const { invite: created } = await res.json<{ invite: InviteJson }>();
     expect(created.maxUses).toBe(10);
     expect(new Date(created.expiresAt).getTime()).toBe(new Date(NOW).getTime() + 14 * DAY);
-    for (const body of [{ maxUses: 0 }, { maxUses: 1.5 }, { expiresInDays: 0 }, { expiresInDays: 91 }]) {
+    for (const body of [
+      { maxUses: 0 },
+      { maxUses: 1.5 },
+      { expiresInDays: 0 },
+      { expiresInDays: 91 },
+    ]) {
       expect((await call(admin, "POST", "/invites", body)).status).toBe(400);
     }
   });
@@ -91,8 +96,21 @@ describe("invites (S1.3)", () => {
   it("lists invites newest first with their state", async () => {
     const admin = await makeMember(t.db, { role: "admin" });
     await t.db.insert(invite).values([
-      { id: "inv_old", token: "old", createdBy: admin.id, expiresAt: new Date(new Date(NOW).getTime() - DAY), maxUses: 5 },
-      { id: "inv_full", token: "full", createdBy: admin.id, expiresAt: new Date(new Date(NOW).getTime() + DAY), maxUses: 2, uses: 2 },
+      {
+        id: "inv_old",
+        token: "old",
+        createdBy: admin.id,
+        expiresAt: new Date(new Date(NOW).getTime() - DAY),
+        maxUses: 5,
+      },
+      {
+        id: "inv_full",
+        token: "full",
+        createdBy: admin.id,
+        expiresAt: new Date(new Date(NOW).getTime() + DAY),
+        maxUses: 2,
+        uses: 2,
+      },
     ]);
     const res = await call(admin, "GET", "/invites");
     expect(res.status).toBe(200);
@@ -103,12 +121,17 @@ describe("invites (S1.3)", () => {
 
   it("revoking stamps revoked_at once and is audited once", async () => {
     const admin = await makeMember(t.db, { role: "admin" });
-    const created = await (await call(admin, "POST", "/invites", {})).json<{ invite: InviteJson }>();
+    const created = await (
+      await call(admin, "POST", "/invites", {})
+    ).json<{ invite: InviteJson }>();
     const first = await call(admin, "DELETE", `/invites/${created.invite.id}`);
     expect(first.status).toBe(200);
     expect((await first.json<{ invite: InviteJson }>()).invite.state).toBe("revoked");
     expect((await call(admin, "DELETE", `/invites/${created.invite.id}`)).status).toBe(200);
-    const audits = await t.db.select().from(auditLog).where(eq(auditLog.entityId, created.invite.id));
+    const audits = await t.db
+      .select()
+      .from(auditLog)
+      .where(eq(auditLog.entityId, created.invite.id));
     expect(audits.map((a) => a.action).sort()).toEqual(["invite.create", "invite.revoke"]);
     expect((await call(admin, "DELETE", "/invites/nope")).status).toBe(404);
   });

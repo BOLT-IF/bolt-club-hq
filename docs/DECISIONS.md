@@ -2,6 +2,15 @@
 
 Decisions made after `PLAN.md` (v3) was written. Newest first. Every entry gives the decision, the reason, and what it changes.
 
+## 2026-11-24: S1.3 invites, join requests, approval
+
+- **RSVP intent is completed client-side.** `join_request` has no column for an intent and stories add no migrations, so the intent lives in `localStorage` under its own key, `bcq.join-rsvp-intent` (`src/app/routes/join/joinIntent.ts`), with a 14-day TTL. It is separate from S1.1's 30-minute sign-in intent because approval can take days. The join page moves a sign-in `rsvp` into it. After approval, `completeJoinRsvpIntent()` calls S4.2's `PUT /events/:id/rsvp` once, with a stored `Idempotency-Key`, and never overwrites an RSVP the member already has. A 4xx (closed, gone) drops the intent; a network or 5xx error keeps it. It runs when the approved member opens `/join`. **Integrator follow-ups (agreed):** mount the completer in `AppRoot` so it runs on any app open, and add a "Request to join" link to `/join/event/<slug>` on the event page's 403 state (may overlap S7.1).
+- **One open request per pending member.** The member row is locked; a repeat or concurrent request returns the existing one (200), consumes no invite use and notifies nobody again. `admin_tasks` goes to every active admin with key `join-request:<id>:<adminId>`, link `/admin/approvals`.
+- **Invites:** admin-created, 24-character token (120 bits). Defaults: 14 days, 10 uses; limits 1-90 days, 1-1000 uses. Refusals are 410 `invite_revoked` / `invite_expired` (`expires_at <= now` counts as expired) / `invite_used_up`, and 404 for an unknown token. The last use is taken under a row lock. Revoke is `DELETE /invites/:id`, idempotent, audited once.
+- **Approve** sets `active` and `joined_at = now` (audited as `member.approve`); it is idempotent for an already-active member and gives 409 for erased/inactive. **Reject** deletes the request (audited as `join_request.reject` on the member); the member stays pending and may ask again.
+- **Pending members** can only call `/me`, `POST /join-requests` and `GET /join-requests/mine` (the last never returns the source id). A sweep test asserts that every other API route answers 403 to a pending member.
+- **No feature flag.** The join pages hold no club data and the approvals page is admin-gated.
+
 ## 2026-11-24: Integrator queue: polls migration 0001; push wake-up from notify
 
 - **`docs/DECISIONS.md` uses `merge=union`** (`.gitattributes`). Every story prepends a section, so parallel PRs conflicted on every merge of main; union keeps both sides automatically. Check the order of new sections after a merge.

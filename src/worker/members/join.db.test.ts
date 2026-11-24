@@ -148,7 +148,12 @@ describe("join requests and approval (S1.3)", () => {
         if (seen.has(key) || PENDING_ALLOWED.has(key)) continue;
         seen.add(key);
         const path = route.path.replace(/:[^/]+/g, "x");
-        const res = await call(pending, route.method, path, route.method === "GET" ? undefined : {});
+        const res = await call(
+          pending,
+          route.method,
+          path,
+          route.method === "GET" ? undefined : {},
+        );
         if (res.status !== 403) offenders.push(`${key} -> ${String(res.status)}`);
       }
       expect(offenders).toEqual([]);
@@ -164,7 +169,10 @@ describe("join requests and approval (S1.3)", () => {
       const inv = await addInvite(a1.id);
       const pending = await makeMember(t.db, { status: "pending", displayName: "Nina New" });
 
-      const res = await call(pending, "POST", "/join-requests", { via: "invite", token: inv.token });
+      const res = await call(pending, "POST", "/join-requests", {
+        via: "invite",
+        token: inv.token,
+      });
       expect(res.status).toBe(201);
       const { request } = await res.json<{ request: { id: string; via: string } }>();
       expect(request.via).toBe("invite");
@@ -191,8 +199,14 @@ describe("join requests and approval (S1.3)", () => {
       const inv = await addInvite(admin.id);
       const pending = await makeMember(t.db, { status: "pending" });
 
-      const first = await call(pending, "POST", "/join-requests", { via: "invite", token: inv.token });
-      const again = await call(pending, "POST", "/join-requests", { via: "invite", token: inv.token });
+      const first = await call(pending, "POST", "/join-requests", {
+        via: "invite",
+        token: inv.token,
+      });
+      const again = await call(pending, "POST", "/join-requests", {
+        via: "invite",
+        token: inv.token,
+      });
       const [r1, r2] = await Promise.all([
         call(pending, "POST", "/join-requests", { via: "invite", token: inv.token }),
         call(pending, "POST", "/join-requests", { via: "invite", token: inv.token }),
@@ -223,7 +237,10 @@ describe("join requests and approval (S1.3)", () => {
       await expectRefused(expired.token, "invite_expired");
       await expectRefused(exactlyNow.token, "invite_expired");
       await expectRefused(usedUp.token, "invite_used_up");
-      const unknown = await call(pending, "POST", "/join-requests", { via: "invite", token: "nope" });
+      const unknown = await call(pending, "POST", "/join-requests", {
+        via: "invite",
+        token: "nope",
+      });
       expect(unknown.status).toBe(404);
 
       expect(await requestsOf(pending.id)).toHaveLength(0);
@@ -249,7 +266,10 @@ describe("join requests and approval (S1.3)", () => {
       const p2 = await makeMember(t.db, { status: "pending" });
 
       const e = await call(p1, "POST", "/join-requests", { via: "event_link", slug: "eventslug1" });
-      const s = await call(p2, "POST", "/join-requests", { via: "series_link", slug: "seriesslug" });
+      const s = await call(p2, "POST", "/join-requests", {
+        via: "series_link",
+        slug: "seriesslug",
+      });
       expect([e.status, s.status]).toEqual([201, 201]);
       expect((await requestsOf(p1.id))[0]?.sourceId).toBe("evt_1");
       expect((await requestsOf(p2.id))[0]?.sourceId).toBe("ser_1");
@@ -260,7 +280,9 @@ describe("join requests and approval (S1.3)", () => {
       expect(
         (await call(p3, "POST", "/join-requests", { via: "series_link", slug: "zzz" })).status,
       ).toBe(404);
-      expect((await call(p3, "POST", "/join-requests", { via: "carrier_pigeon" })).status).toBe(400);
+      expect((await call(p3, "POST", "/join-requests", { via: "carrier_pigeon" })).status).toBe(
+        400,
+      );
     });
 
     it("members, signed-out visitors and erased users can't file a request", async () => {
@@ -280,7 +302,9 @@ describe("join requests and approval (S1.3)", () => {
       const before = await call(pending, "GET", "/join-requests/mine");
       expect(await before.json()).toEqual({ status: "pending", request: null });
       await call(pending, "POST", "/join-requests", { via: "event_link", slug: "eventslug1" });
-      const after = await (await call(pending, "GET", "/join-requests/mine")).json<{
+      const after = await (
+        await call(pending, "GET", "/join-requests/mine")
+      ).json<{
         status: string;
         request: { via: string; createdAt: string } | null;
       }>();
@@ -309,7 +333,12 @@ describe("join requests and approval (S1.3)", () => {
       const res = await call(admin, "GET", "/admin/join-requests");
       expect(res.status).toBe(200);
       const { requests } = await res.json<{
-        requests: Array<{ memberId: string; displayName: string; via: string; source: string | null }>;
+        requests: Array<{
+          memberId: string;
+          displayName: string;
+          via: string;
+          source: string | null;
+        }>;
       }>();
       expect(requests).toHaveLength(1);
       expect(requests[0]).toMatchObject({
@@ -337,7 +366,9 @@ describe("join requests and approval (S1.3)", () => {
         .where(and(eq(auditLog.entityId, pending.id), eq(auditLog.action, "member.approve")));
       expect(audits).toHaveLength(1);
       // The queue is empty and the member now passes the member guard.
-      const queue = await (await call(admin, "GET", "/admin/join-requests")).json<{
+      const queue = await (
+        await call(admin, "GET", "/admin/join-requests")
+      ).json<{
         requests: unknown[];
       }>();
       expect(queue.requests).toHaveLength(0);

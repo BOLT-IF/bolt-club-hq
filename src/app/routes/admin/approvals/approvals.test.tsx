@@ -84,7 +84,11 @@ describe("admin approvals page", () => {
     const item = await screen.findByRole("listitem", { name: /Nina New/ });
     fireEvent.click(within(item).getByRole("button", { name: "Approve Nina New" }));
     await waitFor(() => {
-      expect(calls).toContainEqual({ method: "POST", path: "/join-requests/jr1/approve", body: undefined });
+      expect(calls).toContainEqual({
+        method: "POST",
+        path: "/join-requests/jr1/approve",
+        body: undefined,
+      });
     });
     expect(await screen.findByText(/No one is waiting/i)).toBeTruthy();
   });
@@ -96,13 +100,19 @@ describe("admin approvals page", () => {
     expect(calls.some((c) => c.path.endsWith("/reject"))).toBe(false);
     fireEvent.click(await screen.findByRole("button", { name: "Reject request" }));
     await waitFor(() => {
-      expect(calls).toContainEqual({ method: "POST", path: "/join-requests/jr1/reject", body: undefined });
+      expect(calls).toContainEqual({
+        method: "POST",
+        path: "/join-requests/jr1/reject",
+        body: undefined,
+      });
     });
   });
 
   it("creates an invite with expiry and max uses and shows its link", async () => {
     const calls = setup((path) =>
-      path === "/invites" ? json(201, { invite: { ...invite, id: "inv2", token: "newtoken" } }) : json(200, {}),
+      path === "/invites"
+        ? json(201, { invite: { ...invite, id: "inv2", token: "newtoken" } })
+        : json(200, {}),
     );
     await screen.findByRole("listitem", { name: /Nina New/ });
     fireEvent.change(screen.getByLabelText("Valid for (days)"), { target: { value: "7" } });

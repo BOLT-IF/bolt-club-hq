@@ -11,6 +11,8 @@ export interface TickContext {
   clock: Clock;
   now: Date;
   cron: string;
+  /** For `markDue(kv, at)`: a hook schedules its own next wake-up. */
+  kv: KVNamespace;
 }
 export type TickHook = (ctx: TickContext) => Promise<void>;
 

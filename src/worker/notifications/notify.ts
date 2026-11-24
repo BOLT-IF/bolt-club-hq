@@ -6,6 +6,7 @@ import type { Db, Tx } from "../core/db/client";
 import type { NotifyPort } from "../core/ports";
 import { isCategory, resolveLink } from "./links";
 import { defaultPolicies, runPolicyChain, type NotificationPolicy } from "./policy";
+import { markPushDue } from "./push-cron";
 
 /** `NotifyPort` input plus an optional in-app deep link (default: the category's screen). */
 export type NotifyInput = Parameters<NotifyPort["notify"]>[0] & { link?: string };
@@ -92,6 +93,7 @@ export function createNotifyPort(deps: NotifyDeps): { notify(input: NotifyInput)
           status: decision.action === "defer" ? "deferred" : "queued",
           notBefore: decision.action === "defer" ? decision.until : null,
         });
+        await markPushDue(decision.action === "defer" ? decision.until : deps.clock.now());
       });
     },
   };

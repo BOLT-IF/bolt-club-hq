@@ -213,15 +213,21 @@ describe("member payment claims screen", () => {
 
     fireEvent.change(screen.getByLabelText(/amount/i), { target: { value: "200" } });
     fireEvent.click(screen.getByRole("button", { name: /submit claim/i }));
-    await waitFor(() => expect(calls.filter((c) => c.method === "POST")).toHaveLength(1));
+    await waitFor(() => {
+      expect(calls.filter((c) => c.method === "POST")).toHaveLength(1);
+    });
 
     // Retry after 409 in progress -> same key
     fireEvent.click(screen.getByRole("button", { name: /submit claim/i }));
-    await waitFor(() => expect(calls.filter((c) => c.method === "POST")).toHaveLength(2));
+    await waitFor(() => {
+      expect(calls.filter((c) => c.method === "POST")).toHaveLength(2);
+    });
 
     // Retry after final 400 -> new key
     fireEvent.click(screen.getByRole("button", { name: /submit claim/i }));
-    await waitFor(() => expect(calls.filter((c) => c.method === "POST")).toHaveLength(3));
+    await waitFor(() => {
+      expect(calls.filter((c) => c.method === "POST")).toHaveLength(3);
+    });
 
     const posts = calls.filter((c) => c.method === "POST");
     expect(posts[0]?.key).toBeTruthy();

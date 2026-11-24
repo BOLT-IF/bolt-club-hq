@@ -142,10 +142,14 @@ describe("admin payment claims queue", () => {
     expect(within(ownRow).getByText(/Your claim/i)).toBeTruthy();
     expect(within(ownRow).getByText(/another admin/i)).toBeTruthy();
     expect(
-      within(ownRow).getByRole("button", { name: /confirm/i }).hasAttribute("disabled"),
+      within(ownRow)
+        .getByRole("button", { name: /confirm/i })
+        .hasAttribute("disabled"),
     ).toBe(true);
     expect(
-      within(ownRow).getByRole("button", { name: /reject/i }).hasAttribute("disabled"),
+      within(ownRow)
+        .getByRole("button", { name: /reject/i })
+        .hasAttribute("disabled"),
     ).toBe(true);
   });
 
@@ -162,10 +166,14 @@ describe("admin payment claims queue", () => {
     await screen.findByText("Bo Berg");
 
     fireEvent.click(screen.getByRole("button", { name: /confirm/i }));
-    await waitFor(() => expect(calls.filter((c) => c.method === "POST")).toHaveLength(1));
+    await waitFor(() => {
+      expect(calls.filter((c) => c.method === "POST")).toHaveLength(1);
+    });
 
     fireEvent.click(screen.getByRole("button", { name: /confirm/i }));
-    await waitFor(() => expect(calls.filter((c) => c.method === "POST")).toHaveLength(2));
+    await waitFor(() => {
+      expect(calls.filter((c) => c.method === "POST")).toHaveLength(2);
+    });
 
     const posts = calls.filter((c) => c.method === "POST");
     expect(posts[0]?.path).toBe("/admin/payment-claims/clm_bo/confirm");
@@ -189,7 +197,9 @@ describe("admin payment claims queue", () => {
       target: { value: "No transfer with your reference" },
     });
     fireEvent.click(screen.getByRole("button", { name: /reject claim/i }));
-    await waitFor(() => expect(calls.filter((c) => c.method === "POST")).toHaveLength(1));
+    await waitFor(() => {
+      expect(calls.filter((c) => c.method === "POST")).toHaveLength(1);
+    });
 
     const post = calls.find((c) => c.method === "POST");
     expect(post).toMatchObject({

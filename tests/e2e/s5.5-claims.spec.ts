@@ -15,7 +15,16 @@ async function setupConfig(page: Page) {
 
 test("member submits a payment claim and sees rejected reason in their list", async ({ page }) => {
   await setupConfig(page);
-  const claims = [
+  const claims: Array<{
+    id: string;
+    memberId: string;
+    amountSek: number;
+    paidOn: string;
+    note: string | null;
+    status: string;
+    decidedAt: string | null;
+    rejectReason: string | null;
+  }> = [
     {
       id: "clm_prev",
       memberId: "mem_1",

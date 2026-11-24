@@ -2,6 +2,13 @@
 
 Decisions made after `PLAN.md` (v3) was written. Newest first. Every entry gives the decision, the reason, and what it changes.
 
+## 2026-11-24: S5.5 payment claims screens
+
+- **Flag gating and standalone routes:** Both `/money/claims` (`src/app/routes/money/claims/routes.tsx`) and `/admin/money/claims` (`src/app/routes/admin/money/claims/routes.tsx`) are gated on `useFeatureFlag("money")` (showing the same `"Money is not switched on yet."` empty state as `AdminBalances` when off).
+- **Member screen (`/money/claims`):** Keeps API traffic strictly to `/me/payment-claims` (plus a link back to `/money` for bank details and payment reference) so exited members and direct `/money/claims` notification deep links work with minimal coupling. Validates whole kronor `> 0`, valid calendar `paidOn` not after today in `Europe/Stockholm`, and `note <= 500` chars before submitting with an `Idempotency-Key` (reused on timeout / `idempotency_key_in_progress`, rotated on final 4xx or 201).
+- **Admin queue (`/admin/money/claims`):** Shows `isOwn` claims with a `"Your claim"` chip, explanatory hint, and disabled Confirm/Reject buttons, while still handling a server `403 own_claim` defensively. Confirm is one-tap with a per-claim `Idempotency-Key` retained across retryable errors; Reject opens a `BottomSheet` requiring a non-blank trimmed reason.
+- **Follow-up (outside S5.5 Owns):** Add navigation links to `/money/claims` from `MoneyPage.tsx` and to `/admin/money/claims` from `AdminBalances.tsx` in the integrator follow-up pass.
+
 ## 2026-11-24: Integrator follow-up chore & Owns pre-grants
 
 - **Member deactivation (`rsvp.cancel` port):** `RsvpCancelPort.cancelFutureRsvps` takes `{ db, clock, memberId, at, idempotencyKey }` so `members/routes.ts` passes the request `db` and `clock` directly to `realRsvpCancel` (`src/worker/rsvp/cancel.ts`). `noopRsvpCancel` is deleted; `rsvp-cancel.test.ts` verifies the production default is `realRsvpCancel`.

@@ -2,6 +2,11 @@
 
 Decisions made after `PLAN.md` (v3) was written. Newest first. Every entry gives the decision, the reason, and what it changes.
 
+## 2026-11-24: Tick hooks get KV; grants for S5.5, S10.2
+
+- **`TickContext.kv`** (integrator): tick hooks receive the KV binding so they can call `markDue(kv, at)` for their own next wake-up (S6.5a reminders, later S4.3 close, S9.1 poll close). Before this a hook could only run on the daily maintenance cadence.
+- **Owns grants:** S5.5 mounts its claims sub-app in `ledger/routes.ts`. S10.2 owns `src/app/routes/install/` and one `<InstallPrompt />` line in `AppShell.tsx` (no Home route exists yet; S10.1 may move it). The `noteRsvpSaved()` call in the RSVP panel is an integrator follow-up after S4.2 merges.
+
 ## 2026-11-24: S3.3 one-off events
 
 - **The creator's role decides the kind.** Every event an admin creates through `POST /events` is an `admin_oneoff`, free ones included. A member's is a `member_oneoff`. PLAN §4 lets everyone create a free one-off and only admins a paid one, so the kind just records who may manage money on it.

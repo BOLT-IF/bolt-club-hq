@@ -169,6 +169,7 @@ export async function runTick(
             clock,
             now: startedAt,
             cron: controller.cron,
+            kv: env.KV,
           };
           await hook(ctx);
         },

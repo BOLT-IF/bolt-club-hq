@@ -5,6 +5,7 @@ import { event, guest } from "../../../db/schema";
 import { contextMiddleware } from "../core/context";
 import { requireGuard } from "../core/permissions";
 import type { AppEnv } from "../types";
+import adminRoutes from "./admin-routes";
 import claimsRoutes from "./claims";
 import { createLedgerService } from "./service";
 
@@ -79,4 +80,5 @@ export default new Hono<AppEnv>()
       })),
     });
   })
+  .route("/", adminRoutes)
   .route("/", claimsRoutes);

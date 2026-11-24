@@ -188,7 +188,7 @@ Login is off the critical path. From W2 on, stories use the **test-identity over
   - State-changing requests from a bad `Origin` get 403.
 
 ### S1.3 Invites, join requests, approval: M · W3
-- **Depends on:** S1.1, S2.1, S6.1 · **Owns:** `src/worker/members/invites*`, `src/worker/members/join*`, `src/app/routes/join/`, `src/app/routes/admin/approvals/`
+- **Depends on:** S1.1, S2.1, S6.1 · **Owns:** `src/worker/members/invites*`, `src/worker/members/join*`, `src/app/routes/join/`, `src/app/routes/admin/approvals/`, plus integrator-sanctioned (2026-11-24): `src/worker/members/routes.ts` (one-line mounts of the invites/join sub-apps)
 - Invites support expiry, max uses and revocation.
 - A JoinRequest can come from an invite, an event link or a series link.
 - Pending members see a waiting screen. They get no member directory and no attendee names.
@@ -262,7 +262,7 @@ Login is off the critical path. From W2 on, stories use the **test-identity over
 - **Tests first:** invalid transitions are rejected; clone copies series without events or passes; captain permissions apply only to their own series.
 
 ### S3.2 Recurrence, skip-dates, occurrence edits: M · W3
-- **Depends on:** S3.0, S3.1 · **Owns:** `src/domain/recurrence*`, `src/worker/terms/recurrence*`, `src/app/routes/admin/terms/schedule*`
+- **Depends on:** S3.0, S3.1 · **Owns:** `src/domain/recurrence*`, `src/worker/terms/recurrence*`, `src/app/routes/admin/terms/schedule*`, plus integrator-sanctioned (2026-11-24): `src/worker/terms/routes.ts` (one-line mount of the recurrence sub-app)
 - Weekly generation that is safe across DST changes.
 - `rsvp_close_at` is computed in UTC from absolute minutes before start.
 - Skip-dates lock at `open_for_passes`.

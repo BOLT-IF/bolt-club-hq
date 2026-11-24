@@ -1,0 +1,39 @@
+.bcq-events {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.75rem;
+}
+.bcq-events__item {
+  display: grid;
+  gap: 0.25rem;
+  min-height: var(--bcq-touch);
+  padding: 0.875rem 1rem;
+  background: var(--bcq-card);
+  border: 1px solid var(--bcq-line);
+  border-radius: var(--bcq-radius);
+  color: var(--bcq-ink);
+  text-decoration: none;
+}
+.bcq-events__item:focus-visible {
+  outline: 3px solid var(--bcq-focus);
+  outline-offset: 2px;
+}
+.bcq-events__title {
+  font-weight: 700;
+}
+.bcq-events__meta,
+.bcq-event__where {
+  color: var(--bcq-muted);
+}
+.bcq-event {
+  display: grid;
+  gap: 1rem;
+}
+.bcq-event > * {
+  margin: 0;
+}
+.bcq-event__when {
+  font-weight: 700;
+}

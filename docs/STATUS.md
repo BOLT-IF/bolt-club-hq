@@ -13,7 +13,7 @@ Status of the parallel build run of `docs/STORIES.md` (48 stories). Read this, t
 | S0.5 CI/deploy/ops | #8 | Sharded Playwright ×4, owns + migration checks, deploy/backup/lighthouse workflows (skip until secrets exist). |
 | S4.1 allocation engine | #6 | Pure TS, 42 tests + 11 fast-check properties. |
 | S0.3 PWA + service worker | #9 | Update-prompt test uses faked waiting-state (real second build impossible: SW updates are same-origin only). |
-| S0.2 core contracts + schema | #12 | 26 tables, append-only ledger trigger, core services. 99 tests incl. 4 DB suites against Postgres in CI. Local Postgres kept on 17 (see DECISIONS). |
+| S0.2 core contracts + schema | #12 | 26 tables, append-only ledger trigger, core services. 99 tests incl. 4 DB suites against Postgres in CI. |
 
 Integrator chore PRs also merged: #1 (CI bootstrap), #3 (R1 decision log), #4 (allowScripts), #10 (tarball relay, temporary), #11 (S0.3 owns + relay removal), #13 (handoff + S0.2 owns), #14 (vite `rolldownOptions` lint fix), plus the repo-audit cleanup and fix PRs (see DECISIONS, "Repo audit").
 
@@ -21,7 +21,9 @@ Integrator chore PRs also merged: #1 (CI bootstrap), #3 (R1 decision log), #4 (a
 
 All merged branches and story worktrees were deleted; the repo auto-deletes branches on merge. Audit fixes landed as separate PRs: ops wiring (`/healthz` + `scheduled()` tick), `/api/v1/config`, idempotency claim-first, and the dependency trim. See DECISIONS for each.
 
-**Open:** Postgres 18 parity (bump local + CI + backup client together, one contract PR).
+Follow-ups (2026-11-24): the secrets gate now skips cleanly (Deploy, backup, drill and Lighthouse stay green until secrets exist); local, CI and backup clients all run Postgres 18 like Neon; the repo allows squash merges only. See DECISIONS.
+
+**Not enforceable on this plan:** branch protection and rulesets need GitHub Pro on a private repo. "Merge only on green" is a working agreement, not a gate.
 
 ## Not started
 
@@ -32,7 +34,7 @@ All merged branches and story worktrees were deleted; the repo auto-deletes bran
 ## Production state
 
 - **Neon:** live, PostgreSQL 18.7 (org `org-ancient-hat-10361899`, project `autumn-term-77415320`, branch `production`, database `neondb`). Connection string (pooled, `-pooler` host) is in `.env.local` at the repo root — gitignored, never commit it. This dev machine can only reach Neon over its **HTTPS endpoint** (`@neondatabase/serverless`, installed; verified working). Raw Postgres 5432 is network-blocked here; Cloudflare/GitHub CI reach it directly — unaffected.
-- **Local Postgres:** Rancher Desktop runs the docker engine — binary at `~/.rd/bin/docker` (not on default PATH). docker-compose Postgres is the local/CI test DB. docker-compose and CI pin postgres:17; production Neon is 18. Parity is an open contract PR (above), not a one-file bump.
+- **Local Postgres:** Rancher Desktop runs the docker engine — binary at `~/.rd/bin/docker` (not on default PATH). docker-compose Postgres is the local/CI test DB. docker-compose, CI and the backup clients all run Postgres 18, matching Neon. Change all of them together.
 - **Deploy:** `deploy.yml` merges to main → wrangler deploy → drizzle-kit migrate → smoke. Blocked on secrets (below).
 
 ## Ashok's queue (needed for deploy + S0.6)

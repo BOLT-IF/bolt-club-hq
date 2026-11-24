@@ -2,7 +2,7 @@
 
 ## Setup
 1. `npm ci`
-2. `docker compose up -d postgres` (local Postgres 17 for Worker tests; CI uses a service container)
+2. `docker compose up -d postgres` (local Postgres 18, matching production Neon and CI's service container)
 3. `export DATABASE_URL=postgres://postgres:postgres@localhost:5432/club_test`
 
 ## Verify /healthz and the SPA on one origin

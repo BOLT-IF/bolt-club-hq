@@ -30,14 +30,15 @@ jobs:
         # Writes ready=true|false to GITHUB_OUTPUT. A skip still exits 0, so never gate on the exit code.
         run: bash scripts/ci/require-secrets.sh restore-drill
 
-      - name: Install PostgreSQL client 17
+      # The client major must be >= the server's (Neon runs 18): pg_dump refuses a newer server.
+      - name: Install PostgreSQL client 18
         if: steps.guard.outputs.ready == 'true'
         run: |
           sudo install -d /usr/share/postgresql-common/pgdg
           sudo curl -fsSL -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc https://www.postgresql.org/media/keys/ACCC4CF8.asc
           echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" | sudo tee /etc/apt/sources.list.d/pgdg.list
           sudo apt-get update
-          sudo apt-get install -y postgresql-client-17
+          sudo apt-get install -y postgresql-client-18
 
       # The dumps live in the backup bucket. Fetch the latest into a local folder first.
       - name: Fetch latest encrypted dump

@@ -274,7 +274,7 @@ Login is off the critical path. From W2 on, stories use the **test-identity over
   - The cap-below-sold block holds.
 
 ### S3.3 One-off events: S · W3
-- **Depends on:** S3.0 · **Owns:** `src/worker/events/oneoff*`, `src/app/routes/events/new*`
+- **Depends on:** S3.0 · **Owns:** `src/worker/events/oneoff*`, `src/app/routes/events/new*`, plus integrator-sanctioned (2026-11-24): `src/worker/events/routes.ts` (one-line mount of the one-off sub-app)
 - Member one-offs: free, instant. Admin one-offs: optional fee, tiered with no tier 1.
 - **Tests first:** a member can't set a fee or tiered allocation; a pass holder is treated as tier 2 at an admin paid one-off; only the owner, a captain or an admin can edit.
 

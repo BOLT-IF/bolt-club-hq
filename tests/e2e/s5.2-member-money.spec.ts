@@ -116,9 +116,9 @@ test("a member sees only their own entries", async ({ page }) => {
   const ledgerUrls = await mockApi(page);
   await page.goto("/money");
   await expect(page.getByText("You owe 90 kr")).toBeVisible();
-  await expect(page.getByRole("list", { name: "Ledger entries" }).getByRole("listitem")).toHaveCount(
-    3,
-  );
+  await expect(
+    page.getByRole("list", { name: "Ledger entries" }).getByRole("listitem"),
+  ).toHaveCount(3);
   expect(ledgerUrls.length).toBeGreaterThan(0);
   for (const url of ledgerUrls) expect(new URL(url).search).toBe("");
 });
@@ -144,7 +144,15 @@ test("credit displays correctly", async ({ page }) => {
         balanceSek: -100,
         owedSek: 0,
         creditSek: 100,
-        items: [{ ...ownLedger.items[2], amountSek: -100, status: "unapplied", allocatedSek: 0, outstandingSek: 100 }],
+        items: [
+          {
+            ...ownLedger.items[2],
+            amountSek: -100,
+            status: "unapplied",
+            allocatedSek: 0,
+            outstandingSek: 100,
+          },
+        ],
       },
     },
   });

@@ -2,6 +2,14 @@
 
 Decisions made after `PLAN.md` (v3) was written. Newest first. Every entry gives the decision, the reason, and what it changes.
 
+## 2026-11-24: S5.2 member money screen
+
+- **Payment reference comes from `GET /me/profile`.** `/me/ledger` does not carry it and S5.2 owns no backend file, so the screen reads it from the existing profile route rather than widening the ledger response.
+- **Ledger required, payment details best effort.** The screen loads `/me/ledger`, `/settings/public` and `/me/profile` in parallel; only a ledger failure shows the error state. Missing bank details show "Ask the treasurer for the club's bank details".
+- **Exited members (follow-up for the integrator):** `/settings/public` and `/me/profile` use `requireGuard("member")` without `allowInactive`, so an exited member sees their balance and entries but not the bank details or their payment reference. PLAN §6.7 suggests they need them to settle a remaining balance. The fix is adding `allowInactive: true` in S2.3's and S2.1's routes; not done here because those files are outside S5.2's Owns.
+- **Entries newest first**, each with a FIFO chip: Paid / Partly paid, N kr left / Unpaid for charges; Used / N kr credit left for money in; Cancelled / Cancellation for reversal pairs. Money in shows with a minus sign (−150 kr). Credit is shown as "Credit 100 kr", never as a negative debt.
+- **"Another member's ledger is 403"** is covered server-side by S5.1's `src/worker/ledger/routes.db.test.ts`. The S5.2 Playwright spec checks the screen never sends a member id and shows an error (no data) on a 403.
+
 ## 2026-11-24: S2.3 club settings: public subset is a guarded route, not part of `/config`
 
 - **Choice:** the member-visible settings are served at `GET /api/v1/settings/public` (`requireGuard("member")`, in `src/worker/settings/routes.ts`). `/config` is unchanged and stays anonymous. This touches nothing outside S2.3's Owns, so no contract-change PR was needed.

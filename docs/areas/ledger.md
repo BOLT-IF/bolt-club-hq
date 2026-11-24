@@ -41,3 +41,10 @@ Money in (payments, waivers, reversals of charges) is matched against money owed
 | `GET /api/v1/me/ledger` | member, `allowInactive` | Own entries only, with FIFO status, event title/date and guest name. `?memberId=` other than your own is 403, admins included. |
 
 Admin balances/payments/adjustments are S5.4, claims S5.5, passes S5.3.
+
+## Member screen (S5.2)
+
+- `/money` (`src/app/routes/money/`), behind `FLAG_MONEY`. Client calls live in `src/app/api/ledger.ts` (`fetchMyLedger`, `fetchPaymentSettings`, `fetchMyPaymentRef`); there is no member-id parameter.
+- Shows the balance ("You owe 90 kr", "Credit 100 kr", "You're all paid up"), "How to pay" (bank details and instructions from `GET /settings/public`, payment reference from `GET /me/profile`, with a copy button) and every entry newest first with its FIFO status, event title and date, and guest name.
+- The ledger is required; settings and profile are best effort. If either fails, the screen says "Ask the treasurer for the club's bank details" instead of failing.
+- S5.5 adds the "I've paid" claim flow as `src/app/routes/money/claims*`, S5.3 adds passes as `src/app/routes/money/passes*`.

@@ -1,0 +1,55 @@
+.bcq-form {
+  display: grid;
+  gap: 1rem;
+  max-width: 32rem;
+}
+.bcq-form > * {
+  margin: 0;
+}
+.bcq-form__row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+.bcq-form__field {
+  display: grid;
+  gap: 0.375rem;
+  font-weight: 600;
+  color: var(--bcq-ink);
+}
+.bcq-form__field input,
+.bcq-form__field select {
+  min-height: var(--bcq-touch);
+  padding: 0 0.75rem;
+  font: 400 1rem var(--bcq-font);
+  color: var(--bcq-ink);
+  background: var(--bcq-card);
+  border: 1px solid var(--bcq-line);
+  border-radius: var(--bcq-radius-sm);
+}
+.bcq-form__field input:focus-visible,
+.bcq-form__field select:focus-visible,
+.bcq-form__check input:focus-visible {
+  outline: 3px solid var(--bcq-focus);
+  outline-offset: 2px;
+}
+.bcq-form__check {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  min-height: var(--bcq-touch);
+}
+.bcq-form__check input {
+  width: 1.5rem;
+  height: 1.5rem;
+  flex: none;
+}
+.bcq-form__hint {
+  color: var(--bcq-muted);
+}
+.bcq-form__error {
+  padding: 0.75rem 1rem;
+  color: var(--bcq-danger-ink);
+  background: var(--bcq-danger-bg);
+  border-radius: var(--bcq-radius-sm);
+}

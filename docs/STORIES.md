@@ -382,7 +382,7 @@ Login is off the critical path. From W2 on, stories use the **test-identity over
   - The self-ledger guard applies.
 
 ### S5.5 Payment claims ("I've paid"): S · W4
-- **Depends on:** S5.2, S5.4, S6.1 · **Owns:** `src/worker/ledger/claims*`, `src/app/routes/money/claims*`, `src/app/routes/admin/money/claims*`
+- **Depends on:** S5.2, S5.4, S6.1 · **Owns:** `src/worker/ledger/claims*`, `src/app/routes/money/claims*`, `src/app/routes/admin/money/claims*`, plus integrator-sanctioned (2026-11-24): `src/worker/ledger/routes.ts` (one-line mount of the claims sub-app)
 - **Tests first:**
   - A pending claim doesn't change the balance.
   - Confirming creates exactly one payment, even when double-tapped.
@@ -548,7 +548,7 @@ Login is off the critical path. From W2 on, stories use the **test-identity over
 - **Tests first:** explicit assertions for four fixtures: a new member, a prepaid member, a member who owes money with a pending claim, and an admin with tasks.
 
 ### S10.2 Install & push onboarding: S · W4
-- **Depends on:** S6.2, S0.3 · **Owns:** `src/app/components/install/`
+- **Depends on:** S6.2, S0.3 · **Owns:** `src/app/components/install/`, plus integrator-sanctioned (2026-11-24): `src/app/routes/install/` (the /install page), `src/app/shell/AppShell.tsx` (one import + one `<InstallPrompt />` line)
 - **Tests first:** a user-agent matrix decides which prompt shows; no permission request on first load; no re-ask after a decline.
 
 ---

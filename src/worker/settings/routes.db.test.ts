@@ -150,14 +150,16 @@ describe("club settings routes", () => {
     expect(res.status).toBe(400);
   });
 
-  it("serves the public subset to active members only, never the private fields", async () => {
+  it("serves the public subset to active and inactive members, never pending or the private fields", async () => {
     const admin = await makeMember(t.db, { role: "admin" });
     const member = await makeMember(t.db, { role: "member" });
+    const inactive = await makeMember(t.db, { status: "inactive" });
     const pending = await makeMember(t.db, { status: "pending" });
     await put(body, admin.clerkUserId);
 
     expect((await get("/settings/public")).status).toBe(401);
     expect((await get("/settings/public", pending.clerkUserId)).status).toBe(403);
+    expect((await get("/settings/public", inactive.clerkUserId)).status).toBe(200);
 
     const res = await get("/settings/public", member.clerkUserId);
     expect(res.status).toBe(200);

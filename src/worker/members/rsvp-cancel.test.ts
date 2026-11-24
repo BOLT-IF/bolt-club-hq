@@ -1,36 +1,36 @@
 import { afterEach, describe, expect, it } from "vitest";
 
+import { FixedClock } from "../core/clock";
+import type { Db } from "../core/db/client";
+import { realRsvpCancel } from "../rsvp/cancel";
 import { FakeRsvpCancel } from "./rsvp-cancel.fake";
-import { configureRsvpCancel, getRsvpCancel, noopRsvpCancel } from "./rsvp-cancel";
+import { configureRsvpCancel, getRsvpCancel } from "./rsvp-cancel";
 
 afterEach(() => {
   configureRsvpCancel(undefined);
 });
 
-describe("rsvp.cancel port (stand-in until the RSVP story)", () => {
-  it("production default is the no-op, never the recording fake", async () => {
-    expect(getRsvpCancel()).toBe(noopRsvpCancel);
-    await expect(
-      noopRsvpCancel.cancelFutureRsvps({
-        memberId: "m1",
-        at: new Date("2027-01-01T00:00:00Z"),
-        idempotencyKey: "k",
-      }),
-    ).resolves.toBeUndefined();
+describe("rsvp.cancel port (S2.1 / S4.2)", () => {
+  it("production default is realRsvpCancel, never a no-op or recording fake", () => {
+    expect(getRsvpCancel()).toBe(realRsvpCancel);
   });
 
-  it("a configured port is used, and reset restores the no-op", async () => {
+  it("a configured port is used, and reset restores realRsvpCancel", async () => {
     const fake = new FakeRsvpCancel();
+    const db = null as unknown as Db;
+    const clock = new FixedClock("2027-01-01T00:00:00Z");
     configureRsvpCancel(fake);
     await getRsvpCancel().cancelFutureRsvps({
+      db,
+      clock,
       memberId: "m1",
       at: new Date("2027-01-01T00:00:00Z"),
       idempotencyKey: "k",
     });
     expect(fake.calls).toEqual([
-      { memberId: "m1", at: new Date("2027-01-01T00:00:00Z"), idempotencyKey: "k" },
+      { db, clock, memberId: "m1", at: new Date("2027-01-01T00:00:00Z"), idempotencyKey: "k" },
     ]);
     configureRsvpCancel(undefined);
-    expect(getRsvpCancel()).toBe(noopRsvpCancel);
+    expect(getRsvpCancel()).toBe(realRsvpCancel);
   });
 });

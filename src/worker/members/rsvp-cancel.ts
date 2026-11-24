@@ -1,8 +1,10 @@
+import type { Clock } from "../core/clock";
+import type { Db } from "../core/db/client";
+import { realRsvpCancel } from "../rsvp/cancel";
+
 /**
  * `rsvp.cancel` port (STORIES S2.1, PLAN §6.7). Deactivating a member cancels their future
- * RSVPs through this seam. The RSVP area does not exist yet, so production wires a no-op;
- * the RSVP story replaces it with `configureRsvpCancel(realAdapter)` (or by changing the
- * default below) and deletes the no-op, with a test that the fake is not in production wiring.
+ * RSVPs through this seam. Production defaults to `realRsvpCancel`.
  */
 export interface RsvpCancelPort {
   /**
@@ -10,19 +12,20 @@ export interface RsvpCancelPort {
    * late-cancel rules. Must be idempotent for the same `idempotencyKey`: a retry after a
    * partial failure calls it again with the same key.
    */
-  cancelFutureRsvps(input: { memberId: string; at: Date; idempotencyKey: string }): Promise<void>;
+  cancelFutureRsvps(input: {
+    db: Db;
+    clock: Clock;
+    memberId: string;
+    at: Date;
+    idempotencyKey: string;
+  }): Promise<void>;
 }
 
-/** Production stand-in until the RSVP story ships. Cancels nothing. */
-export const noopRsvpCancel: RsvpCancelPort = {
-  cancelFutureRsvps: () => Promise.resolve(),
-};
+let port: RsvpCancelPort = realRsvpCancel;
 
-let port: RsvpCancelPort = noopRsvpCancel;
-
-/** Overrides the port (tests, and the RSVP story's wiring). `undefined` restores the default. */
+/** Overrides the port (tests). `undefined` restores the production implementation. */
 export function configureRsvpCancel(next: RsvpCancelPort | undefined): void {
-  port = next ?? noopRsvpCancel;
+  port = next ?? realRsvpCancel;
 }
 
 export function getRsvpCancel(): RsvpCancelPort {

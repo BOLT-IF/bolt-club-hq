@@ -1,14 +1,15 @@
 import type { Clock } from "../core/clock";
 import type { Db } from "../core/db/client";
+import type { RsvpCancelPort } from "../members/rsvp-cancel";
 import { cancelMemberRsvps } from "./model";
 
 export { cancelMemberRsvps };
 
-/**
- * Adapter in the shape of S2.1's `RsvpCancelPort` (`src/worker/members/rsvp-cancel.ts`, PR #30).
- * Members code is not touched here: the integrator (or S2.1) wires it, e.g.
- * `configureRsvpCancel(rsvpCancelAdapter(c.var.db, c.var.clock))`. See DECISIONS 2026-11-24 S4.2.
- */
+/** Production `rsvp.cancel` port (PLAN §6.7, S2.1/S4.2): cancels pre-close RSVPs on member exit. */
+export const realRsvpCancel: RsvpCancelPort = {
+  cancelFutureRsvps: (input) => cancelMemberRsvps(input.db, input.clock, input),
+};
+
 export function rsvpCancelAdapter(db: Db, clock: Clock) {
   return {
     cancelFutureRsvps: (input: { memberId: string; at: Date; idempotencyKey: string }) =>

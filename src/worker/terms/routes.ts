@@ -8,6 +8,7 @@ import { contextMiddleware } from "../core/context";
 import type { Db, Tx } from "../core/db/client";
 import { idempotencyKeyMiddleware } from "../core/idempotency";
 import { requireGuard } from "../core/permissions";
+import { randomSlug } from "../events/slugs";
 import type { AppEnv } from "../types";
 import recurrenceRoutes from "./recurrence-routes";
 import { canTransition, derivePassCap } from "./rules";
@@ -44,15 +45,6 @@ const actorOf = (c: Context<AppEnv>) => {
 
 const jsonBody = async (c: Context<AppEnv>): Promise<unknown> =>
   c.req.json().catch(() => null) as Promise<unknown>;
-
-// 32 symbols, so a byte mask is unbiased. No l/o/0/1: slugs get read aloud and typed.
-const SLUG_ALPHABET = "abcdefghijkmnpqrstuvwxyz23456789";
-
-/** Unguessable share slug (10 chars, 50 bits). S3.0 owns event slugs; series slugs are made here. */
-function newSlug(): string {
-  const bytes = crypto.getRandomValues(new Uint8Array(10));
-  return Array.from(bytes, (b) => SLUG_ALPHABET[b & 31]).join("");
-}
 
 async function withCaptains(q: Q, rows: readonly SeriesRow[]) {
   if (rows.length === 0) return [];
@@ -290,7 +282,7 @@ export default new Hono<AppEnv>()
           adhocFee: s.adhocFee,
           maxGuestsDefault: s.maxGuestsDefault,
           rsvpCloseOffsetMin: s.rsvpCloseOffsetMin,
-          shareSlug: newSlug(),
+          shareSlug: randomSlug(),
           skipDates: [],
           skipDatesLocked: false,
           passCap: s.capacity,
@@ -365,7 +357,7 @@ export default new Hono<AppEnv>()
         .values({
           id,
           ...parsed.value,
-          shareSlug: newSlug(),
+          shareSlug: randomSlug(),
           skipDates: [],
           // Skip-dates lock at open_for_passes and stay locked (PLAN §6.5).
           skipDatesLocked: parent.status !== "draft",

@@ -33,6 +33,8 @@ export interface ApiRequestOptions {
   /** Required on money and RSVP POSTs (PLAN §11.5). Use newIdempotencyKey(). */
   readonly idempotencyKey?: string;
   readonly signal?: AbortSignal;
+  /** Set false for background reads (like the shell's unread badge) that shouldn't redirect signed-out visitors. */
+  readonly redirectOnUnauthorized?: boolean;
 }
 
 let config: ApiClientConfig = {};
@@ -91,7 +93,7 @@ export async function apiFetch<T = void>(
   const doFetch = config.fetch ?? ((input, requestInit) => globalThis.fetch(input, requestInit));
   const response = await doFetch(`${API_BASE}${path}`, init);
 
-  if (response.status === 401) {
+  if (response.status === 401 && options.redirectOnUnauthorized !== false) {
     (config.onUnauthorized ?? defaultOnUnauthorized)(currentLocation());
   }
   if (response.status === 426) {

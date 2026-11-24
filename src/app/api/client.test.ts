@@ -63,6 +63,12 @@ describe("apiFetch", () => {
 
     await expect(apiFetch("/me")).rejects.toMatchObject({ status: 401 });
     expect(onUnauthorized).toHaveBeenCalledWith("/events?week=3");
+
+    onUnauthorized.mockClear();
+    await expect(apiFetch("/me", { redirectOnUnauthorized: false })).rejects.toMatchObject({
+      status: 401,
+    });
+    expect(onUnauthorized).not.toHaveBeenCalled();
   });
 
   it("maps 426 to the refresh banner state", async () => {

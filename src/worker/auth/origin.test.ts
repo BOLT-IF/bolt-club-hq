@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { Hono } from "hono";
 
-import { mountBackendRoutes } from "../registry";
+import { createApp } from "../app";
 import type { AppEnv } from "../types";
 import { originGuard } from "./origin";
 
@@ -56,9 +56,8 @@ describe("origin guard (state-changing requests)", () => {
     expect(get.status).toBe(200);
   });
 
-  it("covers every /api/v1 route through the backend registry, even ones that do not exist yet", async () => {
-    const root = new Hono<AppEnv>();
-    mountBackendRoutes(root);
+  it("covers every /api/v1 route through createApp(), even ones that do not exist yet", async () => {
+    const root = createApp();
     const bad = await root.request(
       "https://club.test/api/v1/anything",
       { method: "POST", headers: { Origin: "https://evil.example" } },

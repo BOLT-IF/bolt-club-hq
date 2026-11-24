@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 
 import { apiFetch } from "../api/client";
+import { fetchNotifications } from "../api/notifications";
 import { resolveRoute } from "../routes/registry";
+import { completeJoinRsvpIntent, peekJoinRsvpIntent } from "../routes/join/joinIntent";
 import { EmptyState } from "../components/ui/States";
 import { ToastProvider } from "../components/ui/Toast";
 import { FeatureFlagsProvider, type FeatureFlags } from "../lib/flags";
@@ -39,12 +41,34 @@ function useFlags(): { readonly flags: FeatureFlags; readonly loaded: boolean } 
 export function AppRoot() {
   const path = useCurrentPath();
   const { flags } = useFlags();
+  const [inboxUnread, setInboxUnread] = useState(0);
   const Page = resolveRoute(path)?.route.component;
+
+  useEffect(() => {
+    if (peekJoinRsvpIntent()) {
+      void completeJoinRsvpIntent();
+    }
+  }, []);
+
+  useEffect(() => {
+    if (flags.inbox !== true) return;
+    const controller = new AbortController();
+    fetchNotifications(controller.signal, { redirectOnUnauthorized: false })
+      .then((page) => {
+        if (!controller.signal.aborted) setInboxUnread(page.unreadCount);
+      })
+      .catch(() => undefined);
+    return () => {
+      controller.abort();
+    };
+  }, [flags.inbox, path]);
+
+  const badges = flags.inbox === true && inboxUnread > 0 ? { inbox: inboxUnread } : {};
 
   return (
     <FeatureFlagsProvider flags={flags}>
       <ToastProvider>
-        <AppShell path={path}>
+        <AppShell path={path} badges={badges}>
           {Page ? (
             <Page />
           ) : (

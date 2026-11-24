@@ -3,6 +3,7 @@ import { useEffect, useId, useState } from "react";
 import { ApiError } from "../../api/client";
 import type { EventDetail } from "../../api/events";
 import type { SlotProps } from "../../routes/events/slots";
+import { noteRsvpSaved } from "../install";
 import { Button, Skeleton, StatusChip, Stepper, type StatusTone } from "../ui";
 import { cancelRsvp, getMyRsvp, putRsvp, type RsvpStatus, type RsvpView } from "./api";
 import "./rsvp.css";
@@ -141,7 +142,11 @@ export function RsvpPanel({ event }: SlotProps) {
           className="bcq-rsvp__form"
           onSubmit={(e) => {
             e.preventDefault();
-            void run(() => putRsvp(event.id, names));
+            void run(async () => {
+              const saved = await putRsvp(event.id, names);
+              noteRsvpSaved();
+              return saved;
+            });
           }}
         >
           {maxGuests > 0 ? (

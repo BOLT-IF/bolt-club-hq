@@ -15,8 +15,16 @@ export interface InboxPage {
   readonly unreadCount: number;
 }
 
-export function fetchNotifications(signal?: AbortSignal): Promise<InboxPage> {
-  return apiFetch<InboxPage>("/notifications", signal ? { signal } : {});
+export function fetchNotifications(
+  signal?: AbortSignal,
+  options: { readonly redirectOnUnauthorized?: boolean } = {},
+): Promise<InboxPage> {
+  return apiFetch<InboxPage>("/notifications", {
+    ...(signal ? { signal } : {}),
+    ...(options.redirectOnUnauthorized === undefined
+      ? {}
+      : { redirectOnUnauthorized: options.redirectOnUnauthorized }),
+  });
 }
 
 /** Mark some (`ids`) or every (`all`) notification of the current member as read. */

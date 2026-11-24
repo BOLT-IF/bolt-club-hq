@@ -2,6 +2,15 @@
 
 Decisions made after `PLAN.md` (v3) was written. Newest first. Every entry gives the decision, the reason, and what it changes.
 
+## 2026-11-24: Integrator follow-up chore & Owns pre-grants
+
+- **Member deactivation (`rsvp.cancel` port):** `RsvpCancelPort.cancelFutureRsvps` takes `{ db, clock, memberId, at, idempotencyKey }` so `members/routes.ts` passes the request `db` and `clock` directly to `realRsvpCancel` (`src/worker/rsvp/cancel.ts`). `noopRsvpCancel` is deleted; `rsvp-cancel.test.ts` verifies the production default is `realRsvpCancel`.
+- **Exited members payment info:** `GET /settings/public` and `GET /me/profile` use `requireGuard("member", { allowInactive: true })` so exited members can read bank details and their payment reference to settle balances (PLAN §6.7).
+- **Origin guard in `app.ts`:** `originGuard()` moved from `src/worker/auth/routes.ts` to `app.use("/api/v1/*", originGuard())` in `src/worker/app.ts` so every API area is covered regardless of module sort order.
+- **Owns pre-grants for remaining waves:** `STORIES.md` pre-grants exact integration files to S4.3 (`rsvp/routes.ts`, `events/routes.ts`, `events/oneoff-routes.ts`), S4.4a/b/c (`rsvp/routes.ts`), S5.3 (`rsvp/deps.ts`, `AdminBalances.tsx`, `moneyApi.ts`), S7.1 (`events/deps.ts`, `wrangler.jsonc`, `index.ts`, `app.ts`), S8.2 (`attendance/routes.ts`), S8.3 (`events/routes.ts`), S9.2 (`wrangler.jsonc`, `index.ts`, `app.ts`, `polls/*`), and S11.2 (`auth/wiring.ts`).
+- **Pre-provisioned member linking (S11.2, no migration):** S11.2 pre-provisions imported members in `member` with a unique sentinel `clerkUserId` (`preprovisioned:<memberId>`) and updates it in `src/worker/auth/wiring.ts` on first sign-in matched by verified email.
+- **S5.5 screens:** `src/app/routes/money/claims/routes.tsx` and `src/app/routes/admin/money/claims/routes.tsx` are picked up automatically by `import.meta.glob("./**/routes.tsx")` inside S5.5's existing `Owns`.
+
 ## 2026-11-24: S10.2 install & push onboarding
 
 - **Prompt matrix** (`src/app/components/install/platform.ts`): iOS Safari/iPadOS (not installed) shows Add to Home Screen steps and never a push card (Safari tabs can't receive push). Android Chrome (not installed) shows an Install button when the browser fires `beforeinstallprompt`, otherwise menu steps. Desktop and installed apps show no install card. The push card shows only after the first RSVP (PLAN §10), only while permission is `default`, and never after a decline.

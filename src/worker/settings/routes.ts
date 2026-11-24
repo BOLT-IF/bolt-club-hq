@@ -94,6 +94,7 @@ export default new Hono<AppEnv>()
     });
     return c.json(saved);
   })
-  .get("/settings/public", requireGuard("member"), async (c) =>
+  // allowInactive: exited members still need bank details to settle a balance (PLAN §6.7).
+  .get("/settings/public", requireGuard("member", { allowInactive: true }), async (c) =>
     c.json(toPublicSettings(await loadSettings(c.var.db))),
   );

@@ -2,6 +2,7 @@ import { useState } from "react";
 
 import { ApiError, apiFetch } from "../../../api/client";
 import { Button, useToast } from "../../../components/ui";
+import { navigate } from "../../../lib/navigate";
 import { useRouteParams } from "../../registry";
 import { SeriesForm } from "./SeriesForm";
 import {
@@ -73,6 +74,19 @@ function SeriesDetail() {
             <p className="bcq-card__meta">
               Share link: /s/{series.shareSlug}
               {series.skipDatesLocked ? " · Skip-dates are locked" : ""}
+            </p>
+            <p>
+              <a
+                className="bcq-link"
+                href={`/admin/terms/series/${encodeURIComponent(series.id)}/schedule`}
+                onClick={(e) => {
+                  if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
+                  e.preventDefault();
+                  navigate(`/admin/terms/series/${encodeURIComponent(series.id)}/schedule`);
+                }}
+              >
+                Schedule and occurrences
+              </a>
             </p>
 
             {blocked ? (

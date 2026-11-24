@@ -31,7 +31,6 @@ type Row = Awaited<ReturnType<typeof makeMember>>;
 const PENDING_ALLOWED = new Set([
   "GET /api/v1/me",
   "GET /api/v1/config",
-  "GET /api/v1/probe",
   "GET /api/v1/join-requests/mine",
   "POST /api/v1/join-requests",
 ]);

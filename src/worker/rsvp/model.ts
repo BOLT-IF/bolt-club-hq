@@ -6,6 +6,7 @@ import type { Clock } from "../core/clock";
 import type { Db, Tx } from "../core/db/client";
 import { publishEvent } from "../core/events";
 import type { PrepaidPort } from "../core/ports";
+import { rsvpTier } from "../events/oneoff-rules";
 
 export type EventRow = typeof event.$inferSelect;
 export type RsvpRow = typeof rsvp.$inferSelect;
@@ -191,11 +192,11 @@ export async function putRsvp(
   const [peek] = await db.select().from(event).where(eq(event.id, input.eventId));
   if (!peek) return { ok: false, error: "not_found" };
   // Tier 1 only exists on series events (admin one-offs have none, member one-offs are instant).
-  const tier =
-    peek.kind === "series" &&
-    (await prepaid.isPrepaid({ memberId: input.memberId, eventId: input.eventId }))
-      ? 1
-      : 2;
+  const isPrepaid =
+    peek.kind === "series"
+      ? await prepaid.isPrepaid({ memberId: input.memberId, eventId: input.eventId })
+      : false;
+  const tier = rsvpTier(peek, isPrepaid);
 
   return db.transaction(async (tx) => {
     const e = await lockEvent(tx, input.eventId);

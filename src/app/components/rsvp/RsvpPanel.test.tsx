@@ -1,5 +1,5 @@
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { configureApiClient } from "../../api/client";
 import type { EventDetail, EventViewer } from "../../api/events";
@@ -93,18 +93,25 @@ describe("RsvpPanel (S4.2)", () => {
         }),
       },
     }));
-    render(<RsvpPanel event={event()} viewer={viewer} />);
-    fireEvent.click(await screen.findByRole("button", { name: "Increase guests" }));
-    fireEvent.change(screen.getByLabelText("Guest 1 name"), { target: { value: "Kim" } });
-    fireEvent.click(screen.getByRole("button", { name: "RSVP" }));
+    const onInstallState = vi.fn();
+    window.addEventListener("bcq-install-state", onInstallState);
+    try {
+      render(<RsvpPanel event={event()} viewer={viewer} />);
+      fireEvent.click(await screen.findByRole("button", { name: "Increase guests" }));
+      fireEvent.change(screen.getByLabelText("Guest 1 name"), { target: { value: "Kim" } });
+      fireEvent.click(screen.getByRole("button", { name: "RSVP" }));
 
-    // The member and the guest each show a Requested chip.
-    expect(await screen.findAllByText("Requested")).toHaveLength(2);
-    const put = calls.find((c) => c.method === "PUT")!;
-    expect(put.path).toBe("/events/evt_1/rsvp");
-    expect(put.body).toEqual({ guests: ["Kim"] });
-    expect(put.key).toBeTruthy();
-    expect(screen.getByText(/when RSVPs close/i)).toBeTruthy();
+      // The member and the guest each show a Requested chip.
+      expect(await screen.findAllByText("Requested")).toHaveLength(2);
+      const put = calls.find((c) => c.method === "PUT")!;
+      expect(put.path).toBe("/events/evt_1/rsvp");
+      expect(put.body).toEqual({ guests: ["Kim"] });
+      expect(put.key).toBeTruthy();
+      expect(onInstallState).toHaveBeenCalledTimes(1);
+      expect(screen.getByText(/when RSVPs close/i)).toBeTruthy();
+    } finally {
+      window.removeEventListener("bcq-install-state", onInstallState);
+    }
   });
 
   it("the stepper stops at the event's guest limit and is hidden when guests are not allowed", async () => {

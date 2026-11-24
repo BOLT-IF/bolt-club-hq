@@ -2,6 +2,17 @@
 
 Decisions made after `PLAN.md` (v3) was written. Newest first. Every entry gives the decision, the reason, and what it changes.
 
+## 2026-11-24: S3.3 one-off events
+
+- **The creator's role decides the kind.** Every event an admin creates through `POST /events` is an `admin_oneoff`, free ones included. A member's is a `member_oneoff`. PLAN §4 lets everyone create a free one-off and only admins a paid one, so the kind just records who may manage money on it.
+- **Members can't send a fee or `tiered`.** A non-zero `adhocFee` or `allocationMode: "tiered"` from a member gets 403 `admin_only`. The request is rejected, never quietly made free. Sending `0`/`instant` explicitly is allowed.
+- **Admin one-offs default to `tiered`.** An admin may choose `instant` only for a free event. A paid instant event is a 400, because instant mode never charges (PLAN §6.1).
+- **"No tier 1" is `rsvpTier(event, isPrepaid)`** in `oneoff-rules.ts`: tier 1 only for a pass holder at a **series** event. Every one-off member RSVP is tier 2, so pass holders pay an admin one-off's fee (PLAN §6.8). S4.2 must use this helper, not raw `isPrepaid`.
+- **Defaults:** format `open`, guests per member 1 (PLAN §3), RSVP close 24h before the start (PLAN §3). An event created less than 24h ahead stays open until it starts. A custom close time must be between now and the start. In the UI, RSVP close is fixed at the default for now; changing it is an edit (S4.4c).
+- **Who can edit:** S3.0's `canManageEvent` already allows the creator, an admin, or a captain of the event's series. A one-off has no series, so in practice that means creator or admin. S3.3 adds no new rule.
+- **`POST /events` uses `Idempotency-Key`.** It isn't a money POST, but a double tap would otherwise make two events. The form keeps one key per filled-in form.
+- **The form sends club time as UTC.** It enters date and times in Stockholm time and converts them to UTC with `Intl` on the client. The API only accepts ISO instants.
+
 ## 2026-11-24: S3.0 events core resolutions (ambiguities)
 
 - **Scope the context middleware to the area's paths, not `"*"`.** The backend registry mounts every `routes.ts` at `/api/v1`, and a Hono `.use("*")` inside a sub-app becomes `/api/v1/*` for the whole parent app. With `"*"`, `contextMiddleware()` ran for `/probe` and `/config` too and opened the database (workerd probe test went 500: no `HYPERDRIVE`). `events/routes.ts` uses `.use("/events/*")` and `.use("/series/*")` (both also match the bare path). **Contract note for the integrator:** the W2 text says `.use("*", contextMiddleware())`; every later area should scope it the same way, or `/config` and other public routes start opening Postgres.

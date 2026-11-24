@@ -66,7 +66,9 @@ describe("planOneoff", () => {
   });
 
   it("a paid admin one-off can't be instant (instant never charges)", () => {
-    expect(planOneoff(admin, body({ adhocFee: 150, allocationMode: "instant" }), NOW)).toMatchObject({
+    expect(
+      planOneoff(admin, body({ adhocFee: 150, allocationMode: "instant" }), NOW),
+    ).toMatchObject({
       ok: false,
       status: 400,
     });

@@ -100,7 +100,10 @@ describe("/events/new", () => {
   it("shows the server's validation error in an alert", async () => {
     stubApi({
       ...me("member"),
-      "POST /events": { status: 400, body: { error: "invalid_body", message: "Ends before it starts" } },
+      "POST /events": {
+        status: 400,
+        body: { error: "invalid_body", message: "Ends before it starts" },
+      },
     });
     render(<NewEventPage />);
     await screen.findByLabelText(/title/i);

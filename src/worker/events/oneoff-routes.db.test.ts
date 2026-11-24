@@ -54,7 +54,10 @@ describe("one-off events (S3.3)", () => {
 
   const create = async (clerkUserId: string, over: Record<string, unknown> = {}) => {
     const res = await send("POST", "/events", clerkUserId, input(over));
-    return { res, body: await res.json<{ event?: { id: string; slug: string }; error?: string }>() };
+    return {
+      res,
+      body: await res.json<{ event?: { id: string; slug: string }; error?: string }>(),
+    };
   };
 
   const row = async (id: string) => (await t.db.select().from(event).where(eq(event.id, id)))[0]!;

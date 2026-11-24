@@ -45,3 +45,10 @@ Money in (payments, waivers, reversals of charges) is matched against money owed
 | `POST /api/v1/admin/adjustments` | admin, `Idempotency-Key` | `{ type, note, … }`, note required. `waiver`+`entryId` (reversal), `waiver`+`memberId`+`amountSek` (write-off), `charge`+`memberId`+`amountSek` (manual), `reversal`+`entryId`. |
 
 Admin routes live in `src/worker/ledger/admin-routes.ts` (S5.4), mounted by `routes.ts` with `.route("/", adminRoutes)`. `LEDGER_ERROR_STATUS` there maps every `LedgerError.code` to its HTTP status (400/403/404/409); reuse it in claims (S5.5). The ledger key is derived from the HTTP key (`admin-payment:<adminId>:<key>`), so a double tap writes one row even if the replay record were lost. UI: `src/app/routes/admin/money/` (`/admin/money`, `/admin/money/members/:id`), behind the `money` flag. Claims are S5.5, passes and revocation S5.3, export S5.6.
+
+## Member screen (S5.2)
+
+- `/money` (`src/app/routes/money/`), behind `FLAG_MONEY`. Client calls live in `src/app/api/ledger.ts` (`fetchMyLedger`, `fetchPaymentSettings`, `fetchMyPaymentRef`); there is no member-id parameter.
+- Shows the balance ("You owe 90 kr", "Credit 100 kr", "You're all paid up"), "How to pay" (bank details and instructions from `GET /settings/public`, payment reference from `GET /me/profile`, with a copy button) and every entry newest first with its FIFO status, event title and date, and guest name.
+- The ledger is required; settings and profile are best effort. If either fails, the screen says "Ask the treasurer for the club's bank details" instead of failing.
+- S5.5 adds the "I've paid" claim flow as `src/app/routes/money/claims*`, S5.3 adds passes as `src/app/routes/money/passes*`.

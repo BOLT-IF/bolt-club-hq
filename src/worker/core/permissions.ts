@@ -11,6 +11,8 @@ export interface GuardOptions {
   seriesIdOf?: (c: Context) => string | undefined;
   /** Resolves the current member from the request context. */
   actorOf?: (c: Context) => CurrentMember | null;
+  /** Lets inactive (exited) members through, for their own Money and attendance (PLAN §6.7). */
+  allowInactive?: boolean;
 }
 
 /** Marker stored on the handler so the route-guard test can see that a guard is declared. */
@@ -19,7 +21,7 @@ export const GUARD_MARK = Symbol.for("bolt-club-hq.guard");
 /**
  * Permission middleware (PLAN §5.2 invariant 7 and §13 matrix). Responses:
  * 401 without an actor, 403 when the actor lacks the role, 200 otherwise.
- * Pending or inactive members never pass a member guard.
+ * Pending and erased members never pass; inactive members pass only with allowInactive.
  */
 export function requireGuard(kind: GuardKind, options: GuardOptions = {}): MiddlewareHandler {
   const handler: MiddlewareHandler = async (c, next) => {
@@ -27,7 +29,9 @@ export function requireGuard(kind: GuardKind, options: GuardOptions = {}): Middl
       ? options.actorOf(c)
       : (c.get("actor" as never) as CurrentMember | null);
     if (!actor) return c.json({ error: "unauthenticated" }, 401);
-    if (actor.status !== "active") return c.json({ error: "forbidden" }, 403);
+    const statusOk =
+      actor.status === "active" || (options.allowInactive === true && actor.status === "inactive");
+    if (!statusOk) return c.json({ error: "forbidden" }, 403);
 
     const isAdmin = actor.role === "admin";
     const allowed = (() => {

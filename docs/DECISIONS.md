@@ -19,6 +19,24 @@ Each is the most conservative reading of PLAN; change here if the product intent
 - **Scoped context middleware.** Routes use `.use("/terms", ...)`, `.use("/terms/*", ...)` and the same for `/series`, not `"*"`, per the integrator's contract correction (a `"*"` leaks onto other areas). `scope.test.ts` asserts that.
 - **UI uses a minimal local test helper, not `@testing-library/user-event`** (not installed, no dependency changes in a story).
 
+## 2026-11-24: W2 contract 2: inactive members on own-data routes; S6.4 owns `scheduled()`
+
+- **`requireGuard(kind, { allowInactive: true })`** lets `inactive` (exited) members through; `pending` and `erased` still get 403. PLAN §6.7: exited members keep Money and attendance history. S5.1/S5.2 (own ledger), S8.2 (own attendance) and S2.5 (own export) set it on their own-data routes; nothing else does. Asked for by S2.1.
+- **Correction to W2 contract: scope `contextMiddleware()` to the area's own paths** (`.use("/events", …).use("/events/*", …)`), never `use("*")`. Every area sub-app is mounted at `/api/v1`, so `"*"` ran for every route registered after it, opened the DB for `/probe` and `/config`, and returned 500 in the workers pool. Found by S6.1.
+- **S1.1 may edit `src/app/main.tsx`** to wrap the app in its `AuthProvider`. Without a Clerk publishable key (dev, CI, e2e) the app renders without Clerk.
+- **S6.4 may edit `src/worker/index.ts`** so `scheduled()` delegates to `src/worker/scheduler/` (overlap lock, `next_due_at`, time bound, healthchecks ping wrap the hooks). S6.4's Owns line also lists `wrangler.jsonc` as a path, because the Owns check matches paths, not file sections; the story still edits only the cron section.
+
+## 2026-11-24: S6.1 notifications: inbox first, push is a seam
+
+- **Inbox row first, then policies, then push.** `createNotifyPort({ db, clock })` inserts the `notification` row (`id = ntf_<idempotencyKey>`, `ON CONFLICT (idempotency_key) DO NOTHING`), and only the call whose insert lands runs the policy chain and queues an `outbound_push` row. A retry therefore never queues a second push, including after a suppression. Callers pass their transaction as `db` so the notification commits with their work.
+- **Policy chain** is `policy.ts`: files under `src/worker/notifications/policies/` default-export `{ id, order, evaluate }` and are auto-registered (`import.meta.glob`). Decisions: `allow`, `suppress`, or `defer { until }`. Ascending `order`, first non-allow wins. Slots: mute 10, quiet hours 20, frequency cap 30 (PLAN §10). S6.1 ships none. `defer` queues the push as `deferred` with `not_before`, which is what S6.2's quiet hours needs.
+- **Fail closed:** a policy that throws (run in a savepoint so it cannot abort the inbox write) suppresses the push and calls `onPolicyError`. Conservative reading: a missed push is recoverable from the inbox, an unwanted one is not.
+- **S6.2 seam:** S6.1 only writes `outbound_push` (`queued` or `deferred`). The sender (batching, 404/410, backoff) is S6.2.
+- **Links:** `NotifyInput` gains an optional `link`. Only in-app paths (`/…`, not `//` or `/\`) are stored; anything else is replaced by the category's screen, so a push can never point off-site. The UI re-checks before navigating. `NotifyPort` in `core/ports.ts` is unchanged (`link` is an optional extra on the production adapter); a contract change to add it to the port is a follow-up for the integrator.
+- **Categories** are the PLAN §10 list; an unknown one throws. `admin_tasks` for a non-admin recipient is silently dropped (PLAN: admins only).
+- **Mark read** takes `{ ids }` or `{ all: true }`, stamps only the caller's unread rows, and needs no `Idempotency-Key` because it is naturally idempotent (it is not a money or RSVP POST).
+- **Contract gotcha for every area:** `new Hono().use("*", contextMiddleware())` in an area's `routes.ts` is mounted under `/api/v1`, so it runs for **every** route registered after it (the registry mounts areas alphabetically), not just that area's. It made `/probe` open the database and 500 in the worker project. S6.1 scopes it to `/notifications` and `/notifications/*`. The other W2 areas should do the same, or the integrator should make `contextMiddleware` skip paths the area does not own.
+
 ## 2026-11-24: W2 contract: per-request context, DB test suites, shared Owns
 
 Integrator contract-change PR before the W2 fan-out, so eight parallel stories do not each invent request wiring.

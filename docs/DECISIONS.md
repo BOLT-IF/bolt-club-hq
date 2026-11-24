@@ -2,6 +2,26 @@
 
 Decisions made after `PLAN.md` (v3) was written. Newest first. Every entry gives the decision, the reason, and what it changes.
 
+## 2026-11-24: S2.3 club settings: public subset is a guarded route, not part of `/config`
+
+- **Choice:** the member-visible settings are served at `GET /api/v1/settings/public` (`requireGuard("member")`, in `src/worker/settings/routes.ts`). `/config` is unchanged and stays anonymous. This touches nothing outside S2.3's Owns, so no contract-change PR was needed.
+- **Why:** `/config` is deliberately unauthenticated (the shell loads it before sign-in), and the public subset contains bank details (IBAN, bankgiro, payment instructions), which should not be readable by anyone on the internet. STORIES says "the public subset is exposed at `/config`"; the conservative reading is that "public" means "members", not "anonymous". A db test asserts `/config` never contains bank details.
+- **Public subset:** `clubName`, `bank`, `paymentInstructions`, `quietHours`, `rosterAppUrl`. Private: `passUnpaidRevokeDays`, `autoPromoteCutoffMin`, `defaults`, `accountCodes`.
+- **Follow-up for the integrator (optional):** if the shell needs only non-sensitive fields before sign-in (for example `clubName`), add them to `/config` from `toPublicSettings` in a contract-change PR. The money screen (S5.2) and roster button (S8.3) read `/settings/public` after sign-in.
+- **API:** `GET/PUT /admin/settings` (admin only; PUT replaces all fields, 400 `{error:"validation", fields:{"bank.iban": "..."}}`). The row is the singleton `id = 1`, upserted in one transaction with an audit row (`settings.update`, before/after). Before the first save, GET returns defaults (club name "Bolt Club", quiet hours 22:00-08:00, 21 days, 180 min).
+- **Validation (ambiguities resolved):**
+  - IBAN: mod-97 check, Swedish IBANs must be 24 characters; stored upper case without spaces.
+  - Bankgiro: 7 or 8 digits with a Luhn check digit; stored as `NNNN-NNNN`.
+  - Bank details need an IBAN or a bankgiro (account holder alone is rejected).
+  - `roster_app_url`: https only, no credentials, query or fragment (the app appends `/planner#import=...`); trailing slash dropped; empty means unset (button hidden).
+  - Quiet hours: `HH:MM` 24 h Stockholm time, start must differ from end; null means none.
+  - `passUnpaidRevokeDays` 1-365, `autoPromoteCutoffMin` 0-10080.
+  - `defaults` keys are whitelisted: `capacity`, `durationMin`, `passPrice`, `adhocFee`, `maxGuestsDefault`, `rsvpCloseOffsetMin`, whole numbers only (money in whole kronor).
+  - `accountCodes`: lower-case snake_case keys (`pass`, `adhoc`, `guest`, `payment` shown in the UI), values up to 20 of letters, digits, `.`, `_`, `-`. S5.6 may add keys; the format of the codes is for the treasurer to confirm.
+  - `bank_details` (a text column) stores the bank object as JSON. No migration.
+- **Middleware scope:** `contextMiddleware()` is mounted on `/admin/settings` and `/settings/public` only, never `"*"` (root contract correction: `"*"` leaks onto routes mounted after the sub-app). `scoping.test.ts` guards it. `/admin/*` is avoided on purpose, since other admin areas share that prefix.
+- **No new dependency.** The form uses plain controls and the UI kit; no `user-event`, so UI tests use `fireEvent`.
+
 ## 2026-11-24: S2.1 members, roles, exit lifecycle (ambiguities)
 
 - **`rsvp.cancel` is a local port.** The RSVP area does not exist yet, so `src/worker/members/rsvp-cancel.ts` defines `RsvpCancelPort.cancelFutureRsvps({ memberId, at, idempotencyKey })`, a recording fake (`rsvp-cancel.fake.ts`, tests only) and a **production no-op** that cancels nothing. The RSVP story replaces the default (`configureRsvpCancel` or the default value), deletes the no-op, and a test asserts the default is not the fake (`rsvp-cancel.test.ts` already asserts the default is the no-op). Until then, deactivating a member does not cancel their RSVPs in production.

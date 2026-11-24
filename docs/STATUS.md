@@ -5,7 +5,10 @@ Status of the parallel build of `docs/STORIES.md` (48 stories). Read this, then 
 ## Where things stand
 
 - **W0, W1 and W2 are done. Most of W3 and part of W4 are done or in final landing.** 29 of 48 stories have code on `main` or in a PR (table below).
-- **The session ended on budget, not on a blocker.** The last integrator loop was landing the PRs marked "landing". Run `gh pr list --state open` first. An open PR is either green and only needs the gated merge, or needs `git merge origin/main` and a re-run (see "Finishing open PRs").
+- **BLOCKER (fix first): GitHub Actions billing.** Since ~10:50 UTC every Playwright e2e job is refused with "recent account payments have failed or your spending limit needs to be increased" (zero steps run). The `ci` job still runs. Until Ashok fixes Billing & plans on BOLT-IF, no PR can go fully green, so nothing more can merge under the "all checks SUCCESS" rule. After fixing it, re-run the failed jobs on main and on each open PR (`gh run rerun <id> --failed`).
+- **Merged this session:** S1.1, S1.3, S2.1, S2.3, S2.4, S3.0, S3.1, S3.3, S4.2, S5.1, S5.4, S6.1, S6.2, S6.3, S6.4, S6.6, S9.1 plus contract PRs #24, #25, #37, #46, #52.
+- **Still open at hand-off, `ci` green, blocked only by billing or a re-sync:** #45 S3.2, #48 S6.5a, #49 S10.2, #44 S5.2 (needs `git merge origin/main`), #50 S5.5 (needs `git merge origin/main`; test fix pushed), #51 this handoff. See "Finishing open PRs".
+- **Cloudflare "Workers Builds" check** now appears on PRs and on main and fails because Cloudflare isn't set up yet. It is not a GitHub Actions check. Either connect it properly (Ashok's queue item 1) or disconnect the Cloudflare Git integration; until then decide explicitly whether it counts for "all green".
 - **No feature flag is on.** `FLAG_EVENTS`, `FLAG_MONEY` and `FLAG_INBOX` in `wrangler.jsonc` are all "off", and `FLAG_POLLS` does not exist yet. Flip them in one integrator chore PR once the open PRs are merged.
 - **Deploy still skips** (no Cloudflare secrets), so nothing has run against production.
 
@@ -18,7 +21,7 @@ Status of the parallel build of `docs/STORIES.md` (48 stories). Read this, then 
 | R1, S0.1–S0.5, S0.7, S4.1, S0.2 | merged | #2–#12, roster#53 | W0/W1. |
 | S0.6 device spike | **not started** | – | Human: Clerk prod instance + real iPhone/Android. Push batch cap (20) and the Google-in-installed-iOS rule are provisional until it runs. |
 | S1.1 Clerk | merged | #34 | Needs secrets (Ashok's queue). Origin guard is a `use("*")` in `auth/routes.ts`; move it to `app.ts`. |
-| S1.3 Invites, join, approval | landing | #47 | RSVP intent completed client-side (`bcq.join-rsvp-intent`). |
+| S1.3 Invites, join, approval | merged | #47 | RSVP intent completed client-side (`bcq.join-rsvp-intent`). |
 | S2.1 Members | merged | #30 | `noopRsvpCancel` still wired (see follow-ups). |
 | S2.3 Settings | merged | #27 | Public subset at `GET /settings/public` (members), not `/config`. |
 | S2.4 Audit viewer | merged | #41 | |
@@ -26,8 +29,8 @@ Status of the parallel build of `docs/STORIES.md` (48 stories). Read this, then 
 | S3.0 Events core | merged | #28 | Slot registry: `src/app/routes/events/slots`. |
 | S3.1 Terms, series | merged | #31 | Captains cannot edit capacity (decision). |
 | S3.2 Recurrence | landing | #45 | Needs the "Schedule and occurrences" link (follow-ups). |
-| S3.3 One-offs | landing | #38 | S4.2 must use `rsvpTier` (follow-ups). |
-| S4.2 RSVP pre-close | landing | #40 | Was CONFLICTING at hand-off: merge main and re-run. Prepaid is `nobodyPrepaid` until S5.3. |
+| S3.3 One-offs | merged | #38 | S4.2 must use `rsvpTier` (follow-ups). |
+| S4.2 RSVP pre-close | merged | #40 | Prepaid is `nobodyPrepaid` until S5.3. |
 | S4.3 Close + charges | not started | – | **Next on the critical path.** Use `registerTickHook` + `markDue(ctx.kv, rsvp_close_at)`. |
 | S4.4a/b/c | not started | – | After S4.3. Their Owns already include the slot-import line in `events/routes.tsx`. |
 | S5.1 Ledger | merged | #36 | |
@@ -37,27 +40,27 @@ Status of the parallel build of `docs/STORIES.md` (48 stories). Read this, then 
 | S5.5 Claims | **partial** | #50 | API and db tests done. **Screens not built** (`src/app/routes/money/claims*`, `src/app/routes/admin/money/claims*`). `docs/areas/ledger.md` lacks the claim routes. Finish on the same branch or a follow-up story PR. |
 | S5.6 manager.io export | not started | – | Treasurer must confirm the import format first. |
 | S6.1 Notifications | merged | #26 | |
-| S6.2 Web push | landing | #39 | The `notifications/routes.ts` conflict with S6.3 is resolved (both mounts kept). Needs VAPID secrets. |
+| S6.2 Web push | merged | #39 | The `notifications/routes.ts` conflict with S6.3 is resolved (both mounts kept). Needs VAPID secrets. |
 | S6.3 Prefs + mute | merged | #33 | |
 | S6.4 Cron, scheduler | merged | #29 | |
-| S6.5a Reminder engine | **landing, unverified** | #48 | Needs `TickContext.kv` (#46). Tests and code are in one commit and the db tests have not run yet. Lint may flag a spread in the test helper. |
+| S6.5a Reminder engine | landing | #48 | `ci` (incl. db tests) green; e2e blocked by billing. Tests and code are in one commit and the db tests have not run yet. Lint may flag a spread in the test helper. |
 | S6.5b Reminder UI | not started | – | Uses S6.5a's API (`/admin/reminder-rules`, preview, placeholder list). |
 | S6.6 Broadcasts | merged | #35 | |
 | S7.1 Share/OG | not started | – | Must call `configureEventsDeps({ publishOg })` and remove the no-op. |
 | S8.1, S8.2, S8.3 | not started | – | After S4.3. |
-| S9.1 Polls | landing | #42 | Ships migration `0001_polls` (approved by Ashok). |
+| S9.1 Polls | merged | #42 | Ships migration `0001_polls` (approved by Ashok). |
 | S9.2 Images (R2) | not started | – | After S9.1. |
 | S10.1 Home | not started | – | After S4.4a, S5.5, S9.1. May take over `<InstallPrompt/>` from `AppShell`. |
-| S10.2 Install, push onboarding | landing | #49 | Needs #46 (Owns grant) and #39 (`push-client.ts`) on main, then merge main and re-run. |
+| S10.2 Install, push onboarding | landing | #49 | `ci` green; e2e blocked by billing. |
 | S11.1 Club-week scenarios | not started | – | The integrator should start growing it now. |
 | S11.2 Member import | not started | – | Deps (S2.1, S5.1) are merged; can start any time. |
 | S11.3 Launch checklist | not started | – | Last. |
 
-Integrator/contract PRs this session: #24, #25, #37 merged. #46 (`TickContext.kv`, Owns grants for S5.5 and S10.2) is landing. #32 was closed and superseded by #37.
+Integrator/contract PRs this session: #24, #25, #37, #46 (`TickContext.kv`, Owns grants), #52 (Owns check keeps the story letter suffix: S6.5a) merged. #32 was closed and superseded by #37.
 
 ## Finishing open PRs (do this first)
 
-Order: #46, #40, #39, #38, #44, #45, #42, #47, #48, #50, #49.
+Order: fix billing first, then #45, #48, #49, #44, #50, #51.
 
 1. `git fetch origin`. If `origin/main` has commits the branch lacks, merge main in a temp worktree (`git worktree add --detach .worktrunk/land-N origin/<branch>`, `git merge origin/main`, push to `<branch>`). `docs/DECISIONS.md` merges itself (`merge=union`). Any other conflict needs a real look; two one-line mounts in the same `routes.ts` means keep both.
 2. `gh pr checks N --watch --fail-fast`, then merge only if every check is SUCCESS: `gh pr checks N --json state --jq '[.[].state]|unique|join(",")' | grep -qx SUCCESS && gh pr merge N --squash`.

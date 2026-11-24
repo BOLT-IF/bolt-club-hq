@@ -5,6 +5,7 @@ import { notification } from "../../../db/schema";
 import { contextMiddleware } from "../core/context";
 import { requireGuard } from "../core/permissions";
 import type { AppEnv } from "../types";
+import pushRoutes from "./push-routes";
 import prefsRoutes from "./prefs";
 
 /** The guard has run, so an actor exists; fail loudly rather than assert. */
@@ -23,6 +24,7 @@ export default new Hono<AppEnv>()
   // database for every route registered after it (e.g. /probe). See DECISIONS 2026-11-24 (S6.1).
   .use("/notifications", contextMiddleware())
   .use("/notifications/*", contextMiddleware())
+  .route("/", pushRoutes)
   .route("/", prefsRoutes)
   .get("/notifications", requireGuard("member"), async (c) => {
     const memberId = actorId(c);

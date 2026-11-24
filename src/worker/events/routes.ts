@@ -4,6 +4,7 @@ import { contextMiddleware } from "../core/context";
 import { requireGuard } from "../core/permissions";
 import type { AppEnv } from "../types";
 import { eventsDeps } from "./deps";
+import oneoffRoutes from "./oneoff-routes";
 import {
   getEventById,
   getEventBySlug,
@@ -68,6 +69,7 @@ function parsePatch(body: unknown): EventPatch | null {
 export default new Hono<AppEnv>()
   .use("/events/*", contextMiddleware())
   .use("/series/*", contextMiddleware())
+  .route("/", oneoffRoutes)
   .get("/events", requireGuard("member"), async (c) => {
     const scope = c.req.query("scope") === "past" ? "past" : "upcoming";
     const now = c.var.clock.now();

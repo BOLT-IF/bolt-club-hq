@@ -15,6 +15,13 @@ Each is the most conservative reading of PLAN; change here if the product intent
 - **Scheduler:** generation and occurrence edits call `markDue(env.KV, earliest rsvp_close_at)`. Skipped when `KV` is absent (tests); a KV failure is logged and never fails the write.
 - **OG:** `createEvent` is called with a no-op publisher inside the generation transaction; OG is published after commit for the created events, so a rolled-back run never leaves KV entries.
 - **No SeriesPage link yet:** the schedule screen is `/admin/terms/series/:id/schedule`; the integrator adds the link from the series page (outside S3.2 Owns).
+## 2026-11-24: S6.6 broadcasts: audiences, mute, audit
+
+- **Route:** `POST /admin/broadcasts` (admin guard + `Idempotency-Key`), body `{ title, body, audience }`, returns `{ broadcastId, recipientCount }`. Title max 100, body max 1000 characters. Unknown event: 404 `event_not_found`.
+- **Audiences** query the tables directly and only ever include `active` members (pending, exited and erased members get nothing): `all`; `pass_holders` (active passes, optionally one series); `event_rsvps` (RSVPs in `requested`, `confirmed`, `waitlisted`, `offered`; cancelled and late-cancelled are left out; the event may be named by id or share slug); `captains` (`series_captain`, optionally one series). Conservative reading: PLAN names the four audiences but not the RSVP statuses.
+- **Sending** goes through `createNotifyPort` with category `announcements`, one call per member, idempotency key `broadcast:<id>:<memberId>`. The inbox row is always written; mute (S6.3, order 10) and the rest of the policy chain decide only about the push. An event audience deep-links to `/events/<slug>`; others use the category default.
+- **Audit:** one `audit()` row per broadcast (`broadcast.send`, entity `broadcast`), written in the same transaction, also when there are zero recipients. Its id is derived from the broadcast id, which doubles as the "already sent" check, so a retry sends and audits once. The route derives the broadcast id from actor + `Idempotency-Key`.
+- **Not in v1:** scheduling and an event picker (the screen takes an event ID or share slug).
 
 ## 2026-11-24: Integrator queue: polls migration 0001; push wake-up from notify
 

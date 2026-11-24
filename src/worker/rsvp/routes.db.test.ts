@@ -249,7 +249,7 @@ describe("rsvp routes (S4.2)", () => {
       expect((await json(res)).rsvp).toMatchObject({ status: "cancelled", guests: [] });
       const [row] = await t.db.select().from(rsvp);
       expect(row!.status).toBe("cancelled");
-      expect(row!.cancelledAt!.toISOString()).toBe(NOW);
+      expect(row!.cancelledAt!.toISOString()).toBe(new Date(NOW).toISOString());
       expect((await t.db.select().from(guest)).map((g) => g.status)).toEqual(["cancelled"]);
       expect(await t.db.select().from(ledgerEntry)).toHaveLength(0);
     });

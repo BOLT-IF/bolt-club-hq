@@ -2,6 +2,11 @@
 
 Decisions made after `PLAN.md` (v3) was written. Newest first. Every entry gives the decision, the reason, and what it changes.
 
+## 2026-11-24: W2 contract 2: inactive members on own-data routes; S6.4 owns `scheduled()`
+
+- **`requireGuard(kind, { allowInactive: true })`** lets `inactive` (exited) members through; `pending` and `erased` still get 403. PLAN §6.7: exited members keep Money and attendance history. S5.1/S5.2 (own ledger), S8.2 (own attendance) and S2.5 (own export) set it on their own-data routes; nothing else does. Asked for by S2.1.
+- **S6.4 may edit `src/worker/index.ts`** so `scheduled()` delegates to `src/worker/scheduler/` (overlap lock, `next_due_at`, time bound, healthchecks ping wrap the hooks). S6.4's Owns line also lists `wrangler.jsonc` as a path, because the Owns check matches paths, not file sections; the story still edits only the cron section.
+
 ## 2026-11-24: W2 contract: per-request context, DB test suites, shared Owns
 
 Integrator contract-change PR before the W2 fan-out, so eight parallel stories do not each invent request wiring.

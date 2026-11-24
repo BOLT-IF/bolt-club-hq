@@ -25,12 +25,8 @@ jobs:
 
       - name: Check secrets (skips until they exist)
         id: guard
-        run: |
-          if bash scripts/ci/require-secrets.sh lighthouse; then
-            echo "ready=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "ready=false" >> "$GITHUB_OUTPUT"
-          fi
+        # Writes ready=true|false to GITHUB_OUTPUT. A skip still exits 0, so never gate on the exit code.
+        run: bash scripts/ci/require-secrets.sh lighthouse
 
       - uses: actions/setup-node@v4
         if: steps.guard.outputs.ready == 'true'

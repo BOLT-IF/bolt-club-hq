@@ -7,7 +7,7 @@ Owner: S0.2. Covers how the app reaches Postgres in production and in tests, and
 - **Production path:** the Worker connects to Postgres through **Cloudflare Hyperdrive**. The binding is `HYPERDRIVE` in `wrangler.jsonc`. Hyperdrive pools connections at the edge, so a Worker invocation does not open a fresh TCP session per request.
 - **Driver:** `pg` (node-postgres) `^8.23.1` as a regular dependency. Inside the Worker, `pg` uses `pg-cloudflare`, which opens sockets with `cloudflare:sockets`. This is why `compatibility_flags` includes `nodejs_compat`.
 - **Schema access:** Drizzle ORM over `pg` (`drizzle-orm/node-postgres`). The Db type is `NodePgDatabase<typeof schema>` (`src/worker/core/db/client.ts`).
-- **Local dev:** `localConnectionString` in the Hyperdrive binding points at the local Postgres 17 container (see `docs/ops/local-dev.md`).
+- **Local dev:** `localConnectionString` in the Hyperdrive binding points at the local Postgres 18 container (see `docs/ops/local-dev.md`).
 
 Integrator and Ashok approved Hyperdrive + `pg` for S0.2. This doc records the reasoning and the evidence.
 
@@ -67,7 +67,7 @@ Each test starts from an empty, freshly migrated schema, so tests do not depend 
 
 ## Local verification
 
-Run against `postgres:17` (PostgreSQL 17.12) in the `s02-postgres-1` container, `club_test` database:
+Originally run against `postgres:17` (PostgreSQL 17.12); everything moved to 18 on 2026-11-24 and CI re-ran the suites on `postgres:18`. Results at the time of S0.2:
 
 - `npm run typecheck`: clean (app, worker and node configs).
 - `npm run lint`: clean, including prettier.
@@ -75,11 +75,10 @@ Run against `postgres:17` (PostgreSQL 17.12) in the `s02-postgres-1` container, 
 
 ## Production reference
 
-- Production is Neon, PostgreSQL 18.7, EU-central. Local (`docker-compose.yml`), CI (`ci.yml` service) and the backup client (`backup.yml`) are all still on 17. Moving to 18 is a separate contract-change PR that bumps all three together, so local and CI never test different majors.
+- Production is Neon, PostgreSQL 18.7, EU-central. Local (`docker-compose.yml`), CI (`ci.yml` services) and the backup and restore clients (`postgresql-client-18`) all run major 18. Change them together: a client older than the server cannot `pg_dump` it.
 - The dev machine reaches Neon only over its HTTPS endpoint (raw port 5432 is network-blocked there). The `@neondatabase/serverless` driver connects and runs `SELECT version()`. Production access from CI and Cloudflare is unaffected.
 - The Neon connection string lives in the gitignored `.env.local`. It must never be copied into a committed file.
 
 ## Open items
 
 - Hyperdrive id in `wrangler.jsonc` is still the placeholder `REPLACE_WITH_HYPERDRIVE_ID`. It is set after `wrangler hyperdrive create` (manual step above).
-- `src/worker/types/pg.d.ts` is an interim minimal typing for `pg`. It must be replaced by `@types/pg` at the next sanctioned dependency change (see DECISIONS.md, S0.2).

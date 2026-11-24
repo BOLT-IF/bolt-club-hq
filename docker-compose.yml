@@ -1,7 +1,7 @@
 # Local Postgres for Worker/API tests (PLAN §13). CI uses a Postgres service container instead.
 services:
   postgres:
-    image: postgres:17
+    image: postgres:18
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres

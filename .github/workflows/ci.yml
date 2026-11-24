@@ -22,7 +22,7 @@ jobs:
     services:
       # Postgres for Worker/API tests against a real database (PLAN §13).
       postgres:
-        image: postgres:17
+        image: postgres:18
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
@@ -85,7 +85,7 @@ jobs:
         shard: [1, 2, 3, 4]
     services:
       postgres:
-        image: postgres:17
+        image: postgres:18
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres

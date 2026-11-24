@@ -2,6 +2,12 @@
 
 Decisions made after `PLAN.md` (v3) was written. Newest first. Every entry gives the decision, the reason, and what it changes.
 
+## 2026-11-24: Postgres 18 everywhere (Ashok)
+
+- **Why 18, not "latest":** match production. Neon runs PostgreSQL 18.7. 17 was only the scaffold's default from before Neon existed. Testing on a newer major than production is the same mismatch the other way, so the rule is "same major as the Neon project". Moving production to a new major is a Neon upgrade first, then this set of pins.
+- **Bumped together:** `docker-compose.yml`, both `ci.yml` service containers, and the backup and restore-drill clients (`postgresql-client-18`). The client bump also fixes a latent failure: `pg_dump` 17 refuses to dump an 18 server, so the weekly backup would have failed against Neon once the secrets existed.
+- **Supersedes** "Postgres 18 parity deferred" in the S0.2 entry.
+
 ## 2026-11-24: Secrets gate writes the verdict, workflows read it
 
 - **Bug:** `require-secrets.sh` exits 0 both when it proceeds and when it skips (so CI stays green), but all four workflows wrapped it in `if require-secrets.sh; then ready=true`. A skip therefore set `ready=true`, and Deploy ran `wrangler deploy` with no Cloudflare token on every push to main (red since S0.5). Backup, restore drill and Lighthouse had the same wiring and would have gone red on their first schedule.
@@ -61,7 +67,7 @@ Decisions made after `PLAN.md` (v3) was written. Newest first. Every entry gives
 - **Idempotency is two layers.** `insertIdempotent` (ledger `ON CONFLICT DO NOTHING` on `idempotency_key`) makes writes safe under concurrency. The HTTP `Idempotency-Key` middleware stores responses in `idempotency_record`, keyed by (key, actor, route). A missing header returns 400.
 - **Test DB per test.** Each DB test creates `club_test_<uuid>`, applies the bundled migrations and drops it afterwards. Migrations are bundled with `import.meta.glob` because workerd has no filesystem.
 - **Clock is injected.** `Clock` (`src/worker/core/clock.ts`) has `systemClock` and `FixedClock`. Nothing in core or test-support calls `Date.now()`.
-- **Postgres 18 parity deferred (no scope exception).** Production is Neon, PostgreSQL 18.7, EU-central. An earlier commit bumped only `docker-compose.yml` to 18; it was reverted because `docker-compose.yml` is outside S0.2's Owns and CI (`ci.yml`) and backups (`backup.yml`) stay on 17, so local and CI would test different majors. The move to 18 is a follow-up contract-change PR that bumps local, CI and the backup client together. The dev machine reaches Neon only over its HTTPS endpoint via `@neondatabase/serverless`; the connection string stays in the gitignored `.env.local` and is never committed.
+- **Postgres 18 parity deferred (no scope exception; done 2026-11-24, see "Postgres 18 everywhere").** Production is Neon, PostgreSQL 18.7, EU-central. An earlier commit bumped only `docker-compose.yml` to 18; it was reverted because `docker-compose.yml` is outside S0.2's Owns and CI (`ci.yml`) and backups (`backup.yml`) stay on 17, so local and CI would test different majors. The move to 18 is a follow-up contract-change PR that bumps local, CI and the backup client together. The dev machine reaches Neon only over its HTTPS endpoint via `@neondatabase/serverless`; the connection string stays in the gitignored `.env.local` and is never committed.
 
 ## 2026-11-23: S0.3 PWA service worker (ambiguities)
 

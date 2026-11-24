@@ -39,8 +39,12 @@ Money in (payments, waivers, reversals of charges) is matched against money owed
 | Route | Guard | Notes |
 |---|---|---|
 | `GET /api/v1/me/ledger` | member, `allowInactive` | Own entries only, with FIFO status, event title/date and guest name. `?memberId=` other than your own is 403, admins included. |
+| `GET /api/v1/admin/balances` | admin | Every member: `id`, `displayName`, `paymentRef`, `status`, `balanceSek`, `owedSek`, `creditSek`. |
+| `GET /api/v1/admin/balances/:memberId` | admin | One member's FIFO itemization, plus `waivable` / `reversible` per entry. |
+| `POST /api/v1/admin/payments` | admin, `Idempotency-Key` | `{ memberId, amountSek, note? }`, whole kronor > 0. Returns `{ entryId, balanceSek }` (201). |
+| `POST /api/v1/admin/adjustments` | admin, `Idempotency-Key` | `{ type, note, … }`, note required. `waiver`+`entryId` (reversal), `waiver`+`memberId`+`amountSek` (write-off), `charge`+`memberId`+`amountSek` (manual), `reversal`+`entryId`. |
 
-Admin balances/payments/adjustments are S5.4, claims S5.5, passes S5.3.
+Admin routes live in `src/worker/ledger/admin-routes.ts` (S5.4), mounted by `routes.ts` with `.route("/", adminRoutes)`. `LEDGER_ERROR_STATUS` there maps every `LedgerError.code` to its HTTP status (400/403/404/409); reuse it in claims (S5.5). The ledger key is derived from the HTTP key (`admin-payment:<adminId>:<key>`), so a double tap writes one row even if the replay record were lost. UI: `src/app/routes/admin/money/` (`/admin/money`, `/admin/money/members/:id`), behind the `money` flag. Claims are S5.5, passes and revocation S5.3, export S5.6.
 
 ## Member screen (S5.2)
 

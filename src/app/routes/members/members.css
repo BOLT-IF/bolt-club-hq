@@ -1,0 +1,67 @@
+.bcq-members {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.75rem;
+}
+.bcq-member {
+  display: grid;
+  gap: 0.6rem;
+  padding: 0.9rem;
+  border-radius: var(--bcq-radius-sm);
+  background: var(--bcq-card);
+  border: 1px solid var(--bcq-line);
+}
+.bcq-member__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+.bcq-member__name {
+  margin: 0;
+  font: 700 1.05rem/1.2 var(--bcq-font);
+}
+.bcq-member__meta {
+  margin: 0;
+  color: var(--bcq-muted);
+  font: 500 0.9rem/1.3 var(--bcq-font);
+}
+.bcq-member__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.bcq-form {
+  display: grid;
+  gap: 1rem;
+}
+.bcq-field {
+  display: grid;
+  gap: 0.35rem;
+}
+.bcq-field__label {
+  font: 600 0.95rem/1.2 var(--bcq-font);
+}
+.bcq-field__hint {
+  margin: 0;
+  color: var(--bcq-muted);
+  font: 500 0.875rem/1.3 var(--bcq-font);
+}
+.bcq-field__error {
+  margin: 0;
+  color: var(--bcq-danger-ink);
+  font: 600 0.875rem/1.3 var(--bcq-font);
+}
+.bcq-input {
+  min-height: var(--bcq-touch);
+  padding: 0 0.9rem;
+  border: 1px solid var(--bcq-ink-soft);
+  border-radius: var(--bcq-radius-sm);
+  background: var(--bcq-card);
+  color: var(--bcq-ink);
+  font: 500 1rem/1.2 var(--bcq-font);
+  box-sizing: border-box;
+  width: 100%;
+}

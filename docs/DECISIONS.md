@@ -2,6 +2,13 @@
 
 Decisions made after `PLAN.md` (v3) was written. Newest first. Every entry gives the decision, the reason, and what it changes.
 
+## 2026-11-24: S11.2 member import with opening balances
+
+- **Route and payload:** `POST /api/v1/admin/members/import` (`src/worker/importer/routes.ts`) is admin-only (`requireGuard("admin")`) and requires `Idempotency-Key`. Body is `{ rows: [...] }` (1–500 rows, no unknown fields). Each row requires `displayName` (≤ 80), `email` (trimmed, lowercased, ≤ 254), and `openingBalanceSek` (safe integer in whole kronor, signed: positive = owes, negative = credit, `0` = no ledger entry), with optional `rosterName` (≤ 40), `role` (`member | admin`, default `member`), `status` (`active | inactive`, default `active`), `paymentRef`, and `note` (default `"Opening balance import"`).
+- **Upfront validation, all-or-nothing transaction:** every row (including batch-duplicate emails and `paymentRef`s) is validated before touching the DB; any error rejects the whole request with `400 invalid_import_rows` and `{ errors }`. Execution runs in one DB transaction (`importMembers`), so any DB-level failure (taken `paymentRef`, `403 self_ledger_blocked`, `409 member_erased`) rolls back the entire batch.
+- **Re-running is idempotent and non-destructive:** existing members are matched by case-insensitive email without overwriting their profile fields, status, role, or Clerk link. Opening balances call `createLedgerService({ db: tx, clock }).adjust` with `reason: "opening_balance"` and stable key `import-opening:<memberId>`. Re-running with a different `openingBalanceSek` (including changing non-zero to `0`) fails with `409 idempotency_conflict`.
+- **Pre-provisioned Clerk linking (`src/worker/auth/wiring.ts`):** imported members get `clerk_user_id = "preprovisioned:<memberId>"`. On first Clerk sign-in, after `loadProfile` returns a verified primary email, `linkPreprovisioned` locks any non-erased `preprovisioned:%` row matching that email case-insensitively (`FOR UPDATE`), sets its `clerk_user_id` to the real Clerk user ID, audits `member.clerk_linked`, and lets `reassertBootstrap` run. Concurrent first sign-ins fall through `ON CONFLICT (clerk_user_id) DO NOTHING` in `createPending` and produce one linked member.
+
 ## 2026-11-24: Integrator follow-up chore & Owns pre-grants
 
 - **Member deactivation (`rsvp.cancel` port):** `RsvpCancelPort.cancelFutureRsvps` takes `{ db, clock, memberId, at, idempotencyKey }` so `members/routes.ts` passes the request `db` and `clock` directly to `realRsvpCancel` (`src/worker/rsvp/cancel.ts`). `noopRsvpCancel` is deleted; `rsvp-cancel.test.ts` verifies the production default is `realRsvpCancel`.

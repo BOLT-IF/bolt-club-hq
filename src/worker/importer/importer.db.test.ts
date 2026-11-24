@@ -293,6 +293,7 @@ describe("Member import with opening balances (S11.2)", () => {
     it("rolls back the whole batch if a later row fails inside the transaction", async () => {
       const admin = await makeMember(t.db, { role: "admin" });
       const taken = await makeMember(t.db, { displayName: "Existing" });
+      await t.db.update(member).set({ paymentRef: "BC-TAKEN1" }).where(eq(member.id, taken.id));
 
       const res = await postImport(
         admin,
@@ -302,7 +303,7 @@ describe("Member import with opening balances (S11.2)", () => {
             {
               displayName: "Second",
               email: "second@club.test",
-              paymentRef: taken.paymentRef,
+              paymentRef: "BC-TAKEN1",
               openingBalanceSek: 50,
             },
           ],
@@ -313,6 +314,28 @@ describe("Member import with opening balances (S11.2)", () => {
       expect(res.status).toBe(409);
       expect(
         await t.db.select().from(member).where(eq(member.email, "first@club.test")),
+      ).toHaveLength(0);
+      expect(await t.db.select().from(ledgerEntry)).toHaveLength(0);
+    });
+
+    it("enforces self-ledger guard when another active admin exists and rolls back batch", async () => {
+      const admin1 = await makeMember(t.db, { role: "admin" });
+      await t.db.update(member).set({ email: "admin1@club.test" }).where(eq(member.id, admin1.id));
+      await makeMember(t.db, { role: "admin" });
+
+      const res = await postImport(
+        admin1,
+        {
+          rows: [
+            { displayName: "Other", email: "other@club.test", openingBalanceSek: 100 },
+            { displayName: "Self", email: "admin1@club.test", openingBalanceSek: 50 },
+          ],
+        },
+        "self-ledger-1",
+      );
+      expect(res.status).toBe(403);
+      expect(
+        await t.db.select().from(member).where(eq(member.email, "other@club.test")),
       ).toHaveLength(0);
       expect(await t.db.select().from(ledgerEntry)).toHaveLength(0);
     });
@@ -466,6 +489,32 @@ describe("Member import with opening balances (S11.2)", () => {
       const stranger = await strangerRes.json<{ id: string; status: string }>();
       expect(stranger.id).not.toBe(targetId);
       expect(stranger.status).toBe("pending");
+    });
+
+    it("links an inactive pre-provisioned member without auto-reactivating them", async () => {
+      const admin = await makeMember(t.db, { role: "admin" });
+      const imp = await postImport(
+        admin,
+        {
+          rows: [
+            {
+              displayName: "Exited Member",
+              email: "exited@club.test",
+              status: "inactive",
+              openingBalanceSek: 320,
+            },
+          ],
+        },
+        "link-inactive-1",
+      );
+      expect(imp.status).toBe(200);
+      const memberId = (await imp.json<ImportResponse>()).results[0]!.memberId;
+
+      profiles.set("user_exited_clerk", { email: "exited@club.test", name: "Exited" });
+      const res = await callMe(await signer.sign({ sub: "user_exited_clerk" }));
+      expect(res.status).toBe(200);
+      expect(await res.json()).toMatchObject({ id: memberId, status: "inactive" });
+      expect(await createLedgerService({ db: t.db, clock }).balance(memberId)).toBe(320);
     });
   });
 });

@@ -47,7 +47,7 @@ function pwaHead(): Plugin {
         },
         {
           tag: "meta",
-          attrs: { name: "apple-mobile-web-app-title", content: "Bolt Club" },
+          attrs: { name: "apple-mobile-web-app-title", content: "BOLT HQ" },
           injectTo: "head",
         },
         { tag: "meta", attrs: { name: "theme-color", content: "#272e38" }, injectTo: "head" },
@@ -76,8 +76,8 @@ export default defineConfig({
         globIgnores: ["**/sw.js", "**/workbox-*.js"],
       },
       manifest: {
-        name: "Bolt Club HQ",
-        short_name: "Bolt Club",
+        name: "BOLT HQ",
+        short_name: "BOLT HQ",
         description: "Sessions, RSVPs, money and polls for the club.",
         start_url: "/",
         scope: "/",

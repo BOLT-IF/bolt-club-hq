@@ -58,7 +58,7 @@ const owing: MyLedger = {
 };
 
 const settings = {
-  clubName: "Bolt Club",
+  clubName: "BOLT IF",
   bank: { accountHolder: "Bolt IF", iban: "SE4550000000058398257466", bankgiro: "5050-1055" },
   paymentInstructions: "Pay within 14 days.",
   quietHours: null,

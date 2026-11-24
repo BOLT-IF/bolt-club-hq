@@ -36,7 +36,7 @@ export interface ClubSettingsValue {
 
 /** Served before an admin has saved anything (PLAN A9, §5.1 defaults). */
 export const DEFAULT_SETTINGS: ClubSettingsValue = {
-  clubName: "Bolt Club",
+  clubName: "BOLT IF",
   bank: null,
   paymentInstructions: null,
   quietHours: { start: "22:00", end: "08:00" },

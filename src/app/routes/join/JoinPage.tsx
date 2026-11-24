@@ -139,7 +139,7 @@ export function JoinPage() {
         </>
       ) : (
         <p>
-          Bolt Club is invite only. Open the invite link an admin sent you, or tap &quot;Request to
+          BOLT IF is invite only. Open the invite link an admin sent you, or tap &quot;Request to
           join&quot; on an event or series link.
         </p>
       )}
@@ -157,7 +157,7 @@ function Welcome({ rsvp }: { readonly rsvp: CompleteResult }) {
       <h1 id="join-title" className="bcq-page__title">
         You&apos;re in
       </h1>
-      <p>Your membership is approved. Welcome to Bolt Club.</p>
+      <p>Your membership is approved. Welcome to BOLT IF.</p>
       {rsvp.kind === "done" ? <p role="status">Your RSVP has been sent.</p> : null}
       {rsvp.kind === "dropped" ? (
         <p role="status">We couldn&apos;t send your saved RSVP: RSVPs may have closed.</p>

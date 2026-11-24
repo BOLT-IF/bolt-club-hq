@@ -30,7 +30,7 @@ export function AppShell({ path, children, badges = {}, isAdmin = false }: AppSh
 
       {outdated ? (
         <div className="bcq-banner" role="alert">
-          <span>A newer version of Bolt Club HQ is ready.</span>
+          <span>A newer version of BOLT HQ is ready.</span>
           <button
             type="button"
             className="bcq-banner__action"
@@ -60,7 +60,7 @@ export function AppShell({ path, children, badges = {}, isAdmin = false }: AppSh
         ) : null}
         <span className="bcq-brand">
           <img className="bcq-brand__mark" src={boltMark} alt="" width="28" height="27" />
-          Bolt <span className="bcq-brand__if">IF</span>
+          BOLT <span className="bcq-brand__hq">HQ</span>
         </span>
       </header>
 

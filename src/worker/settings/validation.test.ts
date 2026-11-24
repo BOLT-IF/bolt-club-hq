@@ -11,7 +11,7 @@ import {
 } from "./validation";
 
 const valid = {
-  clubName: "Bolt Club",
+  clubName: "BOLT IF",
   passUnpaidRevokeDays: 21,
   autoPromoteCutoffMin: 180,
 };
@@ -84,7 +84,7 @@ describe("validateSettingsInput", () => {
     expect(result).toEqual({
       ok: true,
       value: {
-        clubName: "Bolt Club",
+        clubName: "BOLT IF",
         bank: null,
         paymentInstructions: null,
         quietHours: null,

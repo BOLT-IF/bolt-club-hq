@@ -78,7 +78,7 @@ export function InstallPrompt({ context, push = browserPush }: InstallPromptProp
   return (
     <section className="bcq-install" aria-labelledby="bcq-install-title">
       <h2 id="bcq-install-title" className="bcq-install__title">
-        Add Bolt Club to your home screen
+        Add BOLT HQ to your home screen
       </h2>
       <p className="bcq-install__body">
         It opens like an app{kind === "install-ios" ? " and can send you notifications" : ""}.

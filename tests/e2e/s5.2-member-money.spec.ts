@@ -90,7 +90,7 @@ async function mockApi(page: Page, mock: Mock = {}): Promise<string[]> {
   await page.route("**/api/v1/settings/public", (route) =>
     route.fulfill(
       reply(200, {
-        clubName: "Bolt Club",
+        clubName: "BOLT IF",
         bank: { accountHolder: "Bolt IF", bankgiro: "5050-1055" },
         paymentInstructions: "Pay within 14 days.",
         quietHours: null,

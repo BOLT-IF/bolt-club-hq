@@ -2,7 +2,9 @@
 
 Every secret the deploy, backup, restore and Lighthouse workflows need. Set them under **repo
 Settings → Secrets and variables → Actions**. Workflows skip with a notice until the secrets they
-need exist (`scripts/ci/require-secrets.sh`), so a missing secret never turns CI red.
+need exist (`scripts/ci/require-secrets.sh`), so a missing secret never turns CI red. The script
+writes `ready=true|false` to `$GITHUB_OUTPUT`; jobs gate on `steps.guard.outputs.ready`, never on
+its exit code (a skip also exits 0).
 
 **Never commit a secret value, and never paste one into an issue, PR or chat.** The repo is
 private, but a leak still means rotating the key.
@@ -43,7 +45,7 @@ account exists. They are read by the Worker at runtime.
 | `VAPID_PRIVATE_KEY` | Web Push private key | **Back this up and never rotate casually.** Rotating it invalidates every existing push subscription, so every member must re-enable notifications on every device. |
 | `VAPID_SUBJECT` | `mailto:` or `https:` contact used in the push header | Use the club's contact address. |
 | `HEALTHCHECKS_URL` | healthchecks.io ping URL for the cron dead-man switch (PLAN §15) | The URL itself is the secret; anyone with it can ping the check. |
-| `SENTRY_DSN` | Sentry DSN for the Worker (toucan-js) and the browser SDK (S0.7) | A DSN is not a credential for reading data, but treat it as internal. |
+| `SENTRY_DSN` | Sentry DSN for the Worker and browser reporters (S0.7; both post envelopes with `fetch`, no SDK) | A DSN is not a credential for reading data, but treat it as internal. |
 | `BOOTSTRAP_ADMIN_EMAIL` | The one email that becomes admin on first sign-in (S1.1) | Not a secret, but kept out of the repo so the club's admin address is not public. |
 
 ## Notes on the high-stakes ones
@@ -62,3 +64,6 @@ account exists. They are read by the Worker at runtime.
 1. Add it to this table, with its purpose and rotation rule.
 2. Add it to `scripts/ci/require-secrets.sh` only if a workflow job needs it to run.
 3. Add it to the matching job's `env:` block using `${{ secrets.NAME }}`. Never echo it.
+4. A new guarded job calls `bash scripts/ci/require-secrets.sh <job>` bare (`id: guard`) and gates
+   its steps on `steps.guard.outputs.ready == 'true'`. The CI-script tests fail if a workflow
+   wraps the guard in `if`.

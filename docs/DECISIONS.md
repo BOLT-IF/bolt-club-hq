@@ -4,6 +4,8 @@ Decisions made after `PLAN.md` (v3) was written. Newest first. Every entry gives
 
 ## 2026-11-24: Integrator queue: polls migration 0001; push wake-up from notify
 
+- **`docs/DECISIONS.md` uses `merge=union`** (`.gitattributes`). Every story prepends a section, so parallel PRs conflicted on every merge of main; union keeps both sides automatically. Check the order of new sections after a merge.
+
 - **S9.1 ships migration `0001`** (expand-only, tables empty in production): `poll` gains `multi_choice`, `anonymous`, `results_visibility` (enum) and `created_at`; the `poll_vote` key becomes (poll, member, option) so multi-choice votes fit. The initial schema could not store PLAN §10's poll rules. S9.1 owns `db/schema/comms.ts`, `db/migrations/` and the migration test (which now expects a contiguous chain from `0000_initial.sql`) for this change only. The single-chain CI check stays.
 - **S6.2 adds one `markPushDue(...)` call in `notify.ts`** after the `outbound_push` insert, so a queued push wakes the S6.4 scheduler instead of waiting for the daily run.
 

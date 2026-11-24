@@ -410,7 +410,7 @@ Login is off the critical path. From W2 on, stories use the **test-identity over
   - A policy can suppress the push while the inbox entry is still written.
 
 ### S6.2 Web push from the Worker: M · W3
-- **Depends on:** S6.1, S0.3, S0.6 · **Owns:** `src/worker/notifications/push*`, `src/worker/notifications/policies/quiet-hours*`, `src/sw/push*`
+- **Depends on:** S6.1, S0.3, S0.6 · **Owns:** `src/worker/notifications/push*`, `src/worker/notifications/policies/quiet-hours*`, `src/sw/push*`, plus integrator-sanctioned (2026-11-24): `src/worker/notifications/routes.ts` (one-line mount of the push sub-app)
 - VAPID with a WebCrypto encryption library.
 - Pushes are sent from a cron hook in **batches** sized per the S0.6 measurement.
 - The client re-subscribes on every app open. The service worker always calls `showNotification`.
@@ -423,7 +423,7 @@ Login is off the critical path. From W2 on, stories use the **test-identity over
   - The SW handler shows a notification for every payload.
 
 ### S6.3 Preferences + mute: S · W3
-- **Depends on:** S6.1 · **Owns:** `src/worker/notifications/policies/mute*`, `src/worker/notifications/prefs*`, `src/app/routes/settings/notifications*`
+- **Depends on:** S6.1 · **Owns:** `src/worker/notifications/policies/mute*`, `src/worker/notifications/prefs*`, `src/app/routes/settings/notifications*`, plus integrator-sanctioned (2026-11-24): `src/worker/notifications/routes.ts` (one-line mount of the prefs sub-app)
 - **Tests first:** a muted category still writes to the inbox but sends no push; global mute overrides per-category settings; everything is on by default.
 
 ### S6.4 Cron Triggers: S · W2

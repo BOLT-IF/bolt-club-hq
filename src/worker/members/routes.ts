@@ -8,6 +8,8 @@ import type { Tx } from "../core/db/client";
 import type { CurrentMember } from "../core/ports";
 import { requireGuard } from "../core/permissions";
 import type { AppEnv } from "../types";
+import { invitesRoutes } from "./invites";
+import { joinRoutes } from "./join";
 import { getRsvpCancel } from "./rsvp-cancel";
 
 type MemberRow = typeof member.$inferSelect;
@@ -300,5 +302,8 @@ routes.patch("/members/:id/status", context, requireGuard("admin"), async (c) =>
   }
   return result;
 });
+
+routes.route("/", invitesRoutes); // S1.3
+routes.route("/", joinRoutes); // S1.3
 
 export default routes;

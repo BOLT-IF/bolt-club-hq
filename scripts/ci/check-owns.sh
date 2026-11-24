@@ -58,6 +58,8 @@ allowed() {
   for entry in "${owns_paths[@]}" "${SHARED_ALLOW[@]}"; do
     case "$entry" in
       */) case "$path" in "$entry"*) return 0 ;; esac ;;
+      # Trailing "*" (e.g. `src/worker/rsvp/close*`) is a prefix: close.ts, close/x.ts, close.test.ts.
+      *\*) case "$path" in "${entry%\*}"*) return 0 ;; esac ;;
       *) [ "$path" = "$entry" ] && return 0 ;;
     esac
   done

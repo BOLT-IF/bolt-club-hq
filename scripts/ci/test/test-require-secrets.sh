@@ -27,6 +27,42 @@ expect_contains "partial: names the missing DATABASE_URL" "DATABASE_URL"
 expect_status "unknown job name fails" 2 -- \
   bash "$CI/require-secrets.sh" bogus-job
 
+# The guard's verdict goes to GITHUB_OUTPUT as ready=true|false. Workflows gate on that,
+# not on the exit code: a skip exits 0 (green) but must still say ready=false.
+# Regression: workflows used `if require-secrets.sh; then ready=true`, so a skip (exit 0)
+# set ready=true and deploy ran without secrets on every push to main.
+OUT="$(mktemp "${TMPDIR:-/tmp}/s05-ghout.XXXXXX")"
+: > "$OUT"
+expect_status "skip writes ready=false" 0 -- \
+  env -u CLOUDFLARE_API_TOKEN -u DATABASE_URL GITHUB_OUTPUT="$OUT" bash "$CI/require-secrets.sh" deploy
+if grep -qx "ready=false" "$OUT" && ! grep -q "ready=true" "$OUT"; then
+  ok "skip: GITHUB_OUTPUT has ready=false only"
+else
+  not_ok "skip: GITHUB_OUTPUT has ready=false only" "got: $(tr '\n' ' ' < "$OUT")"
+fi
+
+: > "$OUT"
+expect_status "proceed writes ready=true" 0 -- \
+  env CLOUDFLARE_API_TOKEN=x CLOUDFLARE_ACCOUNT_ID=a DATABASE_URL=y GITHUB_OUTPUT="$OUT" \
+  bash "$CI/require-secrets.sh" deploy
+if grep -qx "ready=true" "$OUT"; then
+  ok "proceed: GITHUB_OUTPUT has ready=true"
+else
+  not_ok "proceed: GITHUB_OUTPUT has ready=true" "got: $(tr '\n' ' ' < "$OUT")"
+fi
+rm -f "$OUT"
+
+# No workflow may gate on the exit code again: each must call the guard bare and read
+# steps.guard.outputs.ready.
+for wf in deploy backup restore-drill lighthouse; do
+  file="$HERE/../../../.github/workflows/$wf.yml"
+  if grep -q "if bash scripts/ci/require-secrets.sh" "$file"; then
+    not_ok "$wf.yml does not gate on the guard's exit code"
+  else
+    ok "$wf.yml does not gate on the guard's exit code"
+  fi
+done
+
 # Smoke test: a healthy origin passes, an unhealthy one fails.
 # Serve a tiny local HTTP server is heavy; instead, drive smoke.sh through a file:// fixture
 # by pointing it at a stub curl on PATH.

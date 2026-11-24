@@ -1,3 +1,4 @@
+import "../../components/rsvp/register";
 import type { AppRoute } from "../registry";
 import { EventDetailPage } from "./EventDetailPage";
 import { EventListPage } from "./EventListPage";

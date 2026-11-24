@@ -1,0 +1,50 @@
+.bcq-rsvp {
+  display: grid;
+  gap: 0.75rem;
+  padding: 1rem;
+  background: var(--bcq-card);
+  border: 1px solid var(--bcq-line);
+  border-radius: var(--bcq-radius);
+}
+.bcq-rsvp > *,
+.bcq-rsvp__status > * {
+  margin: 0;
+}
+.bcq-rsvp__title {
+  font-size: 1.125rem;
+}
+.bcq-rsvp__status,
+.bcq-rsvp__form,
+.bcq-rsvp__field,
+.bcq-rsvp__actions {
+  display: grid;
+  gap: 0.5rem;
+}
+.bcq-rsvp__hint,
+.bcq-rsvp__label {
+  color: var(--bcq-muted);
+}
+.bcq-rsvp__guests {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  gap: 0.25rem;
+}
+.bcq-rsvp__guest {
+  display: grid;
+  gap: 0.25rem;
+}
+.bcq-rsvp__guest input {
+  min-height: var(--bcq-touch);
+  padding: 0 0.75rem;
+  font: inherit;
+  border: 1px solid var(--bcq-line);
+  border-radius: var(--bcq-radius);
+}
+.bcq-rsvp__guest input:focus-visible {
+  outline: 3px solid var(--bcq-focus);
+  outline-offset: 2px;
+}
+.bcq-rsvp__error {
+  color: var(--bcq-danger);
+}

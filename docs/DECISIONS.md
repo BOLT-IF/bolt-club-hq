@@ -2,6 +2,14 @@
 
 Decisions made after `PLAN.md` (v3) was written. Newest first. Every entry gives the decision, the reason, and what it changes.
 
+## 2026-11-24: S6.6 broadcasts: audiences, mute, audit
+
+- **Route:** `POST /admin/broadcasts` (admin guard + `Idempotency-Key`), body `{ title, body, audience }`, returns `{ broadcastId, recipientCount }`. Title max 100, body max 1000 characters. Unknown event: 404 `event_not_found`.
+- **Audiences** query the tables directly and only ever include `active` members (pending, exited and erased members get nothing): `all`; `pass_holders` (active passes, optionally one series); `event_rsvps` (RSVPs in `requested`, `confirmed`, `waitlisted`, `offered`; cancelled and late-cancelled are left out; the event may be named by id or share slug); `captains` (`series_captain`, optionally one series). Conservative reading: PLAN names the four audiences but not the RSVP statuses.
+- **Sending** goes through `createNotifyPort` with category `announcements`, one call per member, idempotency key `broadcast:<id>:<memberId>`. The inbox row is always written; mute (S6.3, order 10) and the rest of the policy chain decide only about the push. An event audience deep-links to `/events/<slug>`; others use the category default.
+- **Audit:** one `audit()` row per broadcast (`broadcast.send`, entity `broadcast`), written in the same transaction, also when there are zero recipients. Its id is derived from the broadcast id, which doubles as the "already sent" check, so a retry sends and audits once. The route derives the broadcast id from actor + `Idempotency-Key`.
+- **Not in v1:** scheduling and an event picker (the screen takes an event ID or share slug).
+
 ## 2026-11-24: W2 contract 2: inactive members on own-data routes; S6.4 owns `scheduled()`
 
 - **`requireGuard(kind, { allowInactive: true })`** lets `inactive` (exited) members through; `pending` and `erased` still get 403. PLAN §6.7: exited members keep Money and attendance history. S5.1/S5.2 (own ledger), S8.2 (own attendance) and S2.5 (own export) set it on their own-data routes; nothing else does. Asked for by S2.1.

@@ -13,7 +13,9 @@ function json(body: unknown, status = 200): Response {
 }
 
 function stubApi(respond: () => Response = () => json({ broadcastId: "b", recipientCount: 12 })) {
-  const fetchMock = vi.fn((_input: string, _init?: RequestInit) => Promise.resolve(respond()));
+  const fetchMock = vi.fn<(input: string, init?: RequestInit) => Promise<Response>>(() =>
+    Promise.resolve(respond()),
+  );
   configureApiClient({ fetch: fetchMock });
   return fetchMock;
 }
@@ -51,7 +53,7 @@ describe("admin broadcast screen", () => {
     stubApi();
     renderPage();
     expect(screen.getByRole("heading", { level: 1, name: "Broadcast" })).toBeTruthy();
-    const audience = screen.getByLabelText("Send to") as HTMLSelectElement;
+    const audience = screen.getByLabelText<HTMLSelectElement>("Send to");
     expect([...audience.options].map((o) => o.value)).toEqual([
       "all",
       "pass_holders",
@@ -82,7 +84,7 @@ describe("admin broadcast screen", () => {
     expect(url).toBe("/api/v1/admin/broadcasts");
     expect(init?.method).toBe("POST");
     expect(new Headers(init?.headers).get("Idempotency-Key")).toBeTruthy();
-    expect(JSON.parse(init?.body as string)).toEqual({
+    expect(JSON.parse(init?.body as string) as unknown).toEqual({
       title: "Hall closed",
       body: "No play on Monday",
       audience: { kind: "all" },
@@ -117,6 +119,6 @@ describe("admin broadcast screen", () => {
     fireEvent.click(screen.getByRole("button", { name: "Review and send" }));
     fireEvent.click(await screen.findByRole("button", { name: "Send broadcast" }));
     expect(await screen.findByRole("alert")).toBeTruthy();
-    expect((screen.getByLabelText("Title") as HTMLInputElement).value).toBe("Hi");
+    expect(screen.getByLabelText<HTMLInputElement>("Title").value).toBe("Hi");
   });
 });

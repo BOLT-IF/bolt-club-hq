@@ -153,7 +153,11 @@ describe("members (S2.1)", () => {
         call(a, "PATCH", `/members/${b.id}/role`, { role: "member" }),
         call(b, "PATCH", `/members/${a.id}/role`, { role: "member" }),
       ]);
-      expect([r1.status, r2.status].sort()).toEqual([200, 409]);
+      // The loser is refused either by the last-admin check (409) or, when the winner's
+      // demotion committed before its actor was resolved, by the guard (403).
+      const statuses = [r1.status, r2.status].sort();
+      expect(statuses[0]).toBe(200);
+      expect([403, 409]).toContain(statuses[1]);
       const admins = await t.db.select().from(member).where(eq(member.role, "admin"));
       expect(admins).toHaveLength(1);
     });

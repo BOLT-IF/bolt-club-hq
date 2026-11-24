@@ -2,6 +2,13 @@
 
 Decisions made after `PLAN.md` (v3) was written. Newest first. Every entry gives the decision, the reason, and what it changes.
 
+## 2026-11-24: W2 contract 2: inactive members on own-data routes; S6.4 owns `scheduled()`
+
+- **`requireGuard(kind, { allowInactive: true })`** lets `inactive` (exited) members through; `pending` and `erased` still get 403. PLAN §6.7: exited members keep Money and attendance history. S5.1/S5.2 (own ledger), S8.2 (own attendance) and S2.5 (own export) set it on their own-data routes; nothing else does. Asked for by S2.1.
+- **Correction to W2 contract: scope `contextMiddleware()` to the area's own paths** (`.use("/events", …).use("/events/*", …)`), never `use("*")`. Every area sub-app is mounted at `/api/v1`, so `"*"` ran for every route registered after it, opened the DB for `/probe` and `/config`, and returned 500 in the workers pool. Found by S6.1.
+- **S1.1 may edit `src/app/main.tsx`** to wrap the app in its `AuthProvider`. Without a Clerk publishable key (dev, CI, e2e) the app renders without Clerk.
+- **S6.4 may edit `src/worker/index.ts`** so `scheduled()` delegates to `src/worker/scheduler/` (overlap lock, `next_due_at`, time bound, healthchecks ping wrap the hooks). S6.4's Owns line also lists `wrangler.jsonc` as a path, because the Owns check matches paths, not file sections; the story still edits only the cron section.
+
 ## 2026-11-24: S6.1 notifications: inbox first, push is a seam
 
 - **Inbox row first, then policies, then push.** `createNotifyPort({ db, clock })` inserts the `notification` row (`id = ntf_<idempotencyKey>`, `ON CONFLICT (idempotency_key) DO NOTHING`), and only the call whose insert lands runs the policy chain and queues an `outbound_push` row. A retry therefore never queues a second push, including after a suppression. Callers pass their transaction as `db` so the notification commits with their work.

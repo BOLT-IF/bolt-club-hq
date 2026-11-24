@@ -14,6 +14,8 @@ on:
 
 permissions:
   contents: write
+  # To dispatch CI after pushing (see the last step).
+  actions: write
 
 jobs:
   lockfile:
@@ -45,4 +47,15 @@ jobs:
           else
             git commit -m "chore: canonical package-lock.json (generated on CI runner)"
             git push
+            echo "pushed=true" >> "$GITHUB_OUTPUT"
           fi
+        id: commit
+
+      # A push made with GITHUB_TOKEN does not start CI on its own: GitHub holds the PR run
+      # as "approval required" so a person must click Approve. A workflow_dispatch made with
+      # the same token is allowed, so the bot starts CI itself and nobody has to approve.
+      - name: Run CI on the new lockfile
+        if: steps.commit.outputs.pushed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run ci.yml --repo "$GITHUB_REPOSITORY" --ref "$GITHUB_REF_NAME"

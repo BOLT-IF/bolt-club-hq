@@ -10,6 +10,35 @@ Decisions made after `PLAN.md` (v3) was written. Newest first. Every entry gives
 - **Entries newest first**, each with a FIFO chip: Paid / Partly paid, N kr left / Unpaid for charges; Used / N kr credit left for money in; Cancelled / Cancellation for reversal pairs. Money in shows with a minus sign (−150 kr). Credit is shown as "Credit 100 kr", never as a negative debt.
 - **"Another member's ledger is 403"** is covered server-side by S5.1's `src/worker/ledger/routes.db.test.ts`. The S5.2 Playwright spec checks the screen never sends a member id and shows an error (no data) on a 403.
 
+## 2026-11-24: Integrator queue: polls migration 0001; push wake-up from notify
+
+- **`docs/DECISIONS.md` uses `merge=union`** (`.gitattributes`). Every story prepends a section, so parallel PRs conflicted on every merge of main; union keeps both sides automatically. Check the order of new sections after a merge.
+
+- **S9.1 ships migration `0001`** (expand-only, tables empty in production): `poll` gains `multi_choice`, `anonymous`, `results_visibility` (enum) and `created_at`; the `poll_vote` key becomes (poll, member, option) so multi-choice votes fit. The initial schema could not store PLAN §10's poll rules. S9.1 owns `db/schema/comms.ts`, `db/migrations/` and the migration test (which now expects a contiguous chain from `0000_initial.sql`) for this change only. The single-chain CI check stays.
+- **S6.2 adds one `markPushDue(...)` call in `notify.ts`** after the `outbound_push` insert, so a queued push wakes the S6.4 scheduler instead of waiting for the daily run.
+
+## 2026-11-24: Owns globs are prefixes; nested backend routes mount through the area's routes.ts
+
+- **`check-owns.sh` treats a trailing `*` as a prefix match.** STORIES.md writes many Owns entries as `close*`, `claims*`, `policies/mute*`, but the check compared them literally, so every file such a story added failed. `close*` now accepts `close.ts`, `close.db.test.ts` and `close/…`, but not `claim.ts`. Found by S6.3.
+- **The backend registry only loads `src/worker/<area>/routes.ts`.** A story whose Owns covers only part of an area (e.g. `prefs*`, `close*`, `claims*`) exports a Hono sub-app from its own file, and the area's `routes.ts` gets a one-line `.route("/", subApp)` mount. The integrator adds that `routes.ts` to the story's Owns line as a sanctioned exception when asked. Pattern first used by S6.3.
+- **Notifications settings live at `/settings/notifications`** (S6.3 owns `src/app/routes/settings/notifications*`). The More menu link moves there from `/profile/notifications`, which S2.1's `profile/` would otherwise have to host.
+## 2026-11-24: S3.1 terms, series, captains, clone: ambiguities resolved
+
+Each is the most conservative reading of PLAN; change here if the product intent differs.
+
+- **Term dates are fixed after draft.** `startsOn`/`endsOn` can change only while the term is a draft (409 `dates_locked` after). Series and passes are priced against them (§6.5). The name can always change.
+- **Status only moves one step forward.** No reopening, no skipping. A closed term takes no new series and no series edits (409 `term_closed`).
+- **Delete is for empty drafts only.** A term with series, or past draft, cannot be deleted; a series with any event or pass cannot be deleted. Nothing else is removed, so history stays intact.
+- **Captains are admin-appointed and edit operations only.** A captain may change `location`, `maxGuestsDefault` and `rsvpCloseOffsetMin` of their own series. Capacity, prices, name, format, schedule and captains stay admin-only (PLAN §4 says captains edit "close time, guest limit, capacity"; capacity is held back because it moves `pass_cap` and the cap-below-sold override is an admin power in §6.6). Say so if captains should edit capacity.
+- **Captains must be active members.** Pending, inactive and erased members are rejected (422 `invalid_captains`). `PUT /series/:id/captains` replaces the whole set.
+- **`pass_cap` counts non-cancelled events only** (A8) and is recomputed on every series edit. Passes counted against it are those with status `active`.
+- **Clone copies series fields only.** Captains are not copied (a new term may have new organisers); skip-dates are not copied (dates differ); `skip_dates_locked` resets to false; `pass_cap` resets to capacity. Name defaults to "Copy of <source>". Clone requires an `Idempotency-Key` because a double tap would otherwise create two terms.
+- **Series slug lives in S3.1 for now.** S3.0 owns event slugs and the shared helper. Series need a unique `share_slug` at creation, so `src/worker/terms/routes.ts` has a small private generator (10 chars, no look-alike characters). Fold into S3.0's helper later if it exports one.
+- **Weekday is ISO 1 to 7** (Monday = 1), matching what S3.2 will need for local-time maths. `start_time` is `HH:MM` in club (Stockholm) local time.
+- **Defaults on create:** `maxGuestsDefault` 1 (PLAN §2), `rsvpCloseOffsetMin` 1440.
+- **Scoped context middleware.** Routes use `.use("/terms", ...)`, `.use("/terms/*", ...)` and the same for `/series`, not `"*"`, per the integrator's contract correction (a `"*"` leaks onto other areas). `scope.test.ts` asserts that.
+- **UI uses a minimal local test helper, not `@testing-library/user-event`** (not installed, no dependency changes in a story).
+
 ## 2026-11-24: S1.1 Clerk integration: resolutions
 
 - **Google in the installed iOS app: hidden, provisionally.** S0.6 (device spike) has not run. `GOOGLE_HIDDEN_IN_INSTALLED_IOS = true` in `src/app/auth/google.ts` hides Google when the client is iOS and standalone; everywhere else (Safari, Android, desktop) Google shows, below the email form. Flip the one constant when S0.6 reports. **Provisional pending S0.6.**

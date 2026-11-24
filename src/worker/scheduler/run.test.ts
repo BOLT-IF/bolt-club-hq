@@ -37,7 +37,7 @@ function harness(boundMs = 1_000): Harness {
     boundMs,
     openDb: () => {
       h.dbOpens++;
-      return Promise.resolve({} as Db);
+      return Promise.resolve({} as unknown as Db);
     },
     closeDb: () => Promise.resolve(),
     ping: (_env, outcome) => {
@@ -73,7 +73,9 @@ beforeEach(() => {
 afterEach(async () => {
   resetCronHooks();
   resetTickHooks();
-  await Promise.all([LAST_TICK_KEY, LAST_RUN_KEY, LOCK_KEY, NEXT_DUE_KEY].map((k) => env.KV.delete(k)));
+  await Promise.all(
+    [LAST_TICK_KEY, LAST_RUN_KEY, LOCK_KEY, NEXT_DUE_KEY].map((k) => env.KV.delete(k)),
+  );
 });
 
 describe("scheduled(): next_due_at gate", () => {

@@ -23,7 +23,11 @@ describe("scheduler database work", () => {
   });
 
   describe("stale idempotency claims", () => {
-    const claim = (key: string, ageMs: number, extra: Partial<typeof idempotencyRecord.$inferInsert> = {}) =>
+    const claim = (
+      key: string,
+      ageMs: number,
+      extra: Partial<typeof idempotencyRecord.$inferInsert> = {},
+    ) =>
       t.db.insert(idempotencyRecord).values({
         key,
         actorId: "m1",
@@ -70,7 +74,9 @@ describe("scheduler database work", () => {
       const rows = await t.db.select().from(notification);
       expect(rows.map((r) => r.memberId).sort()).toEqual([a.id, b.id].sort());
       expect(rows.every((r) => r.category === "admin_tasks")).toBe(true);
-      expect(await t.db.select().from(notification).where(eq(notification.memberId, a.id))).toHaveLength(1);
+      expect(
+        await t.db.select().from(notification).where(eq(notification.memberId, a.id)),
+      ).toHaveLength(1);
     });
   });
 });

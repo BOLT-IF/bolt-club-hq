@@ -6,8 +6,8 @@ function stubFetch(): { calls: string[]; fetch: typeof fetch } {
   const calls: string[] = [];
   return {
     calls,
-    fetch: ((input: RequestInfo | URL) => {
-      calls.push(String(input));
+    fetch: ((input: string) => {
+      calls.push(input);
       return Promise.resolve(new Response("OK"));
     }) as typeof fetch,
   };

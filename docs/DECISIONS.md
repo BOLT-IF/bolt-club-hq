@@ -2,6 +2,20 @@
 
 Decisions made after `PLAN.md` (v3) was written. Newest first. Every entry gives the decision, the reason, and what it changes.
 
+## 2026-11-24: S6.4 Cron Triggers: winter window, scheduler gate, claim cleanup
+
+- **Winter window (closes the S0.1 follow-up).** Triggers are now `*/10 5-22 * * *` and `0 0-4,23 * * *`. Every UTC hour belongs to exactly one trigger. The 10-minute one covers Stockholm 07-23 in summer (UTC 05-21) and winter (UTC 06-22). Rejected: gating on the Clock (needs an hourly trigger that fires every hour and a DST calculation) and a third trigger (uses spare free-plan quota for nothing). The cost is one extra 10-minute hour per season, which is free because idle ticks never touch Neon. A test checks both seasons through `Intl` (`schedule.test.ts`), and that `wrangler.jsonc` matches the constants.
+- **`scheduled()` goes through `src/worker/scheduler/run.ts`** (index.ts is now in the S6.4 Owns line, integrator-approved). Order: KV overlap lock (`scheduler:lock`, TTL above the time bound, so a dead run frees itself) → record tick + stale alert → read `scheduler:next_due_at` → if nothing is due, ping and return **without opening the DB** → otherwise run all hooks, each bounded to 30 s.
+- **Catch-up exactly once:** a missed run needs no special code. `next_due_at` is one timestamp, a run serves everything due, then clears it unless a hook set a later one. Three ticks after a three-hour gap run the hooks once.
+- **A failed run stays due.** The failure is recorded in `scheduler_state.last_error`, `LAST_RUN` is not advanced, `next_due_at` is kept, and the healthcheck gets `/fail`. The next tick retries. Hooks must be idempotent. `runScheduled` rethrows the first failure after all hooks ran, so Cloudflare still shows the invocation as failed.
+- **Two hook kinds.** Existing `registerCronHook(cron, hook)` hooks run per cron expression (kept, no signature change). New `registerTickHook(name, hook)` gets `{ db, clock, now, cron }` with the DB opened lazily; use it for DB work. Both only run when work is due.
+- **`markDue(kv, at)`** (earliest wins) is the API stories call to schedule work. KV is not atomic, so a lost update only delays work. Close-on-read still guarantees correctness (PLAN §6).
+- **Daily maintenance.** With nothing due, the scheduler would never touch the DB and so never clean anything. So a run also happens when the last good run is over 24 h old. That is one Neon wake-up per day, a deliberate exception to "idle = zero DB".
+- **Stale idempotency claims (closes the 2026-11-23 "Open" item).** Tick hook `idempotency-claim-cleanup` (registered in `scheduler/hooks.ts`) deletes `idempotency_record` rows with no `response_body` older than 10 minutes. Replay-cache rows with a response are untouched. Uses only the schema, no core change.
+- **Stale tick alert.** Stale = no tick for more than 2x the slower of the cadences at the previous tick and now (so 04:00 → 05:00 UTC is not an outage). On the next tick that sees it, every active admin gets an `admin_tasks` notification row, keyed by the last good tick so one outage alerts once. DB is opened only then. Delivery by push is S6.1/S6.2's job. If the cron is fully dead nothing can alert from inside the Worker, which is what healthchecks.io is for.
+- **healthchecks.io:** `HEALTHCHECK_PING_URL` is an optional secret (unset = no ping); `/fail` is appended on failure; a failed ping never fails the tick. Pinged on every tick, idle or not, because the switch watches the cron, not the work.
+- **Not changed:** `ops/health.ts` still treats UTC 05-21 as the frequent window, so readiness is lenient (2 h instead of 20 min) during UTC 22:00-22:59. Not in Owns; harmless. See PR follow-ups.
+
 ## 2026-11-24: W2 contract: per-request context, DB test suites, shared Owns
 
 Integrator contract-change PR before the W2 fan-out, so eight parallel stories do not each invent request wiring.

@@ -2,6 +2,17 @@
 
 Decisions made after `PLAN.md` (v3) was written. Newest first. Every entry gives the decision, the reason, and what it changes.
 
+## 2026-11-24: S6.5a reminder rules engine: ambiguities resolved
+
+- **Two rule kinds now: `payment_due` and `event_unrsvped`**, stored in `reminder_rule.category`. Poll closing (PLAN §10) is left for S9.1 (polls), which owns that data. No migration.
+- **Categories for mute:** payment reminders use `payment_due`; un-RSVPed reminders use `new_events` (closest PLAN §10 category).
+- **"At publish" means within 7 days of the event's start.** Events have no publish timestamp and a term's events are created all at once, so a literal "at creation" would remind about every event of the term on day one. The publish stage fires once, on the first run where the event is open and starts within 7 days. The pre-close stage fires once from `hoursBeforeClose` before RSVP close. A member first reached inside the pre-close window gets only that one.
+- **"Responded" means any `rsvp` row, cancelled included.** Someone who cancelled has answered.
+- **Payment interval counts Stockholm calendar days** since that rule's last send to the member, so 2027-01-01 → 2027-04-01 (90 days) fires regardless of tick time or DST. Inactive (exited) members are included while they owe (PLAN §6.7). Pending and erased members are not.
+- **Exactly-once:** the send key is both the `notification_send_log.id` and the notify idempotency key, inserted in one transaction, so a retried tick never sends twice.
+- **Preview equals the send** because both call the same `planRule`. A preview writes nothing, so it needs no `Idempotency-Key`. Create does (a double tap would make two rules).
+- **A rule that has sent cannot be deleted** (409 `rule_has_sends`; the send log references it). Disable it instead. Writes are audited.
+- **Scheduler wake-up:** the tick hook calls `markDue(ctx.kv, …)` for the next publish or pre-close moment (needs `TickContext.kv`, PR #46).
 ## 2026-11-24: S3.2 recurrence, skip-dates, occurrence edits: ambiguities resolved
 
 Each is the most conservative reading of PLAN; change here if the product intent differs.

@@ -13,7 +13,7 @@ export function originGuard(): MiddlewareHandler {
     if (SAFE_METHODS.has(c.req.method)) return next();
     const origin = c.req.header("Origin");
     if (origin === undefined) return next();
-    let allowed = false;
+    let allowed: boolean;
     try {
       allowed = new URL(origin).origin === new URL(c.req.url).origin;
     } catch {

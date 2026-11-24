@@ -42,13 +42,13 @@ function read(now: number): SignInIntent | null {
     if (typeof at !== "number" || now - at > INTENT_TTL_MS) return null;
     if (typeof intent !== "object" || intent === null) return null;
     const { returnTo, rsvp } = intent as { returnTo?: unknown; rsvp?: unknown };
-    const out: { returnTo: string; rsvp?: SignInIntent["rsvp"] } = {
+    let out: SignInIntent = {
       returnTo: safeReturnTo(typeof returnTo === "string" ? returnTo : null),
     };
     if (typeof rsvp === "object" && rsvp !== null) {
       const { eventSlug, response } = rsvp as { eventSlug?: unknown; response?: unknown };
       if (typeof eventSlug === "string" && typeof response === "string") {
-        out.rsvp = { eventSlug, response };
+        out = { ...out, rsvp: { eventSlug, response } };
       }
     }
     return out;

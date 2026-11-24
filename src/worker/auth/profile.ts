@@ -35,7 +35,7 @@ export function createProfileLoader(fetchImpl: typeof fetch = fetch): ProfileLoa
       },
     );
     if (!res.ok) throw new Error(`Clerk user lookup failed with status ${String(res.status)}`);
-    const user = (await res.json()) as ClerkUserResponse;
+    const user = await res.json<ClerkUserResponse>();
     const like: ClerkUserLike = {
       primaryEmailAddressId: user.primary_email_address_id ?? null,
       emailAddresses: (user.email_addresses ?? []).map((e) => ({

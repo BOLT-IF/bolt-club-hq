@@ -123,7 +123,7 @@ describe("Clerk JWT verification (networkless, cached JWKS)", () => {
 
   it("fails closed when the JWKS endpoint is down", async () => {
     const down = createAuthenticator({
-      fetch: (() => Promise.resolve(new Response("boom", { status: 500 }))) as typeof fetch,
+      fetch: () => Promise.resolve(new Response("boom", { status: 500 })),
       clock: new FixedClock("2027-01-01T10:00:00Z"),
     });
     expect(await down(request(bearer(await signer.sign())), env)).toBeNull();

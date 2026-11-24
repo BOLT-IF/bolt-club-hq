@@ -4,9 +4,30 @@ import { INTENT_TTL_MS, peekIntent, safeReturnTo, saveIntent, takeIntent } from 
 
 const T0 = 1_800_000_000_000;
 
+/** Map-backed Storage: Node's experimental global localStorage can shadow jsdom's. */
+function memoryStorage(): Storage {
+  const data = new Map<string, string>();
+  return {
+    get length() {
+      return data.size;
+    },
+    clear: () => {
+      data.clear();
+    },
+    getItem: (key) => data.get(key) ?? null,
+    key: (index) => [...data.keys()][index] ?? null,
+    removeItem: (key) => {
+      data.delete(key);
+    },
+    setItem: (key, value) => {
+      data.set(key, value);
+    },
+  };
+}
+
 describe("RSVP intent (stored before sign-in, restored after)", () => {
   beforeEach(() => {
-    window.localStorage.clear();
+    Object.defineProperty(window, "localStorage", { value: memoryStorage(), configurable: true });
   });
 
   it("survives the sign-in round trip, including a full page reload in between", () => {

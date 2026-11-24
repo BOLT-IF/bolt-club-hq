@@ -79,7 +79,7 @@ export function jwksFetch(signers: () => readonly TestSigner[]) {
       Response.json({ keys: signers().map((s) => s.publicJwk) }, { status: 200 }),
     );
   };
-  return { fetch: fetchImpl as typeof fetch, calls };
+  return { fetch: fetchImpl, calls };
 }
 
 export function bearer(token: string): HeadersInit {

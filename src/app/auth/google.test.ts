@@ -27,14 +27,16 @@ describe("detectClient", () => {
     }) as unknown as Pick<Window, "navigator" | "matchMedia">;
 
   it("sees an iPhone home-screen app through navigator.standalone", () => {
-    expect(detectClient(win("Mozilla/5.0 (iPhone; CPU iPhone OS 18_0)", { standalone: true }))).toEqual({
+    expect(
+      detectClient(win("Mozilla/5.0 (iPhone; CPU iPhone OS 18_0)", { standalone: true })),
+    ).toEqual({
       ios: true,
       standalone: true,
     });
   });
 
   it("sees iPadOS, which reports a Mac user agent, by touch support", () => {
-    const ipad = win("Mozilla/5.0 (Macintosh)", { platform: "MacIntel", maxTouchPoints: 5 });
+    const ipad = win("Mozilla/5.0 (Macintosh)", { maxTouchPoints: 5 });
     expect(detectClient(ipad).ios).toBe(true);
   });
 

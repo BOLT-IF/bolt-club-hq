@@ -2,6 +2,22 @@
 
 Decisions made after `PLAN.md` (v3) was written. Newest first. Every entry gives the decision, the reason, and what it changes.
 
+## 2026-11-24: S1.1 Clerk integration: resolutions
+
+- **Google in the installed iOS app: hidden, provisionally.** S0.6 (device spike) has not run. `GOOGLE_HIDDEN_IN_INSTALLED_IOS = true` in `src/app/auth/google.ts` hides Google when the client is iOS and standalone; everywhere else (Safari, Android, desktop) Google shows, below the email form. Flip the one constant when S0.6 reports. **Provisional pending S0.6.**
+- **Issuer and JWKS come from `CLERK_PUBLISHABLE_KEY`** (it embeds the Frontend API host). Tokens must be issued by `https://<that host>`. No audience or `azp` check: Clerk session tokens carry none, and one Clerk instance serves one site.
+- **JWKS cache:** per isolate, refreshed on unknown `kid` (at most once a minute, so forged tokens cannot force fetches), and after one hour. A failed fetch fails closed (401).
+- **First-sign-in profile** (name, email) is read once from the Clerk Backend API with `CLERK_SECRET_KEY`. The JWT has no email by default and we avoid a custom JWT template. Only the **primary, Clerk-verified** email is used, so an unverified address can never become the bootstrap admin. If the Clerk call fails, nothing is created and the request errors; the client retries.
+- **Bootstrap admin is re-asserted on every request** (not only first sign-in), to "re-apply on every deploy" (PLAN §6) without a deploy hook: a bootstrap-email member who is demoted, deactivated or missing `joined_at` is restored to `admin` + `active`, with an audit row. Erased members are never touched. The cost is that the bootstrap address cannot be demoted by an admin while the variable is set; clear the variable to retire it.
+- **Bootstrap admin starts `active`**, other first-time users start `pending` (PLAN A2).
+- **Race safety:** the member insert is `ON CONFLICT (clerk_user_id) DO NOTHING` inside a transaction with the `member.created` audit row, so concurrent first requests create one member and one audit row. `payment_ref` is a random `BC-XXXXXX` (unambiguous alphabet) retried up to 3 times on collision. S2.1 may replace the format; it only needs to stay unique.
+- **`GET /api/v1/me`** is the one route that lets pending members through (`requireSignedIn()`, marked as a guard for the route-guard lint). Its contextMiddleware is scoped to `/me`, per the W2 contract-2 correction.
+- **Origin check** is a `use("*")` in `src/worker/auth/routes.ts`. Hono mounts it for routes registered after `auth`, i.e. every area that sorts after it in the glob (all current ones). It does not open a database, so the "`*` leaks context" problem does not apply. If an area ever sorts before `auth` it would be unprotected; the integrator may move the guard into `app.ts` later (out of S1.1's Owns).
+- **Sign-in intent** lives in `localStorage` (not sessionStorage) because email-link and Google redirects can reopen the app in a new tab or window. 30-minute expiry, consumed once. This story stores and restores `returnTo` and an opaque `rsvp {eventSlug, response}`; completing the RSVP is S4.x/S1.3's job.
+- **Without `VITE_CLERK_PUBLISHABLE_KEY`** (dev, CI, e2e) the app renders without Clerk; `/sign-in` says sign-in is not set up. **Ashok's queue: set `VITE_CLERK_PUBLISHABLE_KEY` as a build variable, and `CLERK_PUBLISHABLE_KEY`, `CLERK_SECRET_KEY`, `BOOTSTRAP_ADMIN_EMAIL` as Worker secrets.**
+- **Playwright via Clerk testing tokens: deferred.** It needs real Clerk keys in CI and `@clerk/testing`, which is not installed (no dependency changes). Behaviour is covered by Vitest (JWT fixtures, db suite, UI).
+- **`logout`** clears caches even when Clerk sign-out fails (offline), then reports the failure.
+
 ## 2026-11-24: W2 contract 2: inactive members on own-data routes; S6.4 owns `scheduled()`
 
 - **`requireGuard(kind, { allowInactive: true })`** lets `inactive` (exited) members through; `pending` and `erased` still get 403. PLAN §6.7: exited members keep Money and attendance history. S5.1/S5.2 (own ledger), S8.2 (own attendance) and S2.5 (own export) set it on their own-data routes; nothing else does. Asked for by S2.1.

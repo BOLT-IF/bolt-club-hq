@@ -110,7 +110,7 @@ describe("Clerk sign-in (S1.1)", () => {
 
     expect(responses.map((r) => r.status)).toEqual(Array.from({ length: 12 }, () => 200));
     const ids = new Set(
-      await Promise.all(responses.map(async (r) => ((await r.json()) as { id: string }).id)),
+      await Promise.all(responses.map(async (r) => (await r.json<{ id: string }>()).id)),
     );
     expect(ids.size).toBe(1);
     const rows = await t.db.select().from(member).where(eq(member.clerkUserId, "user_race"));

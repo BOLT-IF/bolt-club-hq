@@ -31,7 +31,7 @@ function SignInForm() {
         routing="hash"
         forceRedirectUrl={returnTo}
         appearance={{
-          layout: { socialButtonsPlacement: "bottom" },
+          options: { socialButtonsPlacement: "bottom" },
           ...(showGoogle ? {} : { elements: { socialButtonsRoot: hidden, dividerRow: hidden } }),
         }}
       />

@@ -5,7 +5,13 @@ import { apiFetch, configureApiClient } from "../api/client";
 
 const getTokenMock = vi.hoisted(() => vi.fn(() => Promise.resolve("tok_clerk")));
 vi.mock("@clerk/react", () => ({
-  ClerkProvider: ({ children, publishableKey }: { children: React.ReactNode; publishableKey: string }) => (
+  ClerkProvider: ({
+    children,
+    publishableKey,
+  }: {
+    children: React.ReactNode;
+    publishableKey: string;
+  }) => (
     <div data-testid="clerk" data-key={publishableKey}>
       {children}
     </div>

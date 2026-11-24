@@ -83,8 +83,10 @@ describe("SignInPage", () => {
         <SignInPage />
       </AuthProvider>,
     );
-    const appearance = captured.signIn?.appearance as { layout?: { socialButtonsPlacement?: string } };
-    expect(appearance.layout?.socialButtonsPlacement).toBe("bottom");
+    const appearance = captured.signIn?.appearance as {
+      options?: { socialButtonsPlacement?: string };
+    };
+    expect(appearance.options?.socialButtonsPlacement).toBe("bottom");
     expect(elementsOf(captured.signIn).socialButtonsRoot).toBeUndefined();
   });
 

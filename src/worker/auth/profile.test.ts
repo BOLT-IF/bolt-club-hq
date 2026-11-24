@@ -28,16 +28,15 @@ describe("createProfileLoader", () => {
   });
 
   it("returns an empty profile without a secret key, and makes no call", async () => {
-    const load = createProfileLoader((() => {
+    const load = createProfileLoader(() => {
       throw new Error("must not be called");
-    }) as unknown as typeof fetch);
+    });
     const bare = { ENV: "test" } as unknown as Cloudflare.Env;
     expect(await load(bare, "user_1")).toEqual({ email: null, name: null });
   });
 
   it("throws when Clerk answers with an error, so nothing is half-created", async () => {
-    const load = createProfileLoader((() =>
-      Promise.resolve(new Response("nope", { status: 500 }))) as unknown as typeof fetch);
+    const load = createProfileLoader(() => Promise.resolve(new Response("nope", { status: 500 })));
     await expect(load(env, "user_1")).rejects.toThrow(/500/);
   });
 });

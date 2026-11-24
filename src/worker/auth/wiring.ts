@@ -1,6 +1,7 @@
 import { eq } from "drizzle-orm";
 
-import { auditLog, member } from "../../../db/schema";
+import { member } from "../../../db/schema";
+import { audit } from "../core/audit";
 import { systemClock, type Clock } from "../core/clock";
 import { memberLookup, type RequestDeps } from "../core/context";
 import type { Db } from "../core/db/client";
@@ -19,26 +20,6 @@ type Row = typeof member.$inferSelect;
 async function findByClerkId(db: Db, clerkUserId: string): Promise<Row | undefined> {
   const [row] = await db.select().from(member).where(eq(member.clerkUserId, clerkUserId));
   return row;
-}
-
-function audit(
-  db: Db,
-  clock: Clock,
-  memberId: string,
-  action: string,
-  before: unknown,
-  after: unknown,
-) {
-  return db.insert(auditLog).values({
-    id: crypto.randomUUID(),
-    actorId: null,
-    action,
-    entity: "member",
-    entityId: memberId,
-    before: before === null ? null : JSON.stringify(before),
-    after: JSON.stringify(after),
-    at: clock.now(),
-  });
 }
 
 /**
@@ -81,10 +62,18 @@ export function clerkRequestDeps(
             .onConflictDoNothing({ target: member.clerkUserId })
             .returning();
           if (created) {
-            await audit(tx as unknown as Db, clock, created.id, "member.created", null, {
-              role: created.role,
-              status: created.status,
-            });
+            await audit(
+              tx,
+              clock,
+              {
+                actorId: null,
+                action: "member.created",
+                entity: "member",
+                entityId: created.id,
+                after: { role: created.role, status: created.status },
+              },
+              crypto.randomUUID(),
+            );
           }
         });
         return;
@@ -110,15 +99,17 @@ export function clerkRequestDeps(
         })
         .where(eq(member.id, row.id));
       await audit(
-        tx as unknown as Db,
+        tx,
         clock,
-        row.id,
-        "member.bootstrap_admin",
         {
-          role: row.role,
-          status: row.status,
+          actorId: null,
+          action: "member.bootstrap_admin",
+          entity: "member",
+          entityId: row.id,
+          before: { role: row.role, status: row.status },
+          after: { role: "admin", status: "active" },
         },
-        { role: "admin", status: "active" },
+        crypto.randomUUID(),
       );
     });
   }

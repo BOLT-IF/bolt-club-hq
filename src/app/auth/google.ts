@@ -20,13 +20,12 @@ export function shouldShowGoogle(
   return !(hiddenInInstalledIos && client.ios && client.standalone);
 }
 
-export function detectClient(
-  win: Pick<Window, "navigator" | "matchMedia"> = window,
-): ClientKind {
+export function detectClient(win: Pick<Window, "navigator" | "matchMedia"> = window): ClientKind {
   const nav = win.navigator as Navigator & { standalone?: boolean };
   // iPadOS reports a Mac user agent, so it is told apart by touch support.
   const ios =
-    /iPad|iPhone|iPod/.test(nav.userAgent) || (nav.platform === "MacIntel" && nav.maxTouchPoints > 1);
+    /iPad|iPhone|iPod/.test(nav.userAgent) ||
+    (/Macintosh/.test(nav.userAgent) && nav.maxTouchPoints > 1);
   const displayModeStandalone =
     typeof win.matchMedia === "function" && win.matchMedia("(display-mode: standalone)").matches;
   return { ios, standalone: nav.standalone === true || displayModeStandalone };

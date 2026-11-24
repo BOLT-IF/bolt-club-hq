@@ -14,7 +14,7 @@ function app() {
     .post("/thing", (c) => c.json({ ok: true }));
 }
 
-const post = (a: Hono<AppEnv>, origin?: string) =>
+const post = (a: ReturnType<typeof app>, origin?: string) =>
   a.request(
     "https://club.test/thing",
     { method: "POST", headers: origin === undefined ? {} : { Origin: origin } },

@@ -57,7 +57,7 @@ export function createAuthenticator(options: AuthenticatorOptions): RequestDeps[
       try {
         const res = await doFetch(`https://${frontendApi}/.well-known/jwks.json`);
         if (!res.ok) return null;
-        const body = (await res.json()) as { keys?: (JsonWebKey & { kid?: string })[] };
+        const body = await res.json<{ keys?: (JsonWebKey & { kid?: string })[] }>();
         const keys = new Map<string, JsonWebKey>();
         for (const jwk of body.keys ?? []) if (jwk.kid) keys.set(jwk.kid, jwk);
         const fresh = { keys, fetchedAt: options.clock.now().getTime() };

@@ -321,9 +321,9 @@ describe("SeriesPage", () => {
     renderPage(<SeriesPage />);
     expect(await screen.findByRole("heading", { name: "Thursday XD" })).toBeTruthy();
     expect(screen.getByText(/pass cap/i).textContent).toContain("16");
-    expect(screen.getByRole<HTMLInputElement>("checkbox", { name: "Ada Captain" }).checked).toBe(
-      true,
-    );
+    // The candidate list loads separately from the series, so wait for it.
+    const ada = await screen.findByRole<HTMLInputElement>("checkbox", { name: "Ada Captain" });
+    expect(ada.checked).toBe(true);
     expect(screen.getByRole<HTMLInputElement>("checkbox", { name: "Bo Player" }).checked).toBe(
       false,
     );

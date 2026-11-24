@@ -82,14 +82,14 @@ function messageOf(error: unknown): string {
 
 /** Rejects with a time-bound error when `work` takes longer than `ms`. */
 function withinBound(work: Promise<void>, ms: number): Promise<void> {
-  let timer: ReturnType<typeof setTimeout> | undefined;
+  const handle: { id?: ReturnType<typeof setTimeout> } = {};
   const timeout = new Promise<never>((_, reject) => {
-    timer = setTimeout(() => {
+    handle.id = setTimeout(() => {
       reject(new Error(`exceeded time bound of ${String(ms)} ms`));
     }, ms);
   });
   return Promise.race([work, timeout]).finally(() => {
-    clearTimeout(timer ?? null);
+    if (handle.id !== undefined) clearTimeout(handle.id);
   });
 }
 

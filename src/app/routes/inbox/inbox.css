@@ -1,0 +1,34 @@
+.bcq-inbox {
+  list-style: none;
+  margin: 1rem 0 0;
+  padding: 0;
+  display: grid;
+  gap: 0.75rem;
+}
+.bcq-inbox__item {
+  display: grid;
+  gap: 0.25rem;
+  width: 100%;
+  min-height: var(--bcq-touch);
+  padding: 0.875rem 1rem;
+  text-align: left;
+  font: inherit;
+  color: var(--bcq-ink);
+  background: var(--bcq-card);
+  border: 1px solid var(--bcq-line);
+  border-radius: var(--bcq-radius);
+  cursor: pointer;
+}
+.bcq-inbox__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+.bcq-inbox__body {
+  color: var(--bcq-ink-soft);
+}
+.bcq-inbox__time {
+  color: var(--bcq-muted);
+  font-size: 0.8125rem;
+}

@@ -25,3 +25,17 @@ Every change writes an `audit_log` row in the same transaction (`member.update`,
 ## Not in this story
 
 Approval of pending members (S1.3), erasure (S2.5), audit viewer (S2.4), notification preferences. No feature flag: there is no `members` flag in `/config`, and the pages are admin-gated or own-data.
+
+## Invites and join requests (S1.3)
+
+Code: `src/worker/members/invites.ts`, `join.ts` (mounted from `routes.ts`); UI `src/app/routes/join/`, `src/app/routes/admin/approvals/`.
+
+| Route | Guard | Notes |
+|---|---|---|
+| `GET/POST /invites`, `DELETE /invites/:id` | admin | `{ expiresInDays?, maxUses? }`; state `active\|revoked\|expired\|used_up`. |
+| `POST /join-requests` | signed in (pending) | `{ via: "invite", token }` or `{ via: "event_link"\|"series_link", slug }`. 201 new, 200 existing, 410 invite refused, 404 unknown, 409 already a member. Notifies admins (`admin_tasks`) once. |
+| `GET /join-requests/mine` | signed in | `{ status, request }` for the waiting screen. |
+| `GET /admin/join-requests` | admin | Pending queue with `source` (event title / series name). |
+| `POST /join-requests/:id/approve\|reject` | admin | Approve activates; reject deletes the request. |
+
+Frontend: `/join`, `/join/:token`, `/join/event/:slug`, `/join/series/:slug`. The stored RSVP intent is completed client-side after approval (`joinIntent.ts`, DECISIONS 2026-11-24 S1.3).

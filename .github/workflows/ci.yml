@@ -51,7 +51,8 @@ jobs:
           git fetch --no-tags origin "${{ github.base_ref }}"
           git diff --name-only "origin/${{ github.base_ref }}...HEAD" > "$RUNNER_TEMP/changed.txt"
           # Branch convention: story/<id>-<slug>, e.g. story/s0.5-ci-deploy -> S0.5.
-          story="$(printf '%s' "$GITHUB_HEAD_REF" | sed -nE 's#^story/(s[0-9]+\.[0-9]+[a-z]?)-.*#\1#p' | tr '[:lower:]' '[:upper:]')"
+          # Only the leading "s" is upper-cased: story/s6.5a-x -> S6.5a, matching the STORIES.md heading.
+          story="$(printf '%s' "$GITHUB_HEAD_REF" | sed -nE 's#^story/s([0-9]+\.[0-9]+[a-z]?)-.*#S\1#p')"
           if [ -z "$story" ]; then
             echo "Branch '$GITHUB_HEAD_REF' is not story/<id>-<slug>; no Owns list to enforce."
             exit 0

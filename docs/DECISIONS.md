@@ -2,6 +2,11 @@
 
 Decisions made after `PLAN.md` (v3) was written. Newest first. Every entry gives the decision, the reason, and what it changes.
 
+## 2026-11-24: Tick hooks get KV; grants for S5.5, S10.2
+
+- **`TickContext.kv`** (integrator): tick hooks receive the KV binding so they can call `markDue(kv, at)` for their own next wake-up (S6.5a reminders, later S4.3 close, S9.1 poll close). Before this a hook could only run on the daily maintenance cadence.
+- **Owns grants:** S5.5 mounts its claims sub-app in `ledger/routes.ts`. S10.2 owns `src/app/routes/install/` and one `<InstallPrompt />` line in `AppShell.tsx` (no Home route exists yet; S10.1 may move it). The `noteRsvpSaved()` call in the RSVP panel is an integrator follow-up after S4.2 merges.
+
 ## 2026-11-24: S6.6 broadcasts: audiences, mute, audit
 
 - **Route:** `POST /admin/broadcasts` (admin guard + `Idempotency-Key`), body `{ title, body, audience }`, returns `{ broadcastId, recipientCount }`. Title max 100, body max 1000 characters. Unknown event: 404 `event_not_found`.

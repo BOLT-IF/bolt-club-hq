@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 
 import { apiFetch } from "../api/client";
-import { registeredFrontendRoutes } from "../routes/registry";
+import { resolveRoute } from "../routes/registry";
 import { EmptyState } from "../components/ui/States";
 import { ToastProvider } from "../components/ui/Toast";
 import { FeatureFlagsProvider, type FeatureFlags } from "../lib/flags";
@@ -39,8 +39,7 @@ function useFlags(): { readonly flags: FeatureFlags; readonly loaded: boolean } 
 export function AppRoot() {
   const path = useCurrentPath();
   const { flags } = useFlags();
-  const route = registeredFrontendRoutes().find((r) => r.path === path);
-  const Page = route?.component;
+  const Page = resolveRoute(path)?.route.component;
 
   return (
     <FeatureFlagsProvider flags={flags}>

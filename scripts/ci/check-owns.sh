@@ -7,7 +7,8 @@
 # changed path falls outside it. A story whose Owns is "the whole repo" is unrestricted.
 #
 # Shared allow-list: every story may touch docs/DECISIONS.md (the additive ambiguity log,
-# AGENTS.md rule 4) and the PR body/template. Anything else needs its own Owns entry.
+# AGENTS.md rule 4), its area doc under docs/areas/ (DoD 6) and its Playwright spec under
+# tests/e2e/ (DECISIONS 2026-11-24). Anything else needs its own Owns entry.
 #
 # Exit codes: 0 pass, 1 out-of-scope path found, 2 usage or unknown story.
 set -euo pipefail
@@ -20,7 +21,7 @@ STORIES="$1"
 STORY="$2"
 CHANGED="$3"
 
-SHARED_ALLOW=("docs/DECISIONS.md")
+SHARED_ALLOW=("docs/DECISIONS.md" "docs/areas/" "tests/e2e/")
 
 # Pull the **Owns:** line that belongs to the "### <story-id> " heading.
 owns_line="$(awk -v head="### $STORY " '

@@ -2,6 +2,19 @@
 
 Decisions made after `PLAN.md` (v3) was written. Newest first. Every entry gives the decision, the reason, and what it changes.
 
+## 2026-11-24: W2 contract: per-request context, DB test suites, shared Owns
+
+Integrator contract-change PR before the W2 fan-out, so eight parallel stories do not each invent request wiring.
+
+- **`src/worker/core/context.ts`.** An area mounts `new Hono<AppEnv>().use("*", contextMiddleware())` in its `routes.ts` and then reads `c.var.db`, `c.var.clock` and `c.var.actor` (`CurrentMember | null`). `requireGuard` already reads `actor`. Money and RSVP POSTs chain `idempotencyKeyMiddleware({ db: c.var.db … })` after the guard (build it per request inside a small wrapper, since the db is per request).
+- **Actor resolution:** the `X-Test-Identity` header (ENV=test only) wins, then `authenticate()` (bearer JWT). The default `authenticate` returns null: **S1.1** calls `configureRequestDeps({ authenticate, currentMember })` from `src/worker/auth/` to plug in Clerk and pending-member creation. The default `currentMember` only looks up existing members (plus captained series).
+- **DB is loaded lazily** (`await import("./db/client")`): the route registry imports every `routes.ts` eagerly and the workers Vitest pool cannot load `pg`. The production DB opens through Hyperdrive per request and is closed after the response.
+- **Testing:** handler tests that need Postgres are named `*.db.test.ts` and run in the `db` Vitest project (plain Node, real Postgres). They call `configureRequestDeps({ db: () => Promise.resolve(t.db), clock: new FixedClock(...) })`, then `app.request(path, { headers: { "X-Test-Identity": member.clerkUserId } }, { ENV: "test" })`, and reset with `configureRequestDeps({})`. Pure logic stays in `src/domain/` (domain project).
+- **Shared Owns allow-list gains `docs/areas/`** (DoD 6 requires every story to update its area doc, but no Owns line listed it). `docs/STATUS.md` stays integrator-only.
+- **Frontend routes:** the registry now globs `src/app/routes/**/routes.tsx` (so `admin/members/routes.tsx` etc. register), a module may export one route or an array, and paths may use `:param` segments (`/events/:slug`). Pages read params with `useRouteParams()`. Exact paths win over patterns.
+- **Feature flags:** `wrangler.jsonc` is not in story Owns. Stories build behind their flag (off); the integrator flips `FLAG_EVENTS` / `FLAG_MONEY` / `FLAG_INBOX` in a chore PR once an area is usable end to end.
+- **Playwright specs:** a story that adds one names it `tests/e2e/<story-id>-*.spec.ts`. The shared allow-list accepts `tests/e2e/` paths for that reason. UI behaviour is otherwise tested in the Vitest `ui` project.
+
 ## 2026-11-24: No workflow waits for a manual approval
 
 - **Found:** every time the lockfile bot pushed (S0.1, S0.2, the dependency trim), the PR's CI run sat as `action_required` until a person clicked Approve. GitHub does this on purpose: a push made with `GITHUB_TOKEN` cannot start a PR workflow by itself.

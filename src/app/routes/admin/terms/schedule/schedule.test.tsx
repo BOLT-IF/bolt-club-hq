@@ -13,7 +13,8 @@ interface Call {
   body: unknown;
 }
 
-type Reply = { status: number; body: unknown } | unknown;
+/** A bare object is a 200 body; `{ status, body }` sets the status. */
+type Reply = object;
 
 const series = (over: Record<string, unknown> = {}) => ({
   id: "s1",
@@ -21,7 +22,7 @@ const series = (over: Record<string, unknown> = {}) => ({
   name: "Sunday XD",
   weekday: 7,
   startTime: "19:00",
-  skipDates: [],
+  skipDates: ["2027-04-04"],
   skipDatesLocked: false,
   ...over,
 });
@@ -53,8 +54,11 @@ let calls: Call[];
 /** Each key maps to one reply or a queue of replies (consumed in order, last one sticks). */
 function stub(routes: Record<string, Reply | Reply[]>) {
   calls = [];
-  const queues = new Map(
-    Object.entries(routes).map(([k, v]) => [k, Array.isArray(v) ? [...v] : [v]]),
+  const queues = new Map<string, Reply[]>(
+    Object.entries(routes).map(([k, v]): [string, Reply[]] => [
+      k,
+      Array.isArray(v) ? (v as Reply[]) : [v],
+    ]),
   );
   configureApiClient({
     fetch: vi.fn((input: string, init?: RequestInit) => {
@@ -67,9 +71,9 @@ function stub(routes: Record<string, Reply | Reply[]>) {
       });
       const queue = queues.get(`${method} ${path}`);
       if (!queue) return Promise.resolve(new Response("no stub", { status: 500 }));
-      const reply = (queue.length > 1 ? queue.shift() : queue[0]) as Reply;
+      const reply = (queue.length > 1 ? queue.shift() : queue[0]) ?? {};
       const { status, body } =
-        typeof reply === "object" && reply !== null && "status" in reply
+        "status" in reply
           ? (reply as { status: number; body: unknown })
           : { status: 200, body: reply };
       return Promise.resolve(

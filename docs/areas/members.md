@@ -53,3 +53,9 @@ Code: `src/worker/members/invites.ts`, `join.ts` (mounted from `routes.ts`); UI 
 | `POST /join-requests/:id/approve\|reject` | admin | Approve activates; reject deletes the request. |
 
 Frontend: `/join`, `/join/:token`, `/join/event/:slug`, `/join/series/:slug`. The stored RSVP intent is completed client-side after approval (`joinIntent.ts`, DECISIONS 2026-11-24 S1.3).
+
+## Member import (S11.2)
+
+Code: `src/worker/importer/` (`routes.ts`, `service.ts`, `validate.ts`).
+
+- `POST /admin/members/import` (`admin` guard + `Idempotency-Key`): validates all `{ rows }` upfront (400 `invalid_import_rows` on any malformed row, no partial import), pre-provisions new members with `clerk_user_id = "preprovisioned:<memberId>"` and audits `member.import`, matches existing members by case-insensitive email, and records non-zero `openingBalanceSek` via `createLedgerService().adjust` with `reason: "opening_balance"` and key `import-opening:<memberId>`.

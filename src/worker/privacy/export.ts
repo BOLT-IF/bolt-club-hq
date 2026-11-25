@@ -15,6 +15,7 @@ import {
   pushSubscription,
   rsvp,
   seriesCaptain,
+  seriesDiscountEligible,
 } from "../../../db/schema";
 import type { Clock } from "../core/clock";
 import type { Db } from "../core/db/client";
@@ -40,6 +41,7 @@ export async function exportMemberData(db: Db, clock: Clock, memberId: string) {
   const [
     joinRequests,
     seriesCaptains,
+    seriesDiscountEligibles,
     passes,
     rsvps,
     guests,
@@ -72,6 +74,15 @@ export async function exportMemberData(db: Db, clock: Clock, memberId: string) {
       .from(seriesCaptain)
       .where(eq(seriesCaptain.memberId, memberId))
       .orderBy(asc(seriesCaptain.seriesId)),
+
+    db
+      .select({
+        seriesId: seriesDiscountEligible.seriesId,
+        memberId: seriesDiscountEligible.memberId,
+      })
+      .from(seriesDiscountEligible)
+      .where(eq(seriesDiscountEligible.memberId, memberId))
+      .orderBy(asc(seriesDiscountEligible.seriesId)),
 
     db
       .select({
@@ -249,6 +260,7 @@ export async function exportMemberData(db: Db, clock: Clock, memberId: string) {
     },
     joinRequests,
     seriesCaptains,
+    seriesDiscountEligibles,
     passes,
     rsvps,
     guests,

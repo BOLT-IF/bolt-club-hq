@@ -19,7 +19,7 @@
 
 .bcq-reminders-list {
   display: grid;
-  gap: 0.875rem;
+  gap: 0.75rem;
   margin: 0;
   padding: 0;
   list-style: none;
@@ -27,7 +27,7 @@
 
 .bcq-reminder-card {
   display: grid;
-  gap: 0.625rem;
+  gap: 0.5rem;
   padding: 1rem;
   border: 1px solid var(--bcq-line);
   border-radius: var(--bcq-radius);
@@ -44,7 +44,7 @@
 
 .bcq-reminder-card__title {
   margin: 0;
-  font: 700 1.125rem/1.3 var(--bcq-font);
+  font: 600 1.125rem/1.3 var(--bcq-font);
 }
 
 .bcq-reminder-card__meta {
@@ -55,7 +55,7 @@
 
 .bcq-reminder-card__template {
   margin: 0;
-  padding: 0.625rem 0.75rem;
+  padding: 0.75rem;
   border-radius: var(--bcq-radius-sm);
   background: var(--bcq-paper);
   border: 1px solid var(--bcq-line);
@@ -72,7 +72,7 @@
 
 .bcq-reminder-form {
   display: grid;
-  gap: 0.9rem;
+  gap: 1rem;
   padding: 1rem;
   margin-bottom: 1rem;
   border: 1px solid var(--bcq-line);
@@ -82,12 +82,12 @@
 
 .bcq-reminder-form__title {
   margin: 0;
-  font: 700 1.2rem/1.25 var(--bcq-font);
+  font: 600 1.25rem/1.25 var(--bcq-font);
 }
 
 .bcq-reminder-field {
   display: grid;
-  gap: 0.3rem;
+  gap: 0.25rem;
 }
 
 .bcq-reminder-field label {
@@ -100,12 +100,13 @@
   box-sizing: border-box;
   width: 100%;
   min-height: var(--bcq-touch);
-  padding: 0.6rem 0.8rem;
-  border: 2px solid var(--bcq-line);
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--bcq-input-border);
   border-radius: var(--bcq-radius-sm);
-  background: #fff;
+  background: var(--bcq-card);
   color: var(--bcq-ink);
   font: 400 1rem/1.4 var(--bcq-font);
+  transition: border-color 140ms var(--bcq-ease);
 }
 
 .bcq-reminder-field [aria-invalid="true"] {
@@ -160,17 +161,20 @@
   display: inline-flex;
   align-items: center;
   min-height: var(--bcq-touch);
-  padding: 0 0.85rem;
+  padding: 0 0.75rem;
   border: 1px solid var(--bcq-line);
-  border-radius: 999px;
+  border-radius: var(--bcq-radius-sm);
   background: var(--bcq-brand-soft);
   color: var(--bcq-ink);
   font:
-    600 0.875rem/1 ui-monospace,
+    500 0.875rem/1 ui-monospace,
     SFMono-Regular,
     Menlo,
     monospace;
   cursor: pointer;
+  transition:
+    background-color 140ms var(--bcq-ease),
+    border-color 140ms var(--bcq-ease);
 }
 
 .bcq-placeholder-chip:hover {
@@ -186,7 +190,7 @@
 
 .bcq-preview {
   display: grid;
-  gap: 0.9rem;
+  gap: 1rem;
 }
 
 .bcq-preview__count {
@@ -195,15 +199,15 @@
 }
 
 .bcq-preview__section-title {
-  margin: 0 0 0.35rem;
-  font: 700 0.9375rem/1.3 var(--bcq-font);
+  margin: 0 0 0.25rem;
+  font: 600 0.9375rem/1.3 var(--bcq-font);
   color: var(--bcq-ink-soft);
 }
 
 .bcq-preview__sample {
   display: grid;
-  gap: 0.3rem;
-  padding: 0.85rem;
+  gap: 0.25rem;
+  padding: 0.75rem;
   border-radius: var(--bcq-radius-sm);
   border: 1px solid var(--bcq-line);
   background: var(--bcq-paper);
@@ -211,7 +215,7 @@
 
 .bcq-preview__sample-title {
   margin: 0;
-  font: 700 1rem/1.3 var(--bcq-font);
+  font: 600 1rem/1.3 var(--bcq-font);
 }
 
 .bcq-preview__sample-body {

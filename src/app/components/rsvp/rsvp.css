@@ -38,8 +38,10 @@
   min-height: var(--bcq-touch);
   padding: 0 0.75rem;
   font: inherit;
-  border: 1px solid var(--bcq-line);
-  border-radius: var(--bcq-radius);
+  color: var(--bcq-ink);
+  background: var(--bcq-card);
+  border: 1px solid var(--bcq-input-border);
+  border-radius: var(--bcq-radius-sm);
 }
 .bcq-rsvp__guest input:focus-visible {
   outline: 3px solid var(--bcq-focus);

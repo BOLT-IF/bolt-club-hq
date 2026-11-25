@@ -31,11 +31,15 @@
   --bcq-info-bg: #e2ebff;
   --bcq-info-ink: #1d3f9c;
   --bcq-focus: #1a5fd6;
+  --bcq-input-border: #c9c1b2;
   --bcq-radius: 14px;
   --bcq-radius-sm: 10px;
+  --bcq-radius-xs: 6px;
   --bcq-touch: 48px;
   --bcq-shadow: 0 1px 2px rgb(39 46 56 / 0.06), 0 8px 24px rgb(39 46 56 / 0.1);
-  --bcq-font: ui-rounded, "SF Pro Rounded", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  --bcq-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --bcq-font:
+    "Inter", "Avenir Next", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
 }
 
 .bcq-visually-hidden {
@@ -53,7 +57,7 @@
 :focus-visible {
   outline: 3px solid var(--bcq-focus);
   outline-offset: 2px;
-  border-radius: 6px;
+  border-radius: var(--bcq-radius-xs);
 }
 
 /* Buttons */
@@ -64,14 +68,14 @@
   gap: 0.5rem;
   min-height: var(--bcq-touch);
   padding: 0 1.25rem;
-  border-radius: 999px;
-  border: 2px solid transparent;
+  border-radius: var(--bcq-radius-sm);
+  border: 1px solid transparent;
   font: 600 1rem/1 var(--bcq-font);
-  letter-spacing: 0.01em;
   cursor: pointer;
   transition:
-    background-color 120ms ease,
-    transform 80ms ease;
+    background-color 140ms var(--bcq-ease),
+    border-color 140ms var(--bcq-ease),
+    transform 120ms var(--bcq-ease);
 }
 .bcq-btn:active {
   transform: scale(0.98);
@@ -90,7 +94,7 @@
 .bcq-btn--secondary {
   background: var(--bcq-card);
   color: var(--bcq-ink);
-  border-color: var(--bcq-ink);
+  border-color: var(--bcq-ink-soft);
 }
 .bcq-btn--secondary:hover:not(:disabled) {
   background: var(--bcq-paper);
@@ -114,11 +118,11 @@
 .bcq-chip {
   display: inline-flex;
   align-items: center;
-  gap: 0.35rem;
+  gap: 0.25rem;
   min-height: 28px;
-  padding: 0 0.7rem;
+  padding: 0 0.75rem;
   border-radius: 999px;
-  font: 600 0.8125rem/1 var(--bcq-font);
+  font: 500 0.8125rem/1 var(--bcq-font);
   white-space: nowrap;
 }
 .bcq-chip--neutral {
@@ -146,12 +150,13 @@
 .bcq-spots__meta {
   display: flex;
   justify-content: space-between;
-  font: 600 0.875rem/1.3 var(--bcq-font);
+  font: 500 0.875rem/1.3 var(--bcq-font);
+  font-variant-numeric: tabular-nums;
   color: var(--bcq-ink-soft);
-  margin-bottom: 0.4rem;
+  margin-bottom: 0.5rem;
 }
 .bcq-spots__track {
-  height: 10px;
+  height: 8px;
   border-radius: 999px;
   background: #efe9dd;
   overflow: hidden;
@@ -159,29 +164,35 @@
 .bcq-spots__fill {
   height: 100%;
   border-radius: 999px;
-  background: linear-gradient(90deg, #ff8b28, var(--bcq-bolt));
-  transition: width 240ms ease;
+  background: var(--bcq-brand);
+  transition: width 240ms var(--bcq-ease);
 }
 
 /* Stepper */
 .bcq-stepper {
   display: inline-flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.5rem;
   padding: 0.25rem;
-  border-radius: 999px;
+  border-radius: var(--bcq-radius-sm);
   background: var(--bcq-card);
   border: 1px solid var(--bcq-line);
 }
 .bcq-stepper__btn {
   width: var(--bcq-touch);
   height: var(--bcq-touch);
-  border-radius: 999px;
+  border-radius: var(--bcq-radius-xs);
   border: none;
   background: var(--bcq-ink);
   color: #fff;
-  font: 600 1.5rem/1 var(--bcq-font);
+  font: 500 1.5rem/1 var(--bcq-font);
   cursor: pointer;
+  transition:
+    background-color 140ms var(--bcq-ease),
+    transform 120ms var(--bcq-ease);
+}
+.bcq-stepper__btn:active:not(:disabled) {
+  transform: scale(0.97);
 }
 .bcq-stepper__btn:disabled {
   background: #bdb6a8;
@@ -190,7 +201,7 @@
 .bcq-stepper__value {
   min-width: 2.5rem;
   text-align: center;
-  font: 700 1.25rem/1 var(--bcq-font);
+  font: 600 1.25rem/1 var(--bcq-font);
   font-variant-numeric: tabular-nums;
 }
 
@@ -203,7 +214,7 @@
   display: flex;
   align-items: flex-end;
   justify-content: center;
-  animation: bcq-fade 160ms ease;
+  animation: bcq-fade 160ms var(--bcq-ease);
 }
 .bcq-sheet {
   width: 100%;
@@ -211,14 +222,14 @@
   max-height: 85dvh;
   overflow: auto;
   background: var(--bcq-card);
-  border-radius: 22px 22px 0 0;
+  border-radius: 20px 20px 0 0;
   padding: 0.5rem 1.25rem calc(1.5rem + env(safe-area-inset-bottom));
   box-shadow: var(--bcq-shadow);
-  animation: bcq-rise 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  animation: bcq-rise 220ms var(--bcq-ease);
 }
 .bcq-sheet__grip {
-  width: 44px;
-  height: 5px;
+  width: 40px;
+  height: 4px;
   border-radius: 999px;
   background: var(--bcq-line);
   margin: 0.5rem auto 0.75rem;
@@ -232,13 +243,14 @@
 }
 .bcq-sheet__title {
   margin: 0;
-  font: 700 1.25rem/1.2 var(--bcq-font);
+  font: 600 1.25rem/1.2 var(--bcq-font);
   color: var(--bcq-ink);
 }
 .bcq-sheet__close {
   min-height: var(--bcq-touch);
   padding: 0 0.75rem;
   border: none;
+  border-radius: var(--bcq-radius-sm);
   background: transparent;
   color: var(--bcq-brand-deep);
   font: 600 1rem/1 var(--bcq-font);
@@ -272,17 +284,17 @@
   pointer-events: none;
 }
 .bcq-toast {
-  padding: 0.85rem 1.1rem;
+  padding: 0.75rem 1rem;
   border-radius: var(--bcq-radius-sm);
   background: var(--bcq-ink);
   color: #fff;
-  font: 600 0.9375rem/1.35 var(--bcq-font);
+  font: 500 0.9375rem/1.35 var(--bcq-font);
   box-shadow: var(--bcq-shadow);
-  animation: bcq-rise 200ms ease;
+  animation: bcq-rise 180ms var(--bcq-ease);
 }
 .bcq-toast--success {
   background: var(--bcq-ink);
-  border-left: 6px solid var(--bcq-bolt);
+  border-left: 4px solid var(--bcq-bolt);
 }
 .bcq-toast--danger {
   background: var(--bcq-danger);
@@ -294,7 +306,7 @@
   text-align: center;
   border-radius: var(--bcq-radius);
   background: var(--bcq-card);
-  border: 1px dashed var(--bcq-line);
+  border: 1px solid var(--bcq-line);
 }
 .bcq-state--error {
   border: 1px solid var(--bcq-danger-bg);
@@ -303,7 +315,7 @@
 }
 .bcq-state__title {
   margin: 0 0 0.5rem;
-  font: 700 1.125rem/1.3 var(--bcq-font);
+  font: 600 1.125rem/1.3 var(--bcq-font);
   color: var(--bcq-ink);
 }
 .bcq-state--error .bcq-state__title {
@@ -316,17 +328,16 @@
 }
 .bcq-skeleton {
   display: grid;
-  gap: 0.6rem;
+  gap: 0.5rem;
   padding: 1rem;
   border-radius: var(--bcq-radius);
   background: var(--bcq-card);
+  border: 1px solid var(--bcq-line);
 }
 .bcq-skeleton__line {
-  height: 14px;
-  border-radius: 999px;
-  background: linear-gradient(90deg, #f0eadf 25%, #fbf8f3 50%, #f0eadf 75%);
-  background-size: 200% 100%;
-  animation: bcq-shimmer 1.2s linear infinite;
+  height: 12px;
+  border-radius: var(--bcq-radius-xs);
+  background: #efe9dd;
 }
 .bcq-skeleton__line:nth-child(2) {
   width: 78%;
@@ -342,13 +353,8 @@
 }
 @keyframes bcq-rise {
   from {
-    transform: translateY(16px);
+    transform: translateY(10px);
     opacity: 0;
-  }
-}
-@keyframes bcq-shimmer {
-  to {
-    background-position: -200% 0;
   }
 }
 

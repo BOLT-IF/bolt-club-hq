@@ -7,9 +7,9 @@
 }
 .bcq-member {
   display: grid;
-  gap: 0.6rem;
-  padding: 0.9rem;
-  border-radius: var(--bcq-radius-sm);
+  gap: 0.5rem;
+  padding: 1rem;
+  border-radius: var(--bcq-radius);
   background: var(--bcq-card);
   border: 1px solid var(--bcq-line);
 }
@@ -21,7 +21,7 @@
 }
 .bcq-member__name {
   margin: 0;
-  font: 700 1.05rem/1.2 var(--bcq-font);
+  font: 600 1.0625rem/1.2 var(--bcq-font);
 }
 .bcq-member__meta {
   margin: 0;
@@ -56,12 +56,13 @@
 }
 .bcq-input {
   min-height: var(--bcq-touch);
-  padding: 0 0.9rem;
-  border: 1px solid var(--bcq-ink-soft);
+  padding: 0 0.75rem;
+  border: 1px solid var(--bcq-input-border);
   border-radius: var(--bcq-radius-sm);
   background: var(--bcq-card);
   color: var(--bcq-ink);
-  font: 500 1rem/1.2 var(--bcq-font);
+  font: 400 1rem/1.2 var(--bcq-font);
   box-sizing: border-box;
   width: 100%;
+  transition: border-color 140ms var(--bcq-ease);
 }

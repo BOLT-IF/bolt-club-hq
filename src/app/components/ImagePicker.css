@@ -2,7 +2,7 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 0.65rem;
+  gap: 0.75rem;
 }
 
 .bcq-image-picker__trigger {
@@ -11,12 +11,13 @@
   justify-content: center;
   min-height: var(--bcq-touch);
   padding: 0 1rem;
-  border-radius: 999px;
-  border: 1px solid var(--bcq-muted);
+  border-radius: var(--bcq-radius-sm);
+  border: 1px solid var(--bcq-input-border);
   background: var(--bcq-card);
   color: var(--bcq-ink);
-  font: 600 0.95rem/1 var(--bcq-font);
+  font: 500 0.9375rem/1 var(--bcq-font);
   cursor: pointer;
+  transition: background-color 140ms var(--bcq-ease);
 }
 
 .bcq-image-picker__trigger:hover:not(.bcq-image-picker__trigger--disabled) {

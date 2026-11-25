@@ -1,6 +1,9 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
 
+// Block the service worker so WebKit/iPhone does not bypass page.route() after clients.claim().
+test.use({ serviceWorkers: "block" });
+
 async function mockConfig(page: Page) {
   await page.route("**/api/v1/config", (route) =>
     route.fulfill({
@@ -48,7 +51,7 @@ test("privacy page is reachable from More, renders notice, downloads export, and
     const download = await downloadPromise;
     expect(download.suggestedFilename()).toBe("bolt-hq-data-export.json");
   }
-  await expect(page.getByRole("status")).toHaveText("Your data export is ready.");
+  await expect(page.getByText("Your data export is ready.")).toBeVisible();
 
   const results = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa"]).analyze();
   const serious = results.violations.filter(

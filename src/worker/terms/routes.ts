@@ -2,7 +2,15 @@ import { and, asc, count, desc, eq, inArray, ne, sql } from "drizzle-orm";
 import { Hono, type Context } from "hono";
 import type { ContentfulStatusCode } from "hono/utils/http-status";
 
-import { event, member, pass, series, seriesCaptain, term } from "../../../db/schema";
+import {
+  event,
+  member,
+  pass,
+  series,
+  seriesCaptain,
+  seriesDiscountEligible,
+  term,
+} from "../../../db/schema";
 import { audit } from "../core/audit";
 import { contextMiddleware } from "../core/context";
 import type { Db, Tx } from "../core/db/client";
@@ -16,6 +24,7 @@ import {
   CAPTAIN_EDITABLE_FIELDS,
   parseCaptainIds,
   parseClone,
+  parseMemberIds,
   parseSeriesCreate,
   parseSeriesPatch,
   parseTermCreate,
@@ -48,25 +57,36 @@ const jsonBody = async (c: Context<AppEnv>): Promise<unknown> =>
 
 async function withCaptains(q: Q, rows: readonly SeriesRow[]) {
   if (rows.length === 0) return [];
-  const captains = await q
-    .select({
-      seriesId: seriesCaptain.seriesId,
-      id: member.id,
-      displayName: member.displayName,
-    })
-    .from(seriesCaptain)
-    .innerJoin(member, eq(member.id, seriesCaptain.memberId))
-    .where(
-      inArray(
-        seriesCaptain.seriesId,
-        rows.map((r) => r.id),
-      ),
-    )
-    .orderBy(asc(member.displayName));
+  const seriesIds = rows.map((r) => r.id);
+  const [captains, eligible] = await Promise.all([
+    q
+      .select({
+        seriesId: seriesCaptain.seriesId,
+        id: member.id,
+        displayName: member.displayName,
+      })
+      .from(seriesCaptain)
+      .innerJoin(member, eq(member.id, seriesCaptain.memberId))
+      .where(inArray(seriesCaptain.seriesId, seriesIds))
+      .orderBy(asc(member.displayName)),
+    q
+      .select({
+        seriesId: seriesDiscountEligible.seriesId,
+        id: member.id,
+        displayName: member.displayName,
+      })
+      .from(seriesDiscountEligible)
+      .innerJoin(member, eq(member.id, seriesDiscountEligible.memberId))
+      .where(inArray(seriesDiscountEligible.seriesId, seriesIds))
+      .orderBy(asc(member.displayName)),
+  ]);
   return rows.map((row) => ({
     ...row,
     captains: captains
       .filter((cap) => cap.seriesId === row.id)
+      .map(({ id, displayName }) => ({ id, displayName })),
+    discountEligible: eligible
+      .filter((m) => m.seriesId === row.id)
       .map(({ id, displayName }) => ({ id, displayName })),
   }));
 }
@@ -330,30 +350,48 @@ export default new Hono<AppEnv>()
   .post("/series", requireGuard("admin"), async (c) => {
     const parsed = parseSeriesCreate(await jsonBody(c));
     if (!parsed.ok) return invalid(c, parsed.error);
+    const { discountEligibleIds, ...values } = parsed.value;
+    if (
+      values.discountedPassPrice !== undefined &&
+      values.discountedPassPrice !== null &&
+      values.discountedPassPrice > values.passPrice
+    ) {
+      return invalid(c, "discountedPassPrice cannot exceed passPrice");
+    }
     const { db, clock } = c.var;
     const actor = actorOf(c);
 
     const out = await db.transaction(async (tx) => {
-      const [parent] = await tx
-        .select()
-        .from(term)
-        .where(eq(term.id, parsed.value.termId))
-        .for("update");
+      const [parent] = await tx.select().from(term).where(eq(term.id, values.termId)).for("update");
       if (!parent) return fail(404, "term_not_found");
       if (parent.status === "closed") return fail(409, "term_closed");
+      if (discountEligibleIds && discountEligibleIds.length > 0) {
+        const active = await tx
+          .select({ id: member.id })
+          .from(member)
+          .where(and(inArray(member.id, discountEligibleIds), eq(member.status, "active")));
+        if (active.length !== discountEligibleIds.length) {
+          return fail(422, "invalid_discount_members");
+        }
+      }
       const id = crypto.randomUUID();
       const [created] = await tx
         .insert(series)
         .values({
           id,
-          ...parsed.value,
+          ...values,
           shareSlug: randomSlug(),
           skipDates: [],
           // Skip-dates lock at open_for_passes and stay locked (PLAN §6.5).
           skipDatesLocked: parent.status !== "draft",
-          passCap: parsed.value.capacity,
+          passCap: values.capacity,
         })
         .returning();
+      if (discountEligibleIds && discountEligibleIds.length > 0) {
+        await tx
+          .insert(seriesDiscountEligible)
+          .values(discountEligibleIds.map((memberId) => ({ seriesId: id, memberId })));
+      }
       await audit(
         tx,
         clock,
@@ -403,6 +441,17 @@ export default new Hono<AppEnv>()
         if (!row) return fail(404, "not_found");
         const [parent] = await tx.select().from(term).where(eq(term.id, row.termId));
         if (parent?.status === "closed") return fail(409, "term_closed");
+
+        const nextPassPrice = changes.passPrice ?? row.passPrice;
+        const nextDiscountPrice =
+          changes.discountedPassPrice !== undefined
+            ? changes.discountedPassPrice
+            : row.discountedPassPrice;
+        if (nextDiscountPrice !== null && nextDiscountPrice > nextPassPrice) {
+          return fail(422, "invalid_input", {
+            detail: "discountedPassPrice cannot exceed passPrice",
+          });
+        }
 
         const passCap = await currentPassCap(tx, id, changes.capacity ?? row.capacity);
         let overridden = false;
@@ -461,6 +510,7 @@ export default new Hono<AppEnv>()
         .where(eq(pass.seriesId, id));
       if (events > 0 || passes > 0) return fail(409, "series_in_use", { events, passes });
       await tx.delete(seriesCaptain).where(eq(seriesCaptain.seriesId, id));
+      await tx.delete(seriesDiscountEligible).where(eq(seriesDiscountEligible.seriesId, id));
       await tx.delete(series).where(eq(series.id, id));
       await audit(
         tx,
@@ -508,6 +558,52 @@ export default new Hono<AppEnv>()
         {
           actorId: actor.id,
           action: "series.captains",
+          entity: "series",
+          entityId: id,
+          before: before.map((b) => b.memberId),
+          after: wanted,
+        },
+        crypto.randomUUID(),
+      );
+      return ok(await oneSeries(tx, id));
+    });
+    return out.ok ? c.json({ series: out.value }) : c.json(out.body, out.status);
+  })
+
+  .put("/series/:id/discount-eligible", requireGuard("admin"), async (c) => {
+    const parsed = parseMemberIds(await jsonBody(c));
+    if (!parsed.ok) return invalid(c, parsed.error);
+    const { db, clock } = c.var;
+    const actor = actorOf(c);
+    const id = c.req.param("id");
+    const wanted = parsed.value;
+
+    const out = await db.transaction(async (tx) => {
+      const [row] = await tx.select().from(series).where(eq(series.id, id)).for("update");
+      if (!row) return fail(404, "not_found");
+      if (wanted.length > 0) {
+        const active = await tx
+          .select({ id: member.id })
+          .from(member)
+          .where(and(inArray(member.id, wanted), eq(member.status, "active")));
+        if (active.length !== wanted.length) return fail(422, "invalid_discount_members");
+      }
+      const before = await tx
+        .select({ memberId: seriesDiscountEligible.memberId })
+        .from(seriesDiscountEligible)
+        .where(eq(seriesDiscountEligible.seriesId, id));
+      await tx.delete(seriesDiscountEligible).where(eq(seriesDiscountEligible.seriesId, id));
+      if (wanted.length > 0) {
+        await tx
+          .insert(seriesDiscountEligible)
+          .values(wanted.map((memberId) => ({ seriesId: id, memberId })));
+      }
+      await audit(
+        tx,
+        clock,
+        {
+          actorId: actor.id,
+          action: "series.discount_eligible",
           entity: "series",
           entityId: id,
           before: before.map((b) => b.memberId),

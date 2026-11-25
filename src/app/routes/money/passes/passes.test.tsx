@@ -236,4 +236,18 @@ describe("admin balances revocable filter and pass revocation", () => {
     expect(post?.path).toBe("/admin/passes/pas_rev/revoke");
     expect(post?.key).toBeTruthy();
   });
+
+  it("shows a returning member rate badge on discounted pass offers", async () => {
+    stubApi(undefined, {
+      passesPayload: {
+        offers: [
+          { ...offer1, passPrice: 700, regularPassPrice: 1000, discounted: true, priceSek: 700 },
+        ],
+        passes: [],
+      },
+    });
+    renderWith(<PassesPage />);
+    expect(await screen.findByText("Returning member rate")).toBeTruthy();
+    expect(screen.getByText("700 kr")).toBeTruthy();
+  });
 });

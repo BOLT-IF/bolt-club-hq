@@ -52,6 +52,7 @@ export const series = pgTable("series", {
   location: text("location"),
   capacity: integer("capacity").notNull(),
   passPrice: integer("pass_price").notNull(),
+  discountedPassPrice: integer("discounted_pass_price"),
   adhocFee: integer("adhoc_fee").notNull(),
   maxGuestsDefault: integer("max_guests_default").notNull().default(0),
   rsvpCloseOffsetMin: integer("rsvp_close_offset_min").notNull().default(1440),
@@ -63,6 +64,19 @@ export const series = pgTable("series", {
 
 export const seriesCaptain = pgTable(
   "series_captain",
+  {
+    seriesId: text("series_id")
+      .notNull()
+      .references(() => series.id),
+    memberId: text("member_id")
+      .notNull()
+      .references(() => member.id),
+  },
+  (t) => [primaryKey({ columns: [t.seriesId, t.memberId] })],
+);
+
+export const seriesDiscountEligible = pgTable(
+  "series_discount_eligible",
   {
     seriesId: text("series_id")
       .notNull()

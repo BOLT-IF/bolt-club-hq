@@ -13,6 +13,7 @@ import {
   pass,
   rsvp,
   series,
+  seriesDiscountEligible,
   term,
 } from "../../../db/schema";
 import { FixedClock } from "../core/clock";
@@ -649,6 +650,50 @@ describe("passes routes (S5.3)", () => {
       expect(replay.status).toBe(201);
       expect(replay.headers.get("Idempotent-Replayed")).toBe("true");
       expect(await t.db.select().from(pass).where(eq(pass.memberId, m.id))).toHaveLength(1);
+    });
+  });
+
+  describe("returning-subscriber discounted rate", () => {
+    it("offers and charges discountedPassPrice only to eligible members", async () => {
+      const returning = await makeMember(t.db, { displayName: "Returning" });
+      const regular = await makeMember(t.db, { displayName: "Regular" });
+      await seedSeriesWithDates({ passPrice: 1000 });
+      await t.db.update(series).set({ discountedPassPrice: 700 }).where(eq(series.id, "ser_1"));
+      await t.db
+        .insert(seriesDiscountEligible)
+        .values({ seriesId: "ser_1", memberId: returning.id });
+
+      const returningOffers = (await call(returning, "GET", "/passes/offers")).body as {
+        offers: Array<{ priceSek: number; regularPassPrice: number; discounted: boolean }>;
+      };
+      expect(returningOffers.offers[0]).toMatchObject({
+        priceSek: 700,
+        regularPassPrice: 1000,
+        discounted: true,
+      });
+
+      const regularOffers = (await call(regular, "GET", "/passes/offers")).body as {
+        offers: Array<{ priceSek: number; regularPassPrice: number; discounted: boolean }>;
+      };
+      expect(regularOffers.offers[0]).toMatchObject({
+        priceSek: 1000,
+        regularPassPrice: 1000,
+        discounted: false,
+      });
+
+      const buyReturning = await call(returning, "POST", "/passes", {
+        body: { seriesId: "ser_1" },
+        key: "disc-1",
+      });
+      expect(buyReturning.status).toBe(201);
+      expect((buyReturning.body as { pass: { priceCharged: number } }).pass.priceCharged).toBe(700);
+
+      const buyRegular = await call(regular, "POST", "/passes", {
+        body: { seriesId: "ser_1" },
+        key: "reg-1",
+      });
+      expect(buyRegular.status).toBe(201);
+      expect((buyRegular.body as { pass: { priceCharged: number } }).pass.priceCharged).toBe(1000);
     });
   });
 });

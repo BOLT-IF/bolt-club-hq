@@ -61,6 +61,7 @@ const seriesRow = (over: Record<string, unknown> = {}) => ({
   location: "Hall A",
   capacity: 16,
   passPrice: 1800,
+  discountedPassPrice: null,
   adhocFee: 120,
   maxGuestsDefault: 1,
   rsvpCloseOffsetMin: 1440,
@@ -325,11 +326,12 @@ describe("SeriesPage", () => {
       screen.getByRole("link", { name: "Schedule and occurrences" }).getAttribute("href"),
     ).toBe("/admin/terms/series/s1/schedule");
     // The candidate list loads separately from the series, so wait for it.
-    const ada = await screen.findByRole<HTMLInputElement>("checkbox", { name: "Ada Captain" });
+    const captains = await screen.findByRole("group", { name: "Captains" });
+    const ada = within(captains).getByRole<HTMLInputElement>("checkbox", { name: "Ada Captain" });
     expect(ada.checked).toBe(true);
-    expect(screen.getByRole<HTMLInputElement>("checkbox", { name: "Bo Player" }).checked).toBe(
-      false,
-    );
+    expect(
+      within(captains).getByRole<HTMLInputElement>("checkbox", { name: "Bo Player" }).checked,
+    ).toBe(false);
   });
 
   it("saves the chosen captains as a full replacement", async () => {
@@ -339,7 +341,8 @@ describe("SeriesPage", () => {
       "PUT /series/s1/captains": { series: seriesRow() },
     });
     renderPage(<SeriesPage />);
-    await user.click(await screen.findByRole("checkbox", { name: "Bo Player" }));
+    const captains = await screen.findByRole("group", { name: "Captains" });
+    await user.click(within(captains).getByRole("checkbox", { name: "Bo Player" }));
     await user.click(screen.getByRole("button", { name: "Save captains" }));
 
     await waitFor(() => {
@@ -393,6 +396,44 @@ describe("SeriesPage", () => {
     expect(calls.filter((c) => c.method === "PATCH")[1]!.body).toMatchObject({
       capacity: 8,
       overrideCapBelowSold: true,
+    });
+  });
+
+  it("sets discounted pass price and eligible members while creating a series", async () => {
+    const user = userEvent.setup();
+    window.history.pushState({}, "", "/admin/terms/t1");
+    stub({
+      "GET /terms/t1": { term: term(), series: [seriesRow()] },
+      "GET /series/captain-candidates": {
+        members: [
+          { id: "m1", displayName: "Ada Lovelace" },
+          { id: "m2", displayName: "Bo Player" },
+        ],
+      },
+      "POST /series": { series: seriesRow({ discountedPassPrice: 750 }) },
+    });
+    renderPage(<TermPage />);
+    await screen.findByText("Thursday XD");
+
+    await user.type(screen.getByLabelText("Name"), "Sunday Open");
+    await user.type(screen.getByLabelText("Start time"), "18:00");
+    await user.type(screen.getByLabelText("Duration (minutes)"), "120");
+    await user.type(screen.getByLabelText("Capacity"), "16");
+    await user.type(screen.getByLabelText("Pass price (kr)"), "1000");
+    await user.type(screen.getByLabelText("Discounted pass price (kr, optional)"), "750");
+    await user.type(screen.getByLabelText("Drop-in fee (kr)"), "100");
+
+    const eligibleGroup = screen.getByRole("group", { name: "Eligible for discounted rate" });
+    await user.click(within(eligibleGroup).getByLabelText("Ada Lovelace"));
+    await user.click(screen.getByRole("button", { name: "Add series" }));
+
+    await waitFor(() => {
+      const post = calls.find((c) => c.method === "POST" && c.path === "/series");
+      expect(post?.body).toMatchObject({
+        passPrice: 1000,
+        discountedPassPrice: 750,
+        discountEligibleIds: ["m1"],
+      });
     });
   });
 });

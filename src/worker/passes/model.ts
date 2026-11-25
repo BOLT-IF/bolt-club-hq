@@ -10,6 +10,7 @@ import {
   pass,
   rsvp,
   series,
+  seriesDiscountEligible,
   term,
 } from "../../../db/schema";
 import { itemize, type LedgerRow } from "../../domain/ledger";
@@ -54,6 +55,8 @@ export interface PassOfferView {
   durationMin: number;
   location: string | null;
   passPrice: number;
+  regularPassPrice: number;
+  discounted: boolean;
   priceSek: number;
   remainingEvents: number;
   totalEvents: number;
@@ -103,7 +106,13 @@ function isOpenForPass(e: Pick<EventRow, "status" | "rsvpCloseAt" | "endsAt">, n
  * Uses concrete event rows where generated and falls back to `weeklyOccurrences` for
  * dates not yet generated (e.g. when a term opens for passes before `generate-events`).
  */
-function calculateOffer(s: SeriesRow, t: TermRow, seriesEvents: readonly EventRow[], now: Date) {
+function calculateOffer(
+  s: SeriesRow,
+  t: TermRow,
+  seriesEvents: readonly EventRow[],
+  now: Date,
+  discountEligible = false,
+) {
   const planned = weeklyOccurrences({
     startsOn: t.startsOn,
     endsOn: t.endsOn,
@@ -127,11 +136,17 @@ function calculateOffer(s: SeriesRow, t: TermRow, seriesEvents: readonly EventRo
       if (occ && occ.rsvpCloseAt > now && occ.endsAt > now) remainingEvents += 1;
     }
   }
-  return computePassOffer({
-    passPrice: s.passPrice,
-    remainingEvents,
-    totalEvents: allDates.size,
-  });
+  const discounted = discountEligible && s.discountedPassPrice !== null;
+  const effectivePassPrice = discounted ? (s.discountedPassPrice ?? s.passPrice) : s.passPrice;
+  return {
+    ...computePassOffer({
+      passPrice: effectivePassPrice,
+      remainingEvents,
+      totalEvents: allDates.size,
+    }),
+    effectivePassPrice,
+    discounted,
+  };
 }
 
 async function loadRevokeDays(q: Db | Tx): Promise<number> {
@@ -279,6 +294,19 @@ export async function listOffersAndPasses(
     .innerJoin(term, eq(term.id, series.termId))
     .where(eq(pass.memberId, memberId))
     .orderBy(desc(pass.purchasedAt), asc(pass.id));
+  const eligibleRows =
+    seriesIds.length === 0
+      ? []
+      : await db
+          .select({ seriesId: seriesDiscountEligible.seriesId })
+          .from(seriesDiscountEligible)
+          .where(
+            and(
+              inArray(seriesDiscountEligible.seriesId, seriesIds),
+              eq(seriesDiscountEligible.memberId, memberId),
+            ),
+          );
+  const eligibleSeriesIds = new Set(eligibleRows.map((r) => r.seriesId));
 
   const eventsBySeries = new Map<string, EventRow[]>();
   for (const ev of events) {
@@ -294,7 +322,13 @@ export async function listOffersAndPasses(
 
   const offers: PassOfferView[] = [];
   for (const { series: s, term: t } of seriesRows) {
-    const calc = calculateOffer(s, t, eventsBySeries.get(s.id) ?? [], now);
+    const calc = calculateOffer(
+      s,
+      t,
+      eventsBySeries.get(s.id) ?? [],
+      now,
+      eligibleSeriesIds.has(s.id),
+    );
     if (!calc.offered) continue;
     const passesSold = soldBySeries.get(s.id) ?? 0;
     offers.push({
@@ -307,7 +341,9 @@ export async function listOffersAndPasses(
       startTime: s.startTime,
       durationMin: s.durationMin,
       location: s.location,
-      passPrice: s.passPrice,
+      passPrice: calc.effectivePassPrice,
+      regularPassPrice: s.passPrice,
+      discounted: calc.discounted,
       priceSek: calc.priceSek,
       remainingEvents: calc.remainingEvents,
       totalEvents: calc.totalEvents,
@@ -385,8 +421,18 @@ export async function issuePass(
       .where(and(eq(pass.seriesId, s.id), eq(pass.status, "active")));
     if (sold >= s.passCap) return fail(409, "pass_cap_reached");
 
+    const [eligibleRow] = await tx
+      .select({ memberId: seriesDiscountEligible.memberId })
+      .from(seriesDiscountEligible)
+      .where(
+        and(
+          eq(seriesDiscountEligible.seriesId, s.id),
+          eq(seriesDiscountEligible.memberId, input.memberId),
+        ),
+      )
+      .limit(1);
     const seriesEvents = await tx.select().from(event).where(eq(event.seriesId, s.id));
-    const calc = calculateOffer(s, t, seriesEvents, now);
+    const calc = calculateOffer(s, t, seriesEvents, now, eligibleRow !== undefined);
     if (!calc.offered) return fail(409, "no_events_remaining");
 
     const priceCharged = input.grant?.customPriceSek ?? calc.priceSek;

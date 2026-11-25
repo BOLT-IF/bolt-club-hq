@@ -586,4 +586,66 @@ describe("terms, series, captains, clone (S3.1)", () => {
     expect(row?.at.toISOString()).toBe("2027-01-04T09:00:00.000Z");
     expect((await t.db.select().from(member)).length).toBeGreaterThan(0);
   });
+
+  describe("discounted pass rate", () => {
+    it("creates a series with discountedPassPrice and discountEligibleIds, and updates eligibility", async () => {
+      const m1 = await makeMember(t.db, { displayName: "Returning Ada" });
+      const m2 = await makeMember(t.db, { displayName: "New Bo" });
+      await call(admin, "POST", "/terms", {
+        name: "Spring",
+        startsOn: "2027-01-11",
+        endsOn: "2027-06-24",
+      });
+      const termsRes = await call(admin, "GET", "/terms");
+      const { terms } = termsRes.body as { terms: Array<{ id: string }> };
+      const termId = terms[0]!.id;
+
+      const tooHigh = await call(admin, "POST", "/series", {
+        termId,
+        name: "Sunday",
+        format: "open",
+        weekday: 7,
+        startTime: "18:00",
+        durationMin: 120,
+        capacity: 16,
+        passPrice: 1000,
+        discountedPassPrice: 1100,
+        adhocFee: 100,
+      });
+      expect(tooHigh.status).toBe(422);
+
+      const created = await call(admin, "POST", "/series", {
+        termId,
+        name: "Sunday",
+        format: "open",
+        weekday: 7,
+        startTime: "18:00",
+        durationMin: 120,
+        capacity: 16,
+        passPrice: 1000,
+        discountedPassPrice: 750,
+        adhocFee: 100,
+        discountEligibleIds: [m1.id],
+      });
+      expect(created.status).toBe(201);
+      const { series: s } = created.body as {
+        series: {
+          id: string;
+          discountedPassPrice: number | null;
+          discountEligible: Array<{ id: string }>;
+        };
+      };
+      expect(s.discountedPassPrice).toBe(750);
+      expect(s.discountEligible.map((m) => m.id)).toEqual([m1.id]);
+
+      const updated = await call(admin, "PUT", `/series/${s.id}/discount-eligible`, {
+        memberIds: [m2.id],
+      });
+      expect(updated.status).toBe(200);
+      const body = updated.body as {
+        series: { discountEligible: Array<{ id: string }> };
+      };
+      expect(body.series.discountEligible.map((m) => m.id)).toEqual([m2.id]);
+    });
+  });
 });

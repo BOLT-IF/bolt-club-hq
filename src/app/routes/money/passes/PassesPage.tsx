@@ -54,6 +54,7 @@ function OfferCard({
       <div className="bcq-pass-card__head">
         <h3 className="bcq-pass-card__title">{offer.seriesName}</h3>
         <StatusChip tone="neutral">{offer.format}</StatusChip>
+        {offer.discounted ? <StatusChip tone="info">Returning member rate</StatusChip> : null}
       </div>
       <p className="bcq-pass-card__meta">
         {offer.termName} · {schedule}

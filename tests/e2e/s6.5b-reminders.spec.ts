@@ -1,6 +1,9 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
 
+// Block the service worker so WebKit/iPhone does not bypass page.route() after clients.claim().
+test.use({ serviceWorkers: "block" });
+
 const PLACEHOLDERS = {
   payment_due: ["name", "balance", "paymentRef"],
   event_unrsvped: ["name", "event", "when", "closes"],

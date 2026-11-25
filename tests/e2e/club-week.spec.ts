@@ -10,8 +10,13 @@ const reply = (status: number, body: unknown) => ({
   body: JSON.stringify(body),
 });
 
-async function mockClubWeekApi(page: Page) {
+async function mockClubWeekApi(page: Page, unmocked: string[]) {
   let voted = false;
+  // Catch-all registered first (Playwright evaluates routes in reverse order).
+  await page.route("**/api/v1/**", (route) => {
+    unmocked.push(`${route.request().method()} ${route.request().url()}`);
+    return route.abort();
+  });
   await page.route("**/api/v1/config", (route) =>
     route.fulfill(reply(200, { flags: { events: true, money: true, inbox: true, polls: true } })),
   );
@@ -26,10 +31,19 @@ async function mockClubWeekApi(page: Page) {
       }),
     ),
   );
+  await page.route("**/api/v1/me/profile", (route) =>
+    route.fulfill(
+      reply(200, {
+        id: "mem_dana",
+        displayName: "Dana Dropin",
+        paymentRef: "BC-DANA",
+      }),
+    ),
+  );
   await page.route("**/api/v1/notifications", (route) =>
     route.fulfill(reply(200, { items: [], unreadCount: 0 })),
   );
-  await page.route("**/api/v1/events", (route) =>
+  await page.route("**/api/v1/events{,?*}", (route) =>
     route.fulfill(
       reply(200, {
         events: [
@@ -195,7 +209,8 @@ async function mockClubWeekApi(page: Page) {
 test("club-week mobile journey across Home, Money, and Polls has zero serious axe violations", async ({
   page,
 }) => {
-  await mockClubWeekApi(page);
+  const unmocked: string[] = [];
+  await mockClubWeekApi(page, unmocked);
 
   await page.goto("/");
   await expect(page.getByText("Thursday Mixed")).toBeVisible();
@@ -221,4 +236,5 @@ test("club-week mobile journey across Home, Money, and Polls has zero serious ax
   await page.getByRole("radio", { name: "Yonex" }).check();
   await page.getByRole("button", { name: /Vote|Save/ }).click();
   await expect(page.getByText("1 vote", { exact: true })).toBeVisible();
+  expect(unmocked).toEqual([]);
 });

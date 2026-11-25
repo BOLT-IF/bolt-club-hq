@@ -2,6 +2,14 @@
 
 Decisions made after `PLAN.md` (v3) was written. Newest first. Every entry gives the decision, the reason, and what it changes.
 
+## 2026-11-24: S4.3 close processing + charges
+
+- **Close notifications only on status resolution:** `createNotifyPort({ db: tx, clock })` (`category: "rsvp_status"`, key `close-notify:<eventId>:<memberId>`, link `/events/<shareSlug>`) notifies members whose RSVP status or guest status changed at close (`requested` → `confirmed`/`waitlisted`, or a status flip). Prepaid series members without guests (who already saw Confirmed before close, PLAN §2) and `instant` event participants whose status did not change are not redundantly notified.
+- **Guest charges & one-offs:** Confirmed guests charge `event.adhocFee` to their host (`reason: "guest"`, `eventId`, `guestId`, key `close:<eventId>:guest:<guestId>`), including for prepaid tier-1 hosts (PLAN §6.4). Non-prepaid confirmed members pay `adhocFee` (`reason: "adhoc"`, key `close:<eventId>:<memberId>`). Admin paid one-offs have no tier 1 (PLAN §6.8), so everyone confirmed pays. Member one-offs (`member_oneoff`) and zero-fee events write zero ledger entries.
+- **Close-on-read wiring:** Wired on `GET /events`, `GET /events/by-slug/:slug`, `GET /series/by-slug/:slug/next`, `GET /events/:id` (`src/worker/events/routes.ts`), and `GET /events/:id/rsvp` (`src/worker/rsvp/routes.ts`), capped at 5 due events per request. Single-event reads prioritize the requested event so it closes on that read even if more than 5 due events are queued.
+- **`confirmedAt` & `event_closed` outbox:** Newly confirmed RSVPs receive `confirmedAt = clock.now()`; already-confirmed tier-1/instant RSVPs preserve their existing `confirmedAt`. Waitlisted RSVPs have `confirmedAt = null`. Each close writes one `event_closed` outbox row (`id: evo_close_<eventId>`).
+- **Scheduler wake-up (`rsvp-close`):** Registered at module load from `src/worker/rsvp/routes.ts` via `src/worker/rsvp/close-tick.ts`. The tick hook closes all due events (`limit: null`, `FOR UPDATE SKIP LOCKED`) and calls `markDue(ctx.kv, next)` for the earliest remaining unclosed scheduled event (bumping past `ctx.now + 1ms` if a locked row stayed due). One-off creation (`src/worker/events/oneoff-routes.ts`) calls `markDue(env.KV, row.rsvpCloseAt)` best-effort when KV is present.
+
 ## 2026-11-24: Integrator follow-up chore & Owns pre-grants
 
 - **Member deactivation (`rsvp.cancel` port):** `RsvpCancelPort.cancelFutureRsvps` takes `{ db, clock, memberId, at, idempotencyKey }` so `members/routes.ts` passes the request `db` and `clock` directly to `realRsvpCancel` (`src/worker/rsvp/cancel.ts`). `noopRsvpCancel` is deleted; `rsvp-cancel.test.ts` verifies the production default is `realRsvpCancel`.

@@ -292,21 +292,18 @@ describe("close processing + charges (S4.3)", () => {
       });
       const passHolder = await makeMember(t.db);
       const regular = await makeMember(t.db);
-      const waitlisted = await makeMember(t.db);
       // Even if a test or port flags passHolder as prepaid, admin one-offs have no tier 1.
       prepaid.markPrepaid(passHolder.id, e.id);
 
       await putRsvpHttp(e.id, passHolder.clerkUserId, ["Alex"]);
       clock.advance(1_000);
-      await putRsvpHttp(e.id, regular.clerkUserId);
-      clock.advance(1_000);
-      await putRsvpHttp(e.id, waitlisted.clerkUserId);
+      await putRsvpHttp(e.id, regular.clerkUserId, ["WaitlistedGuest"]);
 
       clock.set(at(24));
       expect(await closeEvent(t.db, clock, e.id)).toBe(true);
 
       const entries = await t.db.select().from(ledgerEntry);
-      expect(entries).toHaveLength(3); // passHolder + regular + guest Alex (waitlisted is 0)
+      expect(entries).toHaveLength(3); // passHolder + regular + guest Alex (WaitlistedGuest is 0)
       const byMember = (id: string) => entries.filter((x) => x.memberId === id);
       expect(byMember(passHolder.id).map((x) => [x.reason, x.amountSek])).toEqual(
         expect.arrayContaining([
@@ -315,7 +312,27 @@ describe("close processing + charges (S4.3)", () => {
         ]),
       );
       expect(byMember(regular.id).map((x) => [x.reason, x.amountSek])).toEqual([["adhoc", 150]]);
-      expect(byMember(waitlisted.id)).toHaveLength(0);
+
+      // Second admin paid one-off with waitlisted member: waitlisted member is never charged.
+      clock.set(NOW);
+      const e2 = await addEvent({
+        kind: "admin_oneoff",
+        seriesId: null,
+        adhocFee: 150,
+        capacity: 1,
+        maxGuestsPerMember: 0,
+        allocationMode: "tiered",
+      });
+      const first = await makeMember(t.db);
+      const second = await makeMember(t.db);
+      await putRsvpHttp(e2.id, first.clerkUserId);
+      clock.advance(1_000);
+      await putRsvpHttp(e2.id, second.clerkUserId);
+
+      clock.set(at(24));
+      await closeEvent(t.db, clock, e2.id);
+      const e2Entries = await t.db.select().from(ledgerEntry).where(eq(ledgerEntry.eventId, e2.id));
+      expect(e2Entries.map((x) => x.memberId)).toEqual([first.id]);
     });
 
     it("prepaid members are never charged for themselves, but still pay for confirmed guests", async () => {
@@ -500,7 +517,9 @@ describe("close processing + charges (S4.3)", () => {
 
       const byRsvp = await send("GET", `/events/${sixth.id}/rsvp`, viewer.clerkUserId);
       expect(byRsvp.status).toBe(200);
-      expect((await byRsvp.json<{ rsvp: { status: string } }>()).rsvp?.status).toBe("confirmed");
+      expect((await byRsvp.json<{ rsvp: { status: string } | null }>()).rsvp?.status).toBe(
+        "confirmed",
+      );
     });
 
     it("closes due events on GET /events/by-slug/:slug and GET /series/by-slug/:slug/next", async () => {

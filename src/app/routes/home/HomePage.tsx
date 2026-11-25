@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 
-import { apiFetch } from "../../api/client";
+import { ApiError, apiFetch } from "../../api/client";
 import { listEvents, type EventDetail } from "../../api/events";
 import { fetchMyLedger, type MyLedger } from "../../api/ledger";
 import { getMyRsvp, type RsvpStatus, type RsvpView } from "../../components/rsvp/api";
@@ -46,6 +46,7 @@ interface HomeData {
 
 type LoadState =
   | { readonly kind: "loading" }
+  | { readonly kind: "signed_out" }
   | { readonly kind: "error" }
   | { readonly kind: "ready"; readonly data: HomeData };
 
@@ -135,20 +136,31 @@ export function HomePage() {
   useEffect(() => {
     let cancelled = false;
 
-    async function load() {
-      const actor = await apiFetch<ActorSummary>("/me");
+    async function load(): Promise<LoadState> {
+      let actor: ActorSummary;
+      try {
+        actor = await apiFetch<ActorSummary>("/me", { redirectOnUnauthorized: false });
+      } catch (err) {
+        if (err instanceof ApiError && err.status === 401) {
+          return { kind: "signed_out" };
+        }
+        throw err;
+      }
       if (actor.status === "pending" || actor.status === "erased") {
         return {
-          actor,
-          rsvps: [],
-          unanswered: [],
-          ledger: null,
-          pendingClaims: [],
-          activePasses: [],
-          offerCount: 0,
-          openPolls: [],
-          adminTasks: null,
-        } satisfies HomeData;
+          kind: "ready",
+          data: {
+            actor,
+            rsvps: [],
+            unanswered: [],
+            ledger: null,
+            pendingClaims: [],
+            activePasses: [],
+            offerCount: 0,
+            openPolls: [],
+            adminTasks: null,
+          },
+        };
       }
 
       const isActive = actor.status === "active";
@@ -181,27 +193,30 @@ export function HomePage() {
       const adminClaims = settledValue(adminClaimsRes, null);
 
       return {
-        actor,
-        rsvps: eventsData.rsvps,
-        unanswered: eventsData.unanswered,
-        ledger: settledValue(ledgerRes, null),
-        pendingClaims: claims.filter((c) => c.status === "pending"),
-        activePasses: passesData.passes.filter((p) => p.status === "active"),
-        offerCount: passesData.offers.length,
-        openPolls: polls.filter((p) => !p.closed),
-        adminTasks:
-          actor.role === "admin" && isActive
-            ? {
-                pendingJoinRequests: joinRequests?.requests.length ?? 0,
-                pendingPaymentClaims: adminClaims?.claims.length ?? 0,
-              }
-            : null,
-      } satisfies HomeData;
+        kind: "ready",
+        data: {
+          actor,
+          rsvps: eventsData.rsvps,
+          unanswered: eventsData.unanswered,
+          ledger: settledValue(ledgerRes, null),
+          pendingClaims: claims.filter((c) => c.status === "pending"),
+          activePasses: passesData.passes.filter((p) => p.status === "active"),
+          offerCount: passesData.offers.length,
+          openPolls: polls.filter((p) => !p.closed),
+          adminTasks:
+            actor.role === "admin" && isActive
+              ? {
+                  pendingJoinRequests: joinRequests?.requests.length ?? 0,
+                  pendingPaymentClaims: adminClaims?.claims.length ?? 0,
+                }
+              : null,
+        },
+      };
     }
 
     load()
-      .then((data) => {
-        if (!cancelled) setState({ kind: "ready", data });
+      .then((nextState) => {
+        if (!cancelled) setState(nextState);
       })
       .catch(() => {
         if (!cancelled) setState({ kind: "error" });
@@ -224,6 +239,25 @@ export function HomePage() {
           Home
         </h1>
         <Skeleton lines={4} label="Loading home dashboard" />
+      </section>
+    );
+  }
+
+  if (state.kind === "signed_out") {
+    return (
+      <section className="bcq-home" aria-labelledby="home-title">
+        <h1 id="home-title" className="bcq-page__title">
+          Home
+        </h1>
+        <div className="bcq-home__card">
+          <h2 className="bcq-home__card-title">Welcome to BOLT HQ</h2>
+          <p className="bcq-home__muted">
+            Sign in to see upcoming events, your balance, passes, and open polls.
+          </p>
+          <AppLink href="/sign-in" className="bcq-home__link">
+            Sign in
+          </AppLink>
+        </div>
       </section>
     );
   }

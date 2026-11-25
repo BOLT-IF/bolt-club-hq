@@ -183,10 +183,10 @@ describe("HomePage", () => {
 
     renderHome();
 
-    const rsvpLink = await screen.findByRole("link", { name: /Thu Mixed Doubles/ });
+    const rsvpLink = await screen.findByRole("link", { name: /Thu Mixed Doubles.*Confirmed/ });
     expect(rsvpLink.getAttribute("href")).toBe("/events/k3f9xq2m");
-    expect(screen.getByText("Confirmed")).toBeTruthy();
-    expect(screen.getByText("Active pass")).toBeTruthy();
+    const passLink = screen.getByRole("link", { name: /Thu Mixed Doubles.*Active pass/ });
+    expect(passLink.getAttribute("href")).toBe("/money/passes");
     expect(screen.getByText(/Autumn 2026/)).toBeTruthy();
     expect(screen.queryByRole("heading", { name: "Unanswered events" })).toBeNull();
   });
@@ -273,5 +273,26 @@ describe("HomePage", () => {
     expect(screen.queryByRole("heading", { name: "Next RSVPs" })).toBeNull();
     expect(screen.queryByRole("heading", { name: "Money & passes" })).toBeNull();
     expect(screen.queryByRole("heading", { name: "Open polls" })).toBeNull();
+  });
+
+  it("shows pending membership state and error retry state", async () => {
+    stubApi({
+      "/me": { body: { id: "mem_pending", role: "member", status: "pending", seriesIds: [] } },
+    });
+
+    renderHome();
+    expect(await screen.findByText("Membership pending")).toBeTruthy();
+    expect(screen.getByRole("link", { name: /Check join status/i }).getAttribute("href")).toBe(
+      "/join",
+    );
+
+    cleanup();
+    stubApi({
+      "/me": { status: 500, body: { error: "server_error" } },
+    });
+
+    renderHome();
+    expect(await screen.findByRole("alert")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Try again" })).toBeTruthy();
   });
 });

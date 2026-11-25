@@ -11,6 +11,9 @@ async function setupConfig(page: Page) {
   await page.route("**/api/v1/config", (route) =>
     route.fulfill(reply(200, { flags: { events: true, money: true, inbox: true } })),
   );
+  await page.route("**/api/v1/notifications", (route) =>
+    route.fulfill(reply(200, { items: [], unreadCount: 0 })),
+  );
 }
 
 test("member submits a payment claim and sees rejected reason in their list", async ({ page }) => {
@@ -29,10 +32,10 @@ test("member submits a payment claim and sees rejected reason in their list", as
       id: "clm_prev",
       memberId: "mem_1",
       amountSek: 120,
-      paidOn: "2027-02-10",
+      paidOn: "2026-11-10",
       note: null,
       status: "rejected",
-      decidedAt: "2027-02-11T10:00:00Z",
+      decidedAt: "2026-11-11T10:00:00Z",
       rejectReason: "No transfer found",
     },
   ];
@@ -66,7 +69,7 @@ test("member submits a payment claim and sees rejected reason in their list", as
   await expect(page.getByText("No transfer found")).toBeVisible();
 
   await page.getByLabel("Amount (kr)").fill("300");
-  await page.getByLabel("Date paid").fill("2027-02-20");
+  await page.getByLabel("Date paid").fill("2026-11-20");
   await page.getByLabel("Note (optional)").fill("Swish");
   await page.getByRole("button", { name: "Submit claim" }).click();
 

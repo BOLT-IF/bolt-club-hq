@@ -5,6 +5,7 @@ import "../../components/rsvp/register";
 import "../../components/rsvp/postclose";
 import "../../components/rsvp/claim";
 import "../../components/rsvp/claim-capacity";
+import "../../components/share/register";
 import type { AppRoute } from "../registry";
 import { EventDetailPage } from "./EventDetailPage";
 import { EventListPage } from "./EventListPage";

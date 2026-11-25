@@ -12,7 +12,7 @@ Everything the story agents and the integrator said still needs doing, collected
 - [x] **Passes link** on `src/app/routes/money/MoneyPage.tsx` (to `/money/passes`), if desired. _(S5.3)_ — done in integrator wrap-up PR
 - [x] **Privacy link** on `src/app/routes/auth/SignInPage.tsx` (to `/privacy`, PLAN §16), and optional "Erase member" action on `src/app/routes/admin/members/AdminMembers.tsx`. _(S2.5)_ — privacy link done in integrator wrap-up PR
 - [x] **Attendance slot visibility after event ends:** remove `!event.readOnly` from `OrganizerToolsSlot` in `src/app/routes/events/EventDetailPage.tsx` (and update `src/app/routes/events/events.test.tsx`) so organizers can mark attendance after `endsAt`. _(S8.1)_ — done in integrator wrap-up PR
-- [ ] **Post-close exit cancel (optional):** wire `src/worker/rsvp/cancel.ts` (`cancelMemberRsvps`) to also call `lateCancelRsvp` for future closed events when a member is deactivated. _(S4.4a)_
+- [x] **Post-close exit cancel (optional):** wire `src/worker/rsvp/cancel.ts` (`cancelMemberRsvps`) to also call `lateCancelRsvp` for future closed events when a member is deactivated. _(S4.4a)_ — done in unslop/ponytail polish PR
 - [x] **Money → History link:** on `src/app/routes/money/MoneyPage.tsx`, link event-tied ledger items (`item.eventId !== null`) to `/history?eventId=${item.eventId}`. _(S8.2)_ — done in integrator wrap-up PR
 - [x] **"Request to join" link** to `/join/event/<slug>` on the event page's 403 state in `EventDetailPage.tsx`. A pending member sees no call to action there. May overlap S7.1. _(S1.3)_ — done in integrator chore PR
 - [x] **Complete the saved RSVP after approval:** call `completeJoinRsvpIntent()` (`src/app/routes/join/joinIntent.ts`) from `src/app/shell/AppRoot.tsx`. Today the saved RSVP only completes when the approved member opens `/join`. _(S1.3)_ — done in integrator chore PR
@@ -62,7 +62,7 @@ Everything the story agents and the integrator said still needs doing, collected
 - [ ] **Push batch cap = 20** (PLAN §11 says at most 10 per run). Revisit after the S0.6 device spike. _(S6.2)_
 - [ ] **Google sign-in hidden in the installed iOS app** is provisional until S0.6 (`GOOGLE_HIDDEN_IN_INSTALLED_IOS` in `src/app/auth/google.ts`). _(S1.1)_
 - [ ] **Sign-in intent expires after 30 minutes;** the join RSVP intent lives 14 days under its own key (`bcq.join-rsvp-intent`) because approval can take days. _(S1.1, S1.3)_
-- [ ] **Colour contrast:** the install-card axe test turns colour contrast off (`InstallPrompt.test.tsx:57`). Re-enable it and fix any real contrast issue now that the palette changed. _(S10.2, brand)_
+- [x] **Colour contrast:** the install-card axe test turns colour contrast off (`InstallPrompt.test.tsx:57`). Re-enable it and fix any real contrast issue now that the palette changed. _(S10.2, brand)_ — re-enabled and passing in unslop/ponytail polish PR
 - [ ] **Brand:** replace the PNG-derived icons with an SVG logo when one exists; set the Clerk dashboard app name to BOLT HQ; existing home-screen installs keep the old name until re-added. _(brand)_
 
 ## D. Technical debt and optional hardening

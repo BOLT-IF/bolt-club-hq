@@ -1,25 +1,15 @@
-import { Hono, type Context, type MiddlewareHandler } from "hono";
+import { Hono } from "hono";
 
 import { LedgerError } from "../../domain/ledger";
 import { contextMiddleware } from "../core/context";
-import { idempotencyKeyMiddleware } from "../core/idempotency";
-import { requireGuard } from "../core/permissions";
-import type { CurrentMember } from "../core/ports";
+import { idempotent } from "../core/idempotency";
+import { requireActor, requireGuard } from "../core/permissions";
 import { LEDGER_ERROR_STATUS } from "../ledger/admin-routes";
 import type { AppEnv } from "../types";
 import { ImportError, importMembers } from "./service";
 import { validateImportBody } from "./validate";
 
-function actorOf(c: Context<AppEnv>): CurrentMember {
-  const actor = c.var.actor;
-  if (!actor) throw new Error("importer: guard let a request through without an actor");
-  return actor;
-}
-
-function idempotent(route: string): MiddlewareHandler<AppEnv> {
-  return (c, next) =>
-    idempotencyKeyMiddleware({ db: c.var.db, route, actorOf: () => actorOf(c).id })(c, next);
-}
+const actorOf = requireActor;
 
 const context = contextMiddleware();
 const admin = requireGuard("admin");

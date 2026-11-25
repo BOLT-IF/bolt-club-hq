@@ -1,28 +1,18 @@
-import { Hono, type Context, type MiddlewareHandler } from "hono";
+import { Hono } from "hono";
 
 import { contextMiddleware } from "../core/context";
-import { idempotencyKeyMiddleware } from "../core/idempotency";
-import { requireGuard } from "../core/permissions";
-import type { CurrentMember } from "../core/ports";
+import { idempotent } from "../core/idempotency";
+import { requireActor, requireGuard } from "../core/permissions";
 import type { AppEnv } from "../types";
 import { eraseMember } from "./erasure";
 import { exportMemberData } from "./export";
 import "./retention";
 
-function actorOf(c: Context<AppEnv>): CurrentMember {
-  const actor = c.var.actor;
-  if (!actor) throw new Error("privacy: guard let a request through without an actor");
-  return actor;
-}
-
+const actorOf = requireActor;
 const context = contextMiddleware();
-
-const idempotentErase: MiddlewareHandler<AppEnv> = (c, next) =>
-  idempotencyKeyMiddleware({
-    db: c.var.db,
-    route: `POST /api/v1/admin/members/${c.req.param("id") ?? ""}/erase`,
-    actorOf: () => actorOf(c).id,
-  })(c, next);
+const idempotentErase = idempotent(
+  (c) => `POST /api/v1/admin/members/${c.req.param("id") ?? ""}/erase`,
+);
 
 /**
  * Privacy area (S2.5, PLAN §16).

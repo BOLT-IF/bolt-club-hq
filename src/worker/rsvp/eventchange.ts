@@ -1,5 +1,5 @@
 import { and, asc, eq, inArray, notExists } from "drizzle-orm";
-import { Hono, type Context, type MiddlewareHandler } from "hono";
+import { Hono, type Context } from "hono";
 import { alias } from "drizzle-orm/pg-core";
 
 import { event, guest, ledgerEntry, rsvp } from "../../../db/schema";
@@ -8,8 +8,8 @@ import type { Clock } from "../core/clock";
 import { contextMiddleware } from "../core/context";
 import type { Db, Tx } from "../core/db/client";
 import { publishEvent } from "../core/events";
-import { idempotencyKeyMiddleware } from "../core/idempotency";
-import { requireGuard } from "../core/permissions";
+import { idempotent } from "../core/idempotency";
+import { requireActor, requireGuard } from "../core/permissions";
 import type { CurrentMember, PublishOgPort } from "../core/ports";
 import { eventsDeps } from "../events/deps";
 import { canManageEvent, eventOgKey, ogSnapshot } from "../events/rules";
@@ -409,20 +409,7 @@ export async function updateEventDetails(
   return result;
 }
 
-function idempotent(route: string): MiddlewareHandler<AppEnv> {
-  return (c, next) =>
-    idempotencyKeyMiddleware({
-      db: c.var.db,
-      route,
-      actorOf: (ctx) => (ctx.get("actor" as never) as { id: string }).id,
-    })(c, next);
-}
-
-function actorOf(c: Context<AppEnv>): CurrentMember {
-  const actor = c.var.actor;
-  if (!actor) throw new Error("eventchange: route reached without an actor");
-  return actor;
-}
+const actorOf = requireActor;
 
 function reply(c: Context<AppEnv>, result: EventChangeResult) {
   if (result.ok) {

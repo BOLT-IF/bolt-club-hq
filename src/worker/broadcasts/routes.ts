@@ -1,19 +1,12 @@
-import { Hono, type Context } from "hono";
+import { Hono } from "hono";
 
 import { contextMiddleware } from "../core/context";
-import { idempotencyKeyMiddleware } from "../core/idempotency";
-import { requireGuard } from "../core/permissions";
+import { idempotent } from "../core/idempotency";
+import { requireActor, requireGuard } from "../core/permissions";
 import type { AppEnv } from "../types";
 import { AudienceError } from "./audience";
 import { sendBroadcast } from "./send";
 import { parseBroadcast } from "./validate";
-
-/** The guard has run, so an actor exists; fail loudly rather than assert. */
-function actorId(c: Context<AppEnv>): string {
-  const actor = c.var.actor;
-  if (!actor) throw new Error("broadcasts: guard let a request through without an actor");
-  return actor.id;
-}
 
 export default new Hono<AppEnv>()
   // Scoped, not "*": every area is mounted at /api/v1 (DECISIONS 2026-11-24, W2 contract).
@@ -22,17 +15,11 @@ export default new Hono<AppEnv>()
   .post(
     "/admin/broadcasts",
     requireGuard("admin"),
-    // The db is per request, so the middleware is built per request.
-    (c, next) =>
-      idempotencyKeyMiddleware({
-        db: c.var.db,
-        route: "POST /api/v1/admin/broadcasts",
-        actorOf: actorId,
-      })(c, next),
+    idempotent("POST /api/v1/admin/broadcasts"),
     async (c) => {
       const parsed = parseBroadcast(await c.req.json().catch(() => null));
       if (!parsed.ok) return c.json({ error: parsed.error }, 400);
-      const actor = actorId(c);
+      const actor = requireActor(c).id;
       try {
         // Derived from actor + key, so a retry after a released claim still sends once.
         const id = `${actor}:${c.req.header("Idempotency-Key") ?? ""}`;

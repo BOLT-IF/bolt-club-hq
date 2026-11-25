@@ -1,5 +1,5 @@
 import { and, asc, eq, inArray, isNull, notExists } from "drizzle-orm";
-import { Hono, type Context, type MiddlewareHandler } from "hono";
+import { Hono, type Context } from "hono";
 import { alias } from "drizzle-orm/pg-core";
 
 import { event, guest, ledgerEntry, rsvp } from "../../../db/schema";
@@ -8,8 +8,8 @@ import type { Clock } from "../core/clock";
 import { contextMiddleware } from "../core/context";
 import type { Db, Tx } from "../core/db/client";
 import { publishEvent } from "../core/events";
-import { idempotencyKeyMiddleware } from "../core/idempotency";
-import { requireGuard } from "../core/permissions";
+import { idempotent } from "../core/idempotency";
+import { requireActor, requireGuard } from "../core/permissions";
 import { createLedgerService } from "../ledger/service";
 import { createNotifyPort } from "../notifications/notify";
 import type { AppEnv } from "../types";
@@ -20,20 +20,7 @@ const CLAIM_PATH = "/events/:id/claim";
 const ACTIVE_STATUSES = ["requested", "confirmed", "waitlisted", "offered"] as const;
 const isActive = (status: RsvpStatus) => status !== "cancelled" && status !== "late_cancelled";
 
-function idempotent(route: string): MiddlewareHandler<AppEnv> {
-  return (c, next) =>
-    idempotencyKeyMiddleware({
-      db: c.var.db,
-      route,
-      actorOf: (ctx) => (ctx.get("actor" as never) as { id: string }).id,
-    })(c, next);
-}
-
-function actorId(c: Context<AppEnv>): string {
-  const actor = c.var.actor;
-  if (!actor) throw new Error("claim: route reached without an actor");
-  return actor.id;
-}
+const actorId = (c: Context<AppEnv>) => requireActor(c).id;
 
 function parseClaimBody(body: unknown): { guestId?: string } | null {
   if (typeof body !== "object" || body === null || Array.isArray(body)) return null;

@@ -1,6 +1,14 @@
 import type { Context, MiddlewareHandler } from "hono";
 
+import type { AppEnv } from "../types";
 import type { CurrentMember } from "./ports";
+
+/** Reads the verified actor set by `requireGuard(...)`. Throws if called on an unguarded route. */
+export function requireActor(c: Context<AppEnv>): CurrentMember {
+  const actor = c.var.actor;
+  if (!actor) throw new Error("route reached without an actor");
+  return actor;
+}
 
 export type GuardKind = "member" | "admin" | "owner-or-admin" | "captain-of-series";
 

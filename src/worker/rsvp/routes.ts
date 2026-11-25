@@ -1,8 +1,8 @@
-import { Hono, type Context, type MiddlewareHandler } from "hono";
+import { Hono, type Context } from "hono";
 
 import { contextMiddleware } from "../core/context";
-import { idempotencyKeyMiddleware } from "../core/idempotency";
-import { requireGuard } from "../core/permissions";
+import { idempotent } from "../core/idempotency";
+import { requireActor, requireGuard } from "../core/permissions";
 import type { AppEnv } from "../types";
 import { closeDueEvents } from "./close";
 import "./close-tick";
@@ -22,17 +22,6 @@ import {
 
 const PATH = "/events/:id/rsvp";
 
-/** The idempotency middleware needs the per-request db, so it is built per request (W2 contract). */
-function idempotent(route: string): MiddlewareHandler<AppEnv> {
-  return (c, next) =>
-    idempotencyKeyMiddleware({
-      db: c.var.db,
-      route,
-      // The guard runs first, so an actor is always present here.
-      actorOf: (ctx) => (ctx.get("actor" as never) as { id: string }).id,
-    })(c, next);
-}
-
 /** `{ guests?: string[] }`, nothing else. Blank names become "Guest" (A4). Null when malformed. */
 export function parseGuests(body: unknown): string[] | null {
   if (typeof body !== "object" || body === null || Array.isArray(body)) return null;
@@ -51,12 +40,7 @@ export function parseGuests(body: unknown): string[] | null {
   return names;
 }
 
-/** The member guard has already run, so an actor is present. */
-function actorId(c: Context<AppEnv>): string {
-  const actor = c.var.actor;
-  if (!actor) throw new Error("rsvp: route reached without an actor");
-  return actor.id;
-}
+const actorId = (c: Context<AppEnv>) => requireActor(c).id;
 
 function reply(c: Context<AppEnv>, result: RsvpResult) {
   if (result.ok) return c.json({ rsvp: result.rsvp });

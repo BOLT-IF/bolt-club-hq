@@ -1,8 +1,22 @@
-import type { MiddlewareHandler } from "hono";
+import type { Context, MiddlewareHandler } from "hono";
 import { and, eq } from "drizzle-orm";
 
 import { idempotencyRecord } from "../../../db/schema";
+import type { AppEnv } from "../types";
 import type { Db } from "./db/client";
+import { requireActor } from "./permissions";
+
+/** Standard per-request idempotency middleware for guarded routes using `c.var.db` and `c.var.actor`. */
+export function idempotent(
+  route: string | ((c: Context<AppEnv>) => string),
+): MiddlewareHandler<AppEnv> {
+  return (c, next) =>
+    idempotencyKeyMiddleware({
+      db: c.var.db,
+      route: typeof route === "function" ? route(c) : route,
+      actorOf: () => requireActor(c).id,
+    })(c, next);
+}
 
 export interface IdempotencyOptions {
   db: Db;

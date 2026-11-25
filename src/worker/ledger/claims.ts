@@ -1,5 +1,5 @@
 import { asc, desc, eq, sql } from "drizzle-orm";
-import { Hono, type Context, type MiddlewareHandler } from "hono";
+import { Hono, type Context } from "hono";
 import type { ContentfulStatusCode } from "hono/utils/http-status";
 
 import { ledgerEntry, member, paymentClaim } from "../../../db/schema";
@@ -7,8 +7,8 @@ import { LedgerError } from "../../domain/ledger";
 import { audit } from "../core/audit";
 import { contextMiddleware } from "../core/context";
 import type { Tx } from "../core/db/client";
-import { idempotencyKeyMiddleware } from "../core/idempotency";
-import { requireGuard } from "../core/permissions";
+import { idempotent as createIdempotent } from "../core/idempotency";
+import { requireActor, requireGuard } from "../core/permissions";
 import type { CurrentMember } from "../core/ports";
 import { createNotifyPort } from "../notifications/notify";
 import type { AppEnv } from "../types";
@@ -29,11 +29,7 @@ class Refused extends Error {
   }
 }
 
-function actorOf(c: Context<AppEnv>): CurrentMember {
-  const actor = c.var.actor;
-  if (!actor) throw new Error("claims: guard let a request through without an actor");
-  return actor;
-}
+const actorOf = requireActor;
 
 async function body(c: Context): Promise<Record<string, unknown>> {
   const parsed: unknown = await c.req.json().catch(() => null);
@@ -43,12 +39,7 @@ async function body(c: Context): Promise<Record<string, unknown>> {
 }
 
 /** Scoped per actor and per concrete path, so one key can't replay across claims. */
-const idempotent: MiddlewareHandler<AppEnv> = (c, next) =>
-  idempotencyKeyMiddleware({
-    db: c.var.db,
-    route: `POST /api/v1${c.req.path}`,
-    actorOf: () => actorOf(c).id,
-  })(c, next);
+const idempotent = createIdempotent((c) => `POST /api/v1${c.req.path}`);
 
 /** The ledger key of the one payment a claim can ever create. */
 export const claimPaymentKey = (claimId: string): string => `claim:${claimId}`;

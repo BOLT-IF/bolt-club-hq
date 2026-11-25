@@ -54,7 +54,7 @@ const ANDROID: InstallContext = { platform: "android", standalone: false };
 const DESKTOP: InstallContext = { platform: "desktop", standalone: false };
 
 async function expectAxeClean(container: HTMLElement) {
-  const results = await axe.run(container, { rules: { "color-contrast": { enabled: false } } });
+  const results = await axe.run(container);
   expect(results.violations.map((v) => `${v.id}: ${v.help}`)).toEqual([]);
 }
 

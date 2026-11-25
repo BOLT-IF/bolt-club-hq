@@ -12,8 +12,9 @@
 }
 
 .bcq-history__back {
-  color: var(--bcq-link);
+  color: var(--bcq-brand-deep);
   text-decoration: underline;
+  text-underline-offset: 2px;
   font-weight: 500;
 }
 
@@ -35,8 +36,9 @@
 }
 
 .bcq-history__item[data-highlighted="true"] {
-  border-color: var(--bcq-accent, #f97316);
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--bcq-accent, #f97316) 25%, transparent);
+  border-color: var(--bcq-brand);
+  border-left: 3px solid var(--bcq-brand);
+  background: var(--bcq-brand-soft);
 }
 
 .bcq-history__row {

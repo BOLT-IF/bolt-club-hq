@@ -1,66 +1,74 @@
 .bcq-event-edit {
-  margin-top: var(--space-4);
-  padding: var(--space-4);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  background: var(--surface);
+  margin-top: 1rem;
+  padding: 1rem;
+  border: 1px solid var(--bcq-line);
+  border-radius: var(--bcq-radius);
+  background: var(--bcq-card);
 }
 
 .bcq-event-edit__head {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--space-2);
-  margin-bottom: var(--space-3);
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
 }
 
 .bcq-event-edit__title {
   margin: 0;
-  font-size: var(--text-md);
+  font: 600 1.0625rem/1.3 var(--bcq-font);
+  color: var(--bcq-ink);
 }
 
 .bcq-event-edit__form {
   display: grid;
-  gap: var(--space-3);
+  gap: 0.75rem;
 }
 
 .bcq-event-edit__field {
   display: grid;
-  gap: var(--space-1);
+  gap: 0.25rem;
 }
 
 .bcq-event-edit__label {
-  font-size: var(--text-sm);
+  font-size: 0.875rem;
   font-weight: 500;
+  color: var(--bcq-ink);
 }
 
 .bcq-event-edit__input {
   width: 100%;
-  min-height: 44px;
-  padding: 0 var(--space-3);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  background: var(--bg);
-  color: var(--ink);
+  min-height: var(--bcq-touch);
+  padding: 0 0.75rem;
+  border: 1px solid var(--bcq-input-border);
+  border-radius: var(--bcq-radius-sm);
+  background: var(--bcq-card);
+  color: var(--bcq-ink);
   font: inherit;
+  box-sizing: border-box;
+  transition: border-color 140ms var(--bcq-ease);
+}
+
+.bcq-event-edit__input:hover:not(:disabled) {
+  border-color: var(--bcq-ink-soft);
 }
 
 .bcq-event-edit__hint {
   margin: 0;
-  font-size: var(--text-xs);
-  color: var(--ink-muted);
+  font-size: 0.8125rem;
+  color: var(--bcq-muted);
 }
 
 .bcq-event-edit__error {
   margin: 0;
-  font-size: var(--text-sm);
-  color: var(--danger);
+  font-size: 0.875rem;
+  color: var(--bcq-danger-ink);
 }
 
 .bcq-event-edit__notice {
   margin: 0;
-  font-size: var(--text-sm);
-  color: var(--ink-muted);
+  font-size: 0.875rem;
+  color: var(--bcq-muted);
 }
 
 .bcq-event-edit__actions {
@@ -68,6 +76,6 @@
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: var(--space-3);
-  margin-top: var(--space-2);
+  gap: 0.75rem;
+  margin-top: 0.5rem;
 }

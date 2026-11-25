@@ -1,20 +1,12 @@
-import { Hono, type MiddlewareHandler } from "hono";
+import { Hono } from "hono";
 
-import { idempotencyKeyMiddleware } from "../core/idempotency";
+import { idempotent } from "../core/idempotency";
 import { requireGuard } from "../core/permissions";
 import { markDue } from "../scheduler/schedule";
 import type { AppEnv } from "../types";
 import { eventsDeps } from "./deps";
 import { createEvent } from "./model";
 import { planOneoff } from "./oneoff-rules";
-
-/** The idempotency middleware needs the per-request db, so build it per request. */
-const idempotent: MiddlewareHandler<AppEnv> = (c, next) =>
-  idempotencyKeyMiddleware({
-    db: c.var.db,
-    route: "POST /api/v1/events",
-    actorOf: () => c.var.actor?.id ?? "",
-  })(c, next);
 
 /**
  * S3.3 one-offs. Mounted inside `events/routes.ts` after its `contextMiddleware()`, so
@@ -25,7 +17,7 @@ const oneoffRoutes = new Hono<AppEnv>()
   .get("/events/oneoff/options", requireGuard("member"), (c) =>
     c.json({ canSetFee: c.var.actor?.role === "admin" }),
   )
-  .post("/events", requireGuard("member"), idempotent, async (c) => {
+  .post("/events", requireGuard("member"), idempotent("POST /api/v1/events"), async (c) => {
     const actor = c.var.actor;
     if (!actor) return c.json({ error: "unauthenticated" }, 401);
     const body: unknown = await c.req.json().catch(() => null);

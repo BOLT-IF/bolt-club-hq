@@ -111,11 +111,14 @@ body {
 .bcq-main {
   flex: 1;
   width: 100%;
-  max-width: 720px;
+  max-width: 760px;
   margin: 0 auto;
   padding: 1.25rem calc(1rem + env(safe-area-inset-right)) calc(112px + env(safe-area-inset-bottom))
     calc(1rem + env(safe-area-inset-left));
   box-sizing: border-box;
+}
+.bcq-main > * {
+  animation: bcq-rise 180ms var(--bcq-ease);
 }
 .bcq-main:focus {
   outline: none;
@@ -164,7 +167,12 @@ body {
   text-decoration: none;
   cursor: pointer;
   box-sizing: border-box;
-  transition: color 140ms var(--bcq-ease);
+  transition:
+    color 140ms var(--bcq-ease),
+    transform 120ms var(--bcq-ease);
+}
+.bcq-tabbar__item:active {
+  transform: scale(0.96);
 }
 .bcq-tabbar__item.is-active,
 .bcq-tabbar__item[aria-current="page"] {

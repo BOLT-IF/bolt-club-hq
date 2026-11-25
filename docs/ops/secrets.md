@@ -18,8 +18,6 @@ exist, the deploy, backup, restore-drill and Lighthouse jobs all skip.
 
 | Name | Used by | What it is | Where it comes from | Rotation |
 |---|---|---|---|---|
-| `CLOUDFLARE_API_TOKEN` | deploy | API token for `wrangler deploy`. Scope it to Workers Scripts edit, plus the account's KV, R2 and Hyperdrive edit. | Cloudflare dashboard → My Profile → API Tokens | Rotate on suspicion of a leak, or yearly. |
-| `CLOUDFLARE_ACCOUNT_ID` | deploy | The account ID shown on the Workers overview page. Not sensitive, but kept as a secret for simplicity. | Cloudflare dashboard | Does not change. |
 | `DATABASE_URL` | deploy, backup, restore-drill | Neon connection string for **production**. Used by `drizzle-kit migrate` and `pg_dump`. Use the pooled or direct URL with `sslmode=require`. | Neon console → project → connection details | On password reset. Update both the Neon role and this secret. |
 | `RESTORE_TARGET_URL` | restore-drill | Connection string for an **empty, throwaway** database. Must **not** equal `DATABASE_URL`; the script refuses. | Create a second Neon branch (or database) just for drills | On password reset. |
 | `BACKUP_ENCRYPTION_KEY` | backup, restore-drill | Passphrase for AES-256 encryption of dumps (PBKDF2, 600k iterations). **Losing it makes every backup unreadable.** | Generate once, e.g. `openssl rand -base64 48`. Store a second copy in the owner's password manager. | **Never rotate casually.** Rotating means old dumps need the old key. Keep the old key until the 90-day window passes. |

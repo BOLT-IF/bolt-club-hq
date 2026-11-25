@@ -1,0 +1,91 @@
+.bcq-passes {
+  display: grid;
+  gap: 1.25rem;
+}
+
+.bcq-passes__section {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.bcq-passes__heading {
+  margin: 0;
+  font: 700 1.125rem/1.3 var(--bcq-font);
+  color: var(--bcq-ink);
+}
+
+.bcq-passes__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.85rem;
+}
+
+.bcq-pass-card {
+  display: grid;
+  gap: 0.65rem;
+  padding: 1rem;
+  background: var(--bcq-card);
+  border: 1px solid var(--bcq-line);
+  border-radius: var(--bcq-radius);
+}
+
+.bcq-pass-card__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.bcq-pass-card__title {
+  margin: 0;
+  font: 700 1.0625rem/1.3 var(--bcq-font);
+  color: var(--bcq-ink);
+}
+
+.bcq-pass-card__meta {
+  margin: 0;
+  color: var(--bcq-ink-soft);
+  font-size: 0.9375rem;
+}
+
+.bcq-pass-card__price-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+
+.bcq-pass-card__price {
+  font: 800 1.375rem/1.2 var(--bcq-font);
+  font-variant-numeric: tabular-nums;
+  color: var(--bcq-ink);
+}
+
+.bcq-pass-card__proration {
+  color: var(--bcq-muted);
+  font-size: 0.875rem;
+}
+
+.bcq-pass-terms {
+  margin: 0;
+  padding: 0.65rem 0.85rem;
+  border-radius: var(--bcq-radius-sm);
+  background: var(--bcq-brand-soft);
+  color: var(--bcq-ink);
+  font-size: 0.875rem;
+  line-height: 1.45;
+}
+
+.bcq-pass-sheet {
+  display: grid;
+  gap: 1rem;
+}
+
+.bcq-pass-sheet__summary {
+  margin: 0;
+  color: var(--bcq-ink-soft);
+  line-height: 1.5;
+}

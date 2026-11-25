@@ -56,9 +56,16 @@ Admin routes live in `src/worker/ledger/admin-routes.ts` (S5.4), mounted by `rou
 - `/money` (`src/app/routes/money/`), behind `FLAG_MONEY`. Client calls live in `src/app/api/ledger.ts` (`fetchMyLedger`, `fetchPaymentSettings`, `fetchMyPaymentRef`); there is no member-id parameter.
 - Shows the balance ("You owe 90 kr", "Credit 100 kr", "You're all paid up"), "How to pay" (bank details and instructions from `GET /settings/public`, payment reference from `GET /me/profile`, with a copy button) and every entry newest first with its FIFO status, event title and date, and guest name.
 - The ledger is required; settings and profile are best effort. If either fails, the screen says "Ask the treasurer for the club's bank details" instead of failing.
-- S5.5 adds the "I've paid" claim flow at `/money/claims` (`src/app/routes/money/claims/`), S5.3 adds passes as `src/app/routes/money/passes*`.
+- S5.5 adds the "I've paid" claim flow at `/money/claims` (`src/app/routes/money/claims/`), S5.3 adds passes as `src/app/routes/money/passes*` and revocable-pass filtering + revocation on `AdminBalances.tsx`.
 
 ## Payment claims (S5.5)
 
 - **Member UI (`/money/claims`):** `src/app/routes/money/claims/routes.tsx` (`MemberClaimsPage`), gated on `useFeatureFlag("money")`. Shows the "I've paid" form (`amountSek` whole kronor > 0, `paidOn` date in Stockholm not after today, optional `note`) and the member's claim history (`GET /me/payment-claims`) with status chips and rejection reasons. Holds one `Idempotency-Key` per submission attempt (reused on timeout / 409 `idempotency_key_in_progress`, rotated on final 4xx or success).
 - **Admin UI (`/admin/money/claims`):** `src/app/routes/admin/money/claims/routes.tsx` (`AdminClaimsPage`), gated on `useFeatureFlag("money")`. Shows the pending queue (`GET /admin/payment-claims`), one-tap **Confirm** (`POST /admin/payment-claims/:id/confirm` with `Idempotency-Key` per claim attempt), and **Reject** via a bottom sheet requiring a non-blank reason (`POST /admin/payment-claims/:id/reject` with `Idempotency-Key`). Rows with `isOwn` disable Confirm/Reject and explain that another admin must decide; a server `403 own_claim` is also mapped and explained.
+
+## Passes (S5.3, `src/worker/passes/`)
+
+- `GET /api/v1/passes/offers` (member): active/open-for-passes series with `remainingEvents > 0`, prorated via `round_half_up(pass_price * remaining / total)`, plus the member's own passes.
+- `POST /api/v1/passes` (member, `Idempotency-Key`): enforces `pass_cap` under a `series` row lock, charges via `createLedgerService` (`pass:<passId>`), upgrades open series RSVPs to tier 1 `confirmed`. No refund path.
+- `GET /api/v1/admin/passes` (admin) & `POST /api/v1/admin/passes/:id/revoke` (admin, `Idempotency-Key`): revocable only once `passUnpaidRevokeDays` has elapsed and the charge is still `unpaid`. Reverses the charge (`reason: "revocation"`), frees the seat, downgrades open RSVPs to tier 2, and notifies the member.
+- `src/worker/passes/prepaid.ts` (`createPrepaidPort`) is the production `PrepaidPort` wired in `src/worker/rsvp/deps.ts`.

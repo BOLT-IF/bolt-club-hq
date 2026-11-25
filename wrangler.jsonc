@@ -57,4 +57,18 @@
     // (`wrangler secret put SENTRY_DSN`); unset means no reporting (see docs/DECISIONS.md, S0.7).
     // "SENTRY_DSN": "",
   },
+
+  // Preview config for Cloudflare Workers Builds (`npx wrangler preview` on PR branches).
+  "previews": {
+    "vars": {
+      "ENV": "dev",
+      "FLAG_EVENTS": "off",
+      "FLAG_MONEY": "off",
+      "FLAG_INBOX": "off",
+      "FLAG_POLLS": "off",
+    },
+    "kv_namespaces": [{ "binding": "KV", "id": "5ee394e1f7344bb2a60af20b848ba2a8" }],
+    "r2_buckets": [{ "binding": "MEDIA", "bucket_name": "bolt-club-hq-media" }],
+    "hyperdrive": [{ "binding": "HYPERDRIVE", "id": "24dd32c71522408ab20f3b51c6e65417" }],
+  },
 }

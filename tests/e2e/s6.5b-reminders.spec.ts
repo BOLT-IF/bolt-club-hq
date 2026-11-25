@@ -27,37 +27,41 @@ async function mockAdminApi(page: Page) {
     route.fulfill(reply(200, { flags: { events: true, money: true, inbox: true } })),
   );
 
-  await page.route("**/api/v1/admin/reminder-rules", async (route) => {
-    const req = route.request();
-    if (req.method() === "GET") {
-      return route.fulfill(reply(200, { items: rules, placeholders: PLACEHOLDERS }));
-    }
-    if (req.method() === "POST") {
-      const body = req.postDataJSON() as Omit<typeof INITIAL_RULE, "id">;
-      const created = { id: `rr_${String(rules.length + 1)}`, ...body };
-      rules = [...rules, created];
-      return route.fulfill(reply(201, created));
-    }
-    return route.fulfill(reply(405, { error: "method_not_allowed" }));
-  });
-
-  await page.route("**/api/v1/admin/reminder-rules/*/preview", (route) =>
-    route.fulfill(
-      reply(200, {
-        count: 1,
-        recipients: [{ memberId: "m1", displayName: "Alex" }],
-        sample: {
-          title: "Payment reminder",
-          body: "Hi Alex, you owe 450 kr (ref BOLT-ALEX).",
-          link: "/money",
-        },
-      }),
-    ),
+  await page.route("**/api/v1/notifications**", (route) =>
+    route.fulfill(reply(200, { items: [], unreadCount: 0 })),
   );
 
-  await page.route("**/api/v1/admin/reminder-rules/*", (route) => {
+  await page.route("**/api/v1/admin/reminder-rules**", async (route) => {
     const req = route.request();
-    const id = req.url().split("/").pop() ?? "";
+    const { pathname } = new URL(req.url());
+    if (pathname === "/api/v1/admin/reminder-rules") {
+      if (req.method() === "GET") {
+        return route.fulfill(reply(200, { items: rules, placeholders: PLACEHOLDERS }));
+      }
+      if (req.method() === "POST") {
+        const body = req.postDataJSON() as Omit<typeof INITIAL_RULE, "id">;
+        const created = { id: `rr_${String(rules.length + 1)}`, ...body };
+        rules = [...rules, created];
+        return route.fulfill(reply(201, created));
+      }
+      return route.fulfill(reply(405, { error: "method_not_allowed" }));
+    }
+
+    if (pathname.endsWith("/preview") && req.method() === "POST") {
+      return route.fulfill(
+        reply(200, {
+          count: 1,
+          recipients: [{ memberId: "m1", displayName: "Alex" }],
+          sample: {
+            title: "Payment reminder",
+            body: "Hi Alex, you owe 450 kr (ref BOLT-ALEX).",
+            link: "/money",
+          },
+        }),
+      );
+    }
+
+    const id = pathname.split("/").pop() ?? "";
     if (req.method() === "DELETE") {
       return route.fulfill(reply(409, { error: "rule_has_sends" }));
     }
@@ -112,6 +116,13 @@ test("members get 403 and see an admins-only message", async ({ page }) => {
       status: 200,
       contentType: "application/json",
       body: JSON.stringify({ flags: { events: true, money: true, inbox: true } }),
+    }),
+  );
+  await page.route("**/api/v1/notifications**", (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ items: [], unreadCount: 0 }),
     }),
   );
   await page.route("**/api/v1/admin/reminder-rules", (route) =>

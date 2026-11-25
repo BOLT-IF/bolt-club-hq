@@ -291,6 +291,27 @@ describe("members (S2.1)", () => {
       const pending = await makeMember(t.db, { status: "pending" });
       expect((await call(pending, "GET", "/me/profile")).status).toBe(403);
     });
+
+    it("POST /members/:id/approve lets an admin approve a pending member directly and is idempotent", async () => {
+      const admin = await makeMember(t.db, { role: "admin" });
+      const plain = await makeMember(t.db);
+      const pending = await makeMember(t.db, { status: "pending" });
+      const inactive = await makeMember(t.db, { status: "inactive" });
+
+      expect((await call(plain, "POST", `/members/${pending.id}/approve`)).status).toBe(403);
+      expect((await call(admin, "POST", `/members/${inactive.id}/approve`)).status).toBe(409);
+
+      const res = await call(admin, "POST", `/members/${pending.id}/approve`);
+      expect(res.status).toBe(200);
+      expect(await res.json()).toEqual({ memberId: pending.id, status: "active" });
+      const updated = await reload(pending);
+      expect(updated.status).toBe("active");
+      expect(updated.joinedAt).toBeInstanceOf(Date);
+
+      const again = await call(admin, "POST", `/members/${pending.id}/approve`);
+      expect(again.status).toBe(200);
+      expect(await auditFor(pending.id)).toHaveLength(1);
+    });
   });
 
   describe("payment_ref", () => {

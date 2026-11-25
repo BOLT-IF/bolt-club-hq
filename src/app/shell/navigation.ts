@@ -76,7 +76,12 @@ export const moreMenu: readonly NavLink[] = [
 /** Sections listed on the Admin index. Every entry is admin-only. */
 export const adminIndex: readonly NavLink[] = [
   { id: "admin-members", label: "Members", path: "/admin/members", requiresAdmin: true },
-  { id: "admin-approvals", label: "Join requests", path: "/admin/approvals", requiresAdmin: true },
+  {
+    id: "admin-approvals",
+    label: "Invites & join requests",
+    path: "/admin/approvals",
+    requiresAdmin: true,
+  },
   { id: "admin-terms", label: "Terms & series", path: "/admin/terms", requiresAdmin: true },
   { id: "admin-money", label: "Money", path: "/admin/money", requiresAdmin: true },
   { id: "admin-reminders", label: "Reminders", path: "/admin/reminders", requiresAdmin: true },

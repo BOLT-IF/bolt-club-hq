@@ -11,7 +11,7 @@ import {
   useToast,
 } from "../../../components/ui";
 import type { StatusTone } from "../../../components/ui";
-import { describeError } from "../../members/memberApi";
+import { describeError, type MemberRow } from "../../members/memberApi";
 import "../../members/members.css";
 
 interface JoinRequestRow {
@@ -60,15 +60,21 @@ type State =
   | {
       readonly kind: "ready";
       readonly requests: readonly JoinRequestRow[];
+      readonly directPending: readonly MemberRow[];
       readonly invites: readonly InviteRow[];
     };
 
 async function fetchAll() {
-  const [{ requests }, { invites }] = await Promise.all([
+  const [{ requests }, { invites }, membersRes] = await Promise.all([
     apiFetch<{ requests: JoinRequestRow[] }>("/admin/join-requests"),
     apiFetch<{ invites: InviteRow[] }>("/invites"),
+    apiFetch<{ members: MemberRow[] }>("/admin/members").catch(() => ({ members: [] })),
   ]);
-  return { requests, invites };
+  const requestedIds = new Set(requests.map((r) => r.memberId));
+  const directPending = membersRes.members.filter(
+    (m) => m.status === "pending" && !requestedIds.has(m.id),
+  );
+  return { requests, directPending, invites };
 }
 
 /** Admin approval queue (S1.3): approve or reject join requests, create and revoke invites. */
@@ -132,11 +138,12 @@ export function AdminApprovals() {
       <h1 id="approvals-title" className="bcq-page__title">
         Join requests
       </h1>
-      {state.requests.length === 0 ? (
+      {state.requests.length === 0 && state.directPending.length === 0 ? (
         <EmptyState title="No one is waiting">
           New requests show up here and in your inbox.
         </EmptyState>
-      ) : (
+      ) : null}
+      {state.requests.length > 0 ? (
         <ul className="bcq-members">
           {state.requests.map((r) => (
             <li key={r.id} className="bcq-member" aria-label={r.displayName}>
@@ -175,7 +182,38 @@ export function AdminApprovals() {
             </li>
           ))}
         </ul>
-      )}
+      ) : null}
+      {state.directPending.length > 0 ? (
+        <section aria-labelledby="direct-pending-title">
+          <h2 id="direct-pending-title" className="bcq-page__title">
+            Signed in without an invite
+          </h2>
+          <ul className="bcq-members">
+            {state.directPending.map((m) => (
+              <li key={m.id} className="bcq-member" aria-label={m.displayName}>
+                <div className="bcq-member__head">
+                  <h3 className="bcq-member__name">{m.displayName}</h3>
+                  <StatusChip tone="warning">Pending</StatusChip>
+                </div>
+                <p className="bcq-member__meta">
+                  Signed in directly{m.email ? ` · ${m.email}` : ""}
+                </p>
+                <div className="bcq-member__actions">
+                  <Button
+                    aria-label={`Approve ${m.displayName}`}
+                    disabled={busy === m.id}
+                    onClick={() =>
+                      void act(m.id, `/members/${m.id}/approve`, "POST", "Member approved")
+                    }
+                  >
+                    Approve
+                  </Button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
 
       <Invites
         invites={state.invites}
@@ -252,6 +290,15 @@ function Invites({
     }
   }
 
+  async function copyLink(url: string) {
+    try {
+      await navigator.clipboard.writeText(url);
+      toast.show("Invite link copied", "success");
+    } catch {
+      toast.show("Couldn't copy automatically — select the link to copy it.", "danger");
+    }
+  }
+
   return (
     <section aria-labelledby="invites-title">
       <h2 id="invites-title" className="bcq-page__title">
@@ -311,6 +358,16 @@ function Invites({
             }}
             aria-describedby="invite-link-hint"
           />
+          <div className="bcq-member__actions">
+            <Button
+              variant="secondary"
+              onClick={() => {
+                void copyLink(created);
+              }}
+            >
+              Copy invite link
+            </Button>
+          </div>
           <p id="invite-link-hint" className="bcq-field__hint">
             Copy it and send it to the person you&apos;re inviting.
           </p>
@@ -333,6 +390,14 @@ function Invites({
                 </p>
                 {inv.state === "active" ? (
                   <div className="bcq-member__actions">
+                    <Button
+                      variant="secondary"
+                      onClick={() => {
+                        void copyLink(inviteUrl(inv.token));
+                      }}
+                    >
+                      Copy link
+                    </Button>
                     <Button
                       variant="danger"
                       onClick={() => {

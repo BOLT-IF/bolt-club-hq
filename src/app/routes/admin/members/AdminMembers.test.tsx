@@ -177,4 +177,24 @@ describe("admin members page", () => {
       });
     });
   });
+
+  it("lets an admin approve a pending member directly", async () => {
+    const pending: Row = {
+      ...bo,
+      id: "m4",
+      displayName: "Dee Direct",
+      status: "pending",
+      paymentRef: "BC-DEE",
+    };
+    const calls = setup([ada, pending]);
+    const item = await screen.findByRole("listitem", { name: /Dee Direct/ });
+    fireEvent.click(within(item).getByRole("button", { name: "Approve Dee Direct" }));
+    await waitFor(() => {
+      expect(calls).toContainEqual({
+        method: "POST",
+        path: "/members/m4/approve",
+        body: undefined,
+      });
+    });
+  });
 });

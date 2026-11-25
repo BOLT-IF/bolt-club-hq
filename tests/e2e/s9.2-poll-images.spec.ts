@@ -93,7 +93,7 @@ async function setupPollRoutes(page: Page) {
 }
 
 test.describe("polls with images on mobile (S9.2)", () => {
-  test.use({ viewport: { width: 390, height: 844 } });
+  test.use({ viewport: { width: 390, height: 844 }, serviceWorkers: "block" });
 
   test("member views image options on mobile, votes, and sees results with zero axe violations", async ({
     page,

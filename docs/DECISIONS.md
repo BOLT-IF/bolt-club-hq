@@ -2,6 +2,12 @@
 
 Decisions made after `PLAN.md` (v3) was written. Newest first. Every entry gives the decision, the reason, and what it changes.
 
+## 2026-11-25: One-off events redesign (< 24h instant confirm, member vs club billing, audience groups, `new_events` notifications)
+
+- **Events starting within 24 hours confirm immediately:** When a club one-off event (`admin_oneoff`) is created less than 24 hours before `startsAt` (without an explicit `rsvpCloseAt`), `allocationMode` becomes `instant` rather than waiting until `startsAt` to confirm. Paid club events in `instant` mode start in `status = "closed"` (`rsvpCloseAt = now`, `closedProcessedAt = now`), reusing the post-close RSVP flow (`postclose.ts`) so RSVPs confirm and charge the club ledger immediately, overflow waitlists, and cancellations follow late-cancel/refill rules.
+- **Member-organized events vs club-billed events:** Only club-organized events (`admin_oneoff` and `series`) ever write to the club ledger. Member-organized events (`member_oneoff`, also selectable by admins via `eventScope: "member"`) always confirm immediately and accept an optional `adhocFee` displayed as an estimated cost settled directly with the organizer outside BOLT HQ.
+- **Audience eligibility & `new_events` notifications:** Added `event.audience_kind` (`"all" | "series" | "members"`), `event.audience_series_id`, and `event_eligible_member (event_id, member_id)` (`0003_event_audience.sql`). Selecting a series's pass holders or specific active members restricts both event visibility/RSVP (403 `not_eligible`, organizer and admins always allowed) and `new_events` notifications fired on `POST /api/v1/events`. `event_eligible_member` is included in GDPR export and deleted on erasure.
+
 ## 2026-11-25: S10.1 home dashboard
 
 - **Route & composition (`src/app/routes/home/`):** Registers `/` (`HomePage`), composing existing API endpoints without adding a new backend aggregation endpoint: `GET /me`, `GET /events` + `GET /events/:id/rsvp` (capped at the next 6 non-cancelled upcoming events, split into **Next RSVPs** and **Unanswered events**), `GET /me/ledger`, `GET /me/payment-claims` (pending claims), `GET /passes/offers` (active passes and offer count), `GET /polls` (open polls), and for admins `GET /admin/join-requests` + `GET /admin/payment-claims`.

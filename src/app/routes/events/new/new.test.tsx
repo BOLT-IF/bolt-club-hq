@@ -28,7 +28,16 @@ function stubApi(responses: Record<string, { status?: number; body: unknown }>) 
 }
 
 const me = (role: "member" | "admin") => ({
-  "GET /events/oneoff/options": { body: { canSetFee: role === "admin" } },
+  "GET /events/oneoff/options": {
+    body: {
+      canSetFee: role === "admin",
+      series: [{ id: "ser_1", name: "Sunday Open", termName: "Spring" }],
+      members: [
+        { id: "m1", displayName: "Ada Lovelace" },
+        { id: "m2", displayName: "Bo Berg" },
+      ],
+    },
+  },
 });
 
 function fill() {
@@ -54,20 +63,23 @@ describe("/events/new", () => {
     expect(resolveRoute("/events/new")?.route.path).toBe("/events/new");
   });
 
-  it("a member sees no fee or allocation fields", async () => {
+  it("a member sees outside-app cost field, group selector, and no club tiered controls", async () => {
     stubApi(me("member"));
     render(<NewEventPage />);
     expect(await screen.findByLabelText(/title/i)).toBeTruthy();
-    expect(screen.queryByLabelText(/fee/i)).toBeNull();
+    expect(screen.getByLabelText(/estimated cost/i)).toBeTruthy();
+    expect(screen.getByLabelText(/who can join/i)).toBeTruthy();
     expect(screen.queryByLabelText(/tiered/i)).toBeNull();
-    expect(screen.getByText(/free/i)).toBeTruthy();
+    expect(screen.getByText(/settled directly with you/i)).toBeTruthy();
   });
 
-  it("an admin can set a fee and tiered allocation", async () => {
+  it("an admin can pick club vs member scope, fee, tiered allocation, and audience group", async () => {
     stubApi(me("admin"));
     render(<NewEventPage />);
-    expect(await screen.findByLabelText(/fee/i)).toBeTruthy();
+    expect(await screen.findByLabelText(/event type/i)).toBeTruthy();
+    expect(screen.getByLabelText(/club fee/i)).toBeTruthy();
     expect(screen.getByLabelText(/tiered/i)).toBeTruthy();
+    expect(screen.getByLabelText(/who can join/i)).toBeTruthy();
   });
 
   it("submits Stockholm wall time as UTC with an Idempotency-Key, then opens the event", async () => {

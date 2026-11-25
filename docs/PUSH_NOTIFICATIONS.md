@@ -28,6 +28,7 @@ Every user-facing alert in BOLT HQ goes through [`createNotifyPort`](../src/work
 | `rsvp_status` | **Event date/time/location changed** (`Event updated`) | Members with an RSVP on the event | When an admin/organizer edits `starts_at`, `ends_at`, or `location` | [`rsvp/eventchange.ts`](../src/worker/rsvp/eventchange.ts) |
 | `rsvp_status` | **RSVP deadline reminder** | Eligible members who haven't RSVP'd yet | Scheduled reminder rule (`rsvp_deadline`) fires before `rsvp_close_at` | [`reminders/service.ts`](../src/worker/reminders/service.ts) |
 | `event_changes` | **Event day reminder** | Confirmed attendees | Scheduled reminder rule (`event_day`) fires before event start | [`reminders/service.ts`](../src/worker/reminders/service.ts) |
+| `new_events` | **New one-off event created** (`New event`) | Eligible active members (everyone, chosen series pass holders, or picked members), excluding the organizer | Immediately when an event is created via `POST /api/v1/events` | [`events/oneoff-routes.ts`](../src/worker/events/oneoff-routes.ts) |
 | `payment_status` | **Payment claim confirmed** (`Payment confirmed`) | Claiming member | When another admin confirms their payment claim | [`ledger/claims.ts`](../src/worker/ledger/claims.ts) |
 | `payment_status` | **Payment claim rejected** (`Payment claim rejected`) | Claiming member | When another admin rejects their payment claim (includes reason) | [`ledger/claims.ts`](../src/worker/ledger/claims.ts) |
 | `payment_status` | **Unpaid pass revoked** (`Pass revoked`) | Pass holder | When an unpaid pass passes `pass_unpaid_revoke_days` (default 21 days) and is revoked | [`passes/model.ts`](../src/worker/passes/model.ts) |
@@ -38,5 +39,3 @@ Every user-facing alert in BOLT HQ goes through [`createNotifyPort`](../src/work
 | `admin_tasks` | **New join request** (`New join request`) | All active admins | When a pending user submits an invite/event/series join request | [`members/join.ts`](../src/worker/members/join.ts) |
 | `admin_tasks` | **Attendance unmarked** (`Attendance unmarked`) | All active admins | Cron check when an event is >24h past end with unmarked attendance | [`attendance/alert-tick.ts`](../src/worker/attendance/alert-tick.ts) |
 | `admin_tasks` | **Scheduler stale alert** (`Scheduled tasks have stopped`) | All active admins | When `scheduler:last_run_at` is older than 2x the expected cron interval | [`scheduler/alert.ts`](../src/worker/scheduler/alert.ts) |
-
-> **Note:** `new_events` is a defined notification category with a mute toggle in `/settings/notifications`, and currently has no automatic trigger on event creation.

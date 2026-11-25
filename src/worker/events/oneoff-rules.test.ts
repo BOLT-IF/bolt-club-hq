@@ -37,41 +37,93 @@ describe("planOneoff", () => {
     expect(r.value.rsvpCloseAt.toISOString()).toBe(at(24));
   });
 
-  it("keeps RSVPs open until the start when created less than 24h ahead", () => {
+  it("keeps RSVPs open until the start when created less than 24h ahead for member one-offs", () => {
     const r = planOneoff(member, body({ startsAt: at(3), endsAt: at(5) }), NOW);
     expect(r.ok && r.value.rsvpCloseAt.toISOString()).toBe(at(3));
+    expect(r.ok && r.value.allocationMode).toBe("instant");
   });
 
-  it("a member can't set a fee or tiered allocation", () => {
-    for (const over of [{ adhocFee: 100 }, { allocationMode: "tiered" }]) {
+  it("forces instant confirmation when an admin creates a club event less than 24h ahead", () => {
+    const free = planOneoff(admin, body({ startsAt: at(3), endsAt: at(5) }), NOW);
+    expect(free.ok && free.value).toMatchObject({
+      kind: "admin_oneoff",
+      allocationMode: "instant",
+      status: "scheduled",
+      closedProcessedAt: null,
+    });
+
+    const paid = planOneoff(admin, body({ startsAt: at(3), endsAt: at(5), adhocFee: 120 }), NOW);
+    expect(paid.ok && paid.value).toMatchObject({
+      kind: "admin_oneoff",
+      allocationMode: "instant",
+      adhocFee: 120,
+      status: "closed",
+    });
+    expect(paid.ok && paid.value.closedProcessedAt?.toISOString()).toBe(NOW.toISOString());
+    expect(paid.ok && paid.value.rsvpCloseAt.toISOString()).toBe(NOW.toISOString());
+  });
+
+  it("a member can set an informational cost (settled outside app) but not club/tiered modes", () => {
+    const withCost = planOneoff(member, body({ adhocFee: 100 }), NOW);
+    expect(withCost.ok && withCost.value).toMatchObject({
+      kind: "member_oneoff",
+      adhocFee: 100,
+      allocationMode: "instant",
+      status: "scheduled",
+    });
+    for (const over of [{ allocationMode: "tiered" }, { eventScope: "club" }]) {
       expect(planOneoff(member, body(over), NOW)).toMatchObject({
         ok: false,
         status: 403,
         error: "admin_only",
       });
     }
-    // Explicitly asking for what members get anyway is fine.
     expect(planOneoff(member, body({ adhocFee: 0, allocationMode: "instant" }), NOW).ok).toBe(true);
   });
 
-  it("an admin one-off is tiered by default and may charge a fee", () => {
+  it("an admin one-off is tiered by default, supports paid instant mode, and can opt into member scope", () => {
     const r = planOneoff(admin, body({ adhocFee: 150 }), NOW);
     expect(r.ok && r.value).toMatchObject({
       kind: "admin_oneoff",
       adhocFee: 150,
       allocationMode: "tiered",
+      status: "scheduled",
     });
     const free = planOneoff(admin, body({ allocationMode: "instant" }), NOW);
-    expect(free.ok && free.value.allocationMode).toBe("instant");
+    expect(free.ok && free.value).toMatchObject({
+      allocationMode: "instant",
+      status: "scheduled",
+    });
+    const paidInstant = planOneoff(admin, body({ adhocFee: 150, allocationMode: "instant" }), NOW);
+    expect(paidInstant.ok && paidInstant.value).toMatchObject({
+      kind: "admin_oneoff",
+      adhocFee: 150,
+      allocationMode: "instant",
+      status: "closed",
+    });
+    const memberScoped = planOneoff(admin, body({ eventScope: "member", adhocFee: 80 }), NOW);
+    expect(memberScoped.ok && memberScoped.value).toMatchObject({
+      kind: "member_oneoff",
+      adhocFee: 80,
+      allocationMode: "instant",
+      status: "scheduled",
+    });
   });
 
-  it("a paid admin one-off can't be instant (instant never charges)", () => {
+  it("validates audienceKind, audienceSeriesId and eligibleMemberIds", () => {
     expect(
-      planOneoff(admin, body({ adhocFee: 150, allocationMode: "instant" }), NOW),
-    ).toMatchObject({
+      planOneoff(member, body({ audienceKind: "series", audienceSeriesId: "ser_1" }), NOW),
+    ).toMatchObject({ ok: true, value: { audienceKind: "series", audienceSeriesId: "ser_1" } });
+    expect(
+      planOneoff(member, body({ audienceKind: "members", eligibleMemberIds: ["m1", "m1"] }), NOW),
+    ).toMatchObject({ ok: true, value: { audienceKind: "members", eligibleMemberIds: ["m1"] } });
+    expect(planOneoff(member, body({ audienceKind: "series" }), NOW)).toMatchObject({
       ok: false,
       status: 400,
     });
+    expect(
+      planOneoff(member, body({ audienceKind: "members", eligibleMemberIds: [] }), NOW),
+    ).toMatchObject({ ok: false, status: 400 });
   });
 
   it.each([

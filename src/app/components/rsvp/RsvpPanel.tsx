@@ -88,6 +88,9 @@ export function RsvpPanel({ event }: SlotProps) {
   }, [event.id]);
 
   if (load === "hidden") return null;
+  if (event.status === "closed" && event.allocationMode === "instant" && !event.readOnly) {
+    return null;
+  }
   if (load === "loading") return <Skeleton lines={2} label="Loading your RSVP" />;
 
   const run = async (action: () => Promise<RsvpView>) => {

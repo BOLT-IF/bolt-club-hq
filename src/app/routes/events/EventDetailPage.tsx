@@ -13,6 +13,7 @@ type State =
   | { readonly kind: "loading" }
   | { readonly kind: "missing" }
   | { readonly kind: "blocked" }
+  | { readonly kind: "not_eligible" }
   | { readonly kind: "error" }
   | ({ readonly kind: "ready" } & EventWithViewer);
 
@@ -29,8 +30,19 @@ export function EventDetailPage() {
       .catch((error: unknown) => {
         if (cancelled) return;
         const status = error instanceof ApiError ? error.status : 0;
+        const code =
+          error instanceof ApiError && typeof error.body === "object" && error.body !== null
+            ? (error.body as { error?: unknown }).error
+            : null;
         setState({
-          kind: status === 404 ? "missing" : status === 403 ? "blocked" : "error",
+          kind:
+            status === 404
+              ? "missing"
+              : status === 403 && code === "not_eligible"
+                ? "not_eligible"
+                : status === 403
+                  ? "blocked"
+                  : "error",
         });
       });
     return () => {
@@ -42,6 +54,14 @@ export function EventDetailPage() {
   if (state.kind === "missing") {
     return (
       <EmptyState title="We couldn't find that event">The link may be old or mistyped.</EmptyState>
+    );
+  }
+  if (state.kind === "not_eligible") {
+    return (
+      <EmptyState title="This event is invite-only">
+        You aren&apos;t in the invited group for this event. Ask the organizer if you should be
+        added.
+      </EmptyState>
     );
   }
   if (state.kind === "blocked") {
@@ -79,11 +99,27 @@ export function EventDetailPage() {
       {event.location ? <p className="bcq-event__where">{event.location}</p> : null}
       <p className="bcq-event__chips">
         <StatusChip>{event.format}</StatusChip>{" "}
+        {event.kind === "member_oneoff" ? (
+          <StatusChip tone="neutral">Member-organized</StatusChip>
+        ) : null}
+        {event.audienceLabel ? (
+          <>
+            {" "}
+            <StatusChip tone="info">Invited: {event.audienceLabel}</StatusChip>
+          </>
+        ) : null}
         {event.status === "cancelled" ? <StatusChip tone="danger">Cancelled</StatusChip> : null}
         {event.readOnly && event.status !== "cancelled" ? (
           <StatusChip>Past event</StatusChip>
         ) : null}
       </p>
+      {event.adhocFee > 0 ? (
+        <p className="bcq-event__where">
+          {event.kind === "member_oneoff"
+            ? `${String(event.adhocFee)} kr · settled directly with organizer (not billed by BOLT IF)`
+            : `${String(event.adhocFee)} kr · billed via BOLT HQ`}
+        </p>
+      ) : null}
 
       <Slot name="RsvpSlot" event={event} viewer={viewer} />
       <Slot name="ShareSlot" event={event} viewer={viewer} />

@@ -114,11 +114,26 @@ export const event = pgTable("event", {
   maxGuestsPerMember: integer("max_guests_per_member").notNull().default(0),
   rsvpCloseAt: timestamp("rsvp_close_at", { withTimezone: true }).notNull(),
   allocationMode: allocationMode("allocation_mode").notNull(),
+  audienceKind: text("audience_kind").notNull().default("all"),
+  audienceSeriesId: text("audience_series_id").references(() => series.id),
   status: eventStatus("status").notNull().default("scheduled"),
   shareSlug: text("share_slug").notNull().unique(),
   closedProcessedAt: timestamp("closed_processed_at", { withTimezone: true }),
   materialChangeAt: timestamp("material_change_at", { withTimezone: true }),
 });
+
+export const eventEligibleMember = pgTable(
+  "event_eligible_member",
+  {
+    eventId: text("event_id")
+      .notNull()
+      .references(() => event.id),
+    memberId: text("member_id")
+      .notNull()
+      .references(() => member.id),
+  },
+  (t) => [primaryKey({ columns: [t.eventId, t.memberId] })],
+);
 
 export const passStatus = pgEnum("pass_status", ["active", "revoked"]);
 

@@ -1,8 +1,11 @@
+import { eq } from "drizzle-orm";
 import { Hono, type Context } from "hono";
 
+import { event } from "../../../db/schema";
 import { contextMiddleware } from "../core/context";
 import { idempotent } from "../core/idempotency";
 import { requireActor, requireGuard } from "../core/permissions";
+import { canAccessEvent } from "../events/audience";
 import type { AppEnv } from "../types";
 import { closeDueEvents } from "./close";
 import "./close-tick";
@@ -55,14 +58,23 @@ export default new Hono<AppEnv>()
   .get(PATH, requireGuard("member"), async (c) => {
     const eventId = c.req.param("id");
     await closeDueEvents(c.var.db, c.var.clock, { targetEventId: eventId });
+    const [e] = await c.var.db.select().from(event).where(eq(event.id, eventId));
+    if (e && !(await canAccessEvent(c.var.db, requireActor(c), e))) {
+      return c.json({ error: "not_eligible" }, 403);
+    }
     const result = await getRsvp(c.var.db, eventId, actorId(c));
     return reply(c, result);
   })
   .put(PATH, requireGuard("member"), idempotent("PUT /api/v1/events/:id/rsvp"), async (c) => {
     const guests = parseGuests(await c.req.json().catch(() => ({})));
     if (!guests) return c.json({ error: "invalid_body" }, 400);
+    const eventId = c.req.param("id");
+    const [e] = await c.var.db.select().from(event).where(eq(event.id, eventId));
+    if (e && !(await canAccessEvent(c.var.db, requireActor(c), e))) {
+      return c.json({ error: "not_eligible" }, 403);
+    }
     const result = await putRsvp(c.var.db, c.var.clock, rsvpDeps().prepaid(c.var.db), {
-      eventId: c.req.param("id"),
+      eventId,
       memberId: actorId(c),
       guests,
     });

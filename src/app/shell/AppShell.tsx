@@ -52,9 +52,21 @@ export function AppShell({ path, children, badges = {}, isAdmin = false }: AppSh
               goBack();
             }}
           >
-            <span aria-hidden="true" className="bcq-back__arrow">
-              ←
-            </span>
+            <svg
+              aria-hidden="true"
+              focusable="false"
+              className="bcq-back__arrow"
+              viewBox="0 0 24 24"
+            >
+              <path
+                d="M15 6l-6 6 6 6"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
             Back
           </button>
         ) : null}

@@ -2,6 +2,7 @@ import { Hono, type Context } from "hono";
 
 import { contextMiddleware } from "../core/context";
 import { requireGuard } from "../core/permissions";
+import { closeDueEvents } from "../rsvp/close";
 import type { AppEnv } from "../types";
 import { eventsDeps } from "./deps";
 import oneoffRoutes from "./oneoff-routes";
@@ -71,21 +72,27 @@ export default new Hono<AppEnv>()
   .use("/series/*", contextMiddleware())
   .route("/", oneoffRoutes)
   .get("/events", requireGuard("member"), async (c) => {
+    await closeDueEvents(c.var.db, c.var.clock);
     const scope = c.req.query("scope") === "past" ? "past" : "upcoming";
     const now = c.var.clock.now();
     const rows = await listEvents(c.var.db, now, scope);
     return c.json({ events: rows.map((row) => toDto(row, now)) });
   })
   .get("/events/by-slug/:slug", requireGuard("member"), async (c) => {
-    const row = await getEventBySlug(c.var.db, c.req.param("slug"));
+    const slug = c.req.param("slug");
+    await closeDueEvents(c.var.db, c.var.clock, { targetSlug: slug });
+    const row = await getEventBySlug(c.var.db, slug);
     return row ? detail(c, row) : notFound(c);
   })
   .get("/series/by-slug/:slug/next", requireGuard("member"), async (c) => {
+    await closeDueEvents(c.var.db, c.var.clock);
     const row = await nextOpenEvent(c.var.db, c.req.param("slug"), c.var.clock.now());
     return row ? detail(c, row) : notFound(c);
   })
   .get("/events/:id", requireGuard("member"), async (c) => {
-    const row = await getEventById(c.var.db, c.req.param("id"));
+    const id = c.req.param("id");
+    await closeDueEvents(c.var.db, c.var.clock, { targetEventId: id });
+    const row = await getEventById(c.var.db, id);
     return row ? detail(c, row) : notFound(c);
   })
   .patch("/events/:id", requireGuard("member"), async (c) => {

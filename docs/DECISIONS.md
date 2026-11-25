@@ -2,6 +2,14 @@
 
 Decisions made after `PLAN.md` (v3) was written. Newest first. Every entry gives the decision, the reason, and what it changes.
 
+## 2026-11-25: S4.4a post-close RSVP, cancel, promotion, refill
+
+- **Routes (`src/worker/rsvp/postclose.ts`, mounted in `rsvp/routes.ts`):** `GET /events/:id/rsvp/postclose`, `PUT /events/:id/rsvp/late`, and `POST /events/:id/rsvp/late-cancel` (with `Idempotency-Key` on both writes and `closeDueEvents` before each transaction). Exact-path `contextMiddleware()` avoids double-opening the DB on `/events/:id/rsvp`.
+- **Refill rule without schema changes:** After any post-close confirmation (late RSVP or auto-promotion), `freeSpots = max(0, capacity - confirmedCount)` is compared against unrefilled `late_cancelled` rows (`rsvp` and `guest`), ordered earliest first (`cancelledAt ?? requestedAt`). `max(0, unrefilled.length - freeSpots)` earliest rows are marked `refilled = true`, their unreversed charge in `ledger_entry` is reversed (`refill:<chargeId>`), and the member is notified. Cancelling while spots are free leaves `freeSpots >= unrefilled.length`, so the charge stands.
+- **Post-close charge keys:** Confirmations after close use `postclose:<eventId>:<rsvpId>:<confirmedAtMs>` (or `:guest:<guestId>:<ts>`), distinct from `close:<eventId>:<memberId>`, so a member who late-cancels, gets refilled, and re-RSVPs late is charged again cleanly.
+- **Immediate confirm when waitlist is empty:** A late RSVP into an event with free spots and an empty waitlist confirms immediately even past `autoPromoteCutoffMin`; otherwise `promote()` runs (auto-promoting before cutoff, or marking eligible waitlisted candidates `offered` and notifying them from cutoff onward).
+- **Frontend (`src/app/components/rsvp/postclose.tsx`):** `PostCloseRsvpPanel` registers into `RsvpSlot` from `src/app/routes/events/routes.tsx` and renders only when the event is closed and editable.
+
 ## 2026-11-24: S2.5 privacy: export, erasure, retention
 
 - **Routes** (`src/worker/privacy/routes.ts`): `GET /me/export` (`requireGuard("member", { allowInactive: true })`, so exited members can export their data; PLAN §6.7, §16) and `POST /admin/members/:id/erase` (`requireGuard("admin")`).

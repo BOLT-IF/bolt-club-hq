@@ -91,7 +91,7 @@ describe("SignInPage", () => {
     expect(elementsOf(captured.signIn).socialButtonsRoot).toBeUndefined();
   });
 
-  it("hides Google in the installed iOS app", () => {
+  it("shows Google in the installed iOS app as well", () => {
     setClient({ ios: true, standalone: true });
     render(
       <AuthProvider publishableKey="pk_test_abc">
@@ -99,7 +99,7 @@ describe("SignInPage", () => {
       </AuthProvider>,
     );
     const elements = elementsOf(captured.signIn);
-    expect(elements.socialButtonsRoot).toEqual({ display: "none" });
-    expect(elements.dividerRow).toEqual({ display: "none" });
+    expect(elements.socialButtonsRoot).toBeUndefined();
+    expect(elements.dividerRow).toBeUndefined();
   });
 });

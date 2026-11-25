@@ -190,6 +190,13 @@ describe("payment claims", () => {
         isOwn: false,
       });
       expect(byId.get(mine.id)).toMatchObject({ isOwn: true });
+
+      await post(`/admin/payment-claims/${theirs.id}/confirm`, {}, admin.clerkUserId, "hist1");
+      const after = await get("/admin/payment-claims", admin.clerkUserId);
+      const afterBody = await after.json<{ claims: AdminClaimBody[]; history: AdminClaimBody[] }>();
+      expect(afterBody.claims.map((c) => c.id)).toEqual([mine.id]);
+      expect(afterBody.history.map((c) => c.id)).toEqual([theirs.id]);
+      expect(afterBody.history[0]?.status).toBe("confirmed");
     });
   });
 

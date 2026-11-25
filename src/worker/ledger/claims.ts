@@ -1,4 +1,4 @@
-import { asc, desc, eq, sql } from "drizzle-orm";
+import { asc, desc, eq, ne, sql } from "drizzle-orm";
 import { Hono, type Context } from "hono";
 import type { ContentfulStatusCode } from "hono/utils/http-status";
 
@@ -145,28 +145,46 @@ claimsRoutes.post("/me/payment-claims", context, member_, idempotent, async (c) 
   return c.json(view(row), 201);
 });
 
-/** Pending claims, oldest payment first, with who and their current balance. */
+/** Pending claims (oldest payment first) plus recent decided claims (newest first). */
 claimsRoutes.get("/admin/payment-claims", context, admin, async (c) => {
   const me = actorOf(c).id;
-  const rows = await c.var.db
-    .select({
-      claim: paymentClaim,
-      displayName: member.displayName,
-      paymentRef: member.paymentRef,
-      balance: sql<string>`(select coalesce(sum(${ledgerEntry.amountSek}), 0) from ${ledgerEntry} where ${ledgerEntry.memberId} = ${paymentClaim.memberId})`,
-    })
-    .from(paymentClaim)
-    .innerJoin(member, eq(member.id, paymentClaim.memberId))
-    .where(eq(paymentClaim.status, "pending"))
-    .orderBy(asc(paymentClaim.paidOn), asc(paymentClaim.id));
+  const selectFields = {
+    claim: paymentClaim,
+    displayName: member.displayName,
+    paymentRef: member.paymentRef,
+    balance: sql<string>`(select coalesce(sum(${ledgerEntry.amountSek}), 0) from ${ledgerEntry} where ${ledgerEntry.memberId} = ${paymentClaim.memberId})`,
+  };
+  const mapRow = (r: {
+    claim: ClaimRow;
+    displayName: string;
+    paymentRef: string;
+    balance: string;
+  }) => ({
+    ...view(r.claim),
+    displayName: r.displayName,
+    paymentRef: r.paymentRef,
+    balanceSek: Number(r.balance),
+    isOwn: r.claim.memberId === me,
+  });
+
+  const [pendingRows, historyRows] = await Promise.all([
+    c.var.db
+      .select(selectFields)
+      .from(paymentClaim)
+      .innerJoin(member, eq(member.id, paymentClaim.memberId))
+      .where(eq(paymentClaim.status, "pending"))
+      .orderBy(asc(paymentClaim.paidOn), asc(paymentClaim.id)),
+    c.var.db
+      .select(selectFields)
+      .from(paymentClaim)
+      .innerJoin(member, eq(member.id, paymentClaim.memberId))
+      .where(ne(paymentClaim.status, "pending"))
+      .orderBy(desc(paymentClaim.decidedAt), desc(paymentClaim.id))
+      .limit(50),
+  ]);
   return c.json({
-    claims: rows.map((r) => ({
-      ...view(r.claim),
-      displayName: r.displayName,
-      paymentRef: r.paymentRef,
-      balanceSek: Number(r.balance),
-      isOwn: r.claim.memberId === me,
-    })),
+    claims: pendingRows.map(mapRow),
+    history: historyRows.map(mapRow),
   });
 });
 

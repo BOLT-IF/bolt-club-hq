@@ -43,15 +43,25 @@ Money in (payments, waivers, reversals of charges) is matched against money owed
 | `GET /api/v1/admin/balances/:memberId` | admin | One member's FIFO itemization, plus `waivable` / `reversible` per entry. |
 | `POST /api/v1/admin/payments` | admin, `Idempotency-Key` | `{ memberId, amountSek, note? }`, whole kronor > 0. Returns `{ entryId, balanceSek }` (201). |
 | `POST /api/v1/admin/adjustments` | admin, `Idempotency-Key` | `{ type, note, … }`, note required. `waiver`+`entryId` (reversal), `waiver`+`memberId`+`amountSek` (write-off), `charge`+`memberId`+`amountSek` (manual), `reversal`+`entryId`. |
+| `GET /api/v1/me/payment-claims` | member, `allowInactive` | Caller's own claims (`pending \| confirmed \| rejected`), newest `paidOn` first. |
+| `POST /api/v1/me/payment-claims` | member, `allowInactive`, `Idempotency-Key` | `{ amountSek (> 0 integer), paidOn ("YYYY-MM-DD" <= today Stockholm), note? }`. Never touches the ledger. |
+| `GET /api/v1/admin/payment-claims` | admin | Pending claims only, oldest `paidOn` first, with `displayName`, `paymentRef`, `balanceSek`, and `isOwn`. |
+| `POST /api/v1/admin/payment-claims/:id/confirm` | admin, `Idempotency-Key` | Records one payment keyed `claim:<id>`, confirms claim, audits, notifies (`payment_status`). Refuses `own_claim` (403). |
+| `POST /api/v1/admin/payment-claims/:id/reject` | admin, `Idempotency-Key` | `{ reason }` (non-blank, ≤ 500). Rejects claim, audits, notifies with reason and link `/money/claims`. Refuses `own_claim` (403). |
 
-Admin routes live in `src/worker/ledger/admin-routes.ts` (S5.4), mounted by `routes.ts` with `.route("/", adminRoutes)`. `LEDGER_ERROR_STATUS` there maps every `LedgerError.code` to its HTTP status (400/403/404/409); reuse it in claims (S5.5). The ledger key is derived from the HTTP key (`admin-payment:<adminId>:<key>`), so a double tap writes one row even if the replay record were lost. UI: `src/app/routes/admin/money/` (`/admin/money`, `/admin/money/members/:id`), behind the `money` flag. Claims are S5.5, passes and revocation S5.3, export S5.6.
+Admin routes live in `src/worker/ledger/admin-routes.ts` (S5.4), mounted by `routes.ts` with `.route("/", adminRoutes)`. Claims routes live in `src/worker/ledger/claims.ts` (S5.5), mounted by `routes.ts` with `.route("/", claimsRoutes)`. UI: `src/app/routes/admin/money/` (`/admin/money`, `/admin/money/members/:id`, `/admin/money/claims`), behind the `money` flag. Passes and revocation are S5.3, export S5.6.
 
 ## Member screen (S5.2)
 
 - `/money` (`src/app/routes/money/`), behind `FLAG_MONEY`. Client calls live in `src/app/api/ledger.ts` (`fetchMyLedger`, `fetchPaymentSettings`, `fetchMyPaymentRef`); there is no member-id parameter.
 - Shows the balance ("You owe 90 kr", "Credit 100 kr", "You're all paid up"), "How to pay" (bank details and instructions from `GET /settings/public`, payment reference from `GET /me/profile`, with a copy button) and every entry newest first with its FIFO status, event title and date, and guest name.
 - The ledger is required; settings and profile are best effort. If either fails, the screen says "Ask the treasurer for the club's bank details" instead of failing.
-- S5.5 adds the "I've paid" claim flow as `src/app/routes/money/claims*`, S5.3 adds passes as `src/app/routes/money/passes*` and revocable-pass filtering + revocation on `AdminBalances.tsx`.
+- S5.5 adds the "I've paid" claim flow at `/money/claims` (`src/app/routes/money/claims/`), S5.3 adds passes as `src/app/routes/money/passes*` and revocable-pass filtering + revocation on `AdminBalances.tsx`.
+
+## Payment claims (S5.5)
+
+- **Member UI (`/money/claims`):** `src/app/routes/money/claims/routes.tsx` (`MemberClaimsPage`), gated on `useFeatureFlag("money")`. Shows the "I've paid" form (`amountSek` whole kronor > 0, `paidOn` date in Stockholm not after today, optional `note`) and the member's claim history (`GET /me/payment-claims`) with status chips and rejection reasons. Holds one `Idempotency-Key` per submission attempt (reused on timeout / 409 `idempotency_key_in_progress`, rotated on final 4xx or success).
+- **Admin UI (`/admin/money/claims`):** `src/app/routes/admin/money/claims/routes.tsx` (`AdminClaimsPage`), gated on `useFeatureFlag("money")`. Shows the pending queue (`GET /admin/payment-claims`), one-tap **Confirm** (`POST /admin/payment-claims/:id/confirm` with `Idempotency-Key` per claim attempt), and **Reject** via a bottom sheet requiring a non-blank reason (`POST /admin/payment-claims/:id/reject` with `Idempotency-Key`). Rows with `isOwn` disable Confirm/Reject and explain that another admin must decide; a server `403 own_claim` is also mapped and explained.
 
 ## Passes (S5.3, `src/worker/passes/`)
 

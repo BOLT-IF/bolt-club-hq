@@ -14,10 +14,17 @@ export interface AppShellProps {
   readonly children: ReactNode;
   readonly badges?: Readonly<Record<string, number>>;
   readonly isAdmin?: boolean;
+  readonly isSignedIn?: boolean;
 }
 
 /** Shell chrome: skip link, top bar with explicit Back, routed content, bottom nav, More sheet. */
-export function AppShell({ path, children, badges = {}, isAdmin = false }: AppShellProps) {
+export function AppShell({
+  path,
+  children,
+  badges = {},
+  isAdmin = false,
+  isSignedIn = false,
+}: AppShellProps) {
   const [moreOpen, setMoreOpen] = useState(false);
   const outdated = useClientOutdated();
   const showBack = path !== "/";
@@ -94,6 +101,7 @@ export function AppShell({ path, children, badges = {}, isAdmin = false }: AppSh
       <MoreSheet
         open={moreOpen}
         isAdmin={isAdmin}
+        isSignedIn={isSignedIn}
         onClose={() => {
           setMoreOpen(false);
         }}

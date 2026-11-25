@@ -15,6 +15,7 @@ const PATHS: Record<NavIconName, string> = {
   shield: "M12 3l8 3v6c0 4.5-3.4 8-8 9-4.6-1-8-4.5-8-9V6z",
   download: "M12 4v11M7 10l5 5 5-5M4 20h16",
   admin: "M12 3l8 4-8 4-8-4zM4 12l8 4 8-4M4 16l8 4 8-4",
+  logout: "M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9",
 };
 
 export function NavIcon({ name }: { readonly name: NavIconName }) {

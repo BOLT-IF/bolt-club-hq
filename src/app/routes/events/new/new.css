@@ -1,26 +1,39 @@
 .bcq-form {
   display: grid;
   gap: 1rem;
+  width: 100%;
   max-width: 32rem;
+  min-width: 0;
 }
 .bcq-form > * {
   margin: 0;
+  min-width: 0;
 }
 .bcq-form__row {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 0.75rem;
+}
+@media (max-width: 420px) {
+  .bcq-form__row {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 .bcq-form__field {
   display: grid;
   gap: 0.25rem;
+  min-width: 0;
   font-weight: 600;
   color: var(--bcq-ink);
 }
 .bcq-form__field input,
 .bcq-form__field select {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
   min-height: var(--bcq-touch);
   padding: 0 0.75rem;
+  box-sizing: border-box;
   font: 400 1rem var(--bcq-font);
   color: var(--bcq-ink);
   background: var(--bcq-card);

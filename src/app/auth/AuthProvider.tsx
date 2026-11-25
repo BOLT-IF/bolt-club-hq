@@ -1,9 +1,12 @@
 import { createContext, useContext, useEffect, type ReactNode } from "react";
-import { ClerkProvider, getToken } from "@clerk/react";
+import { ClerkProvider, getToken as clerkGetToken, useAuth } from "@clerk/react";
 
 import { configureApiClient } from "../api/client";
 
 const AuthEnabledContext = createContext(false);
+
+/** Bound how long API calls wait for Clerk JS to load (e.g. slow/blocked iOS PWA). */
+const TOKEN_TIMEOUT_MS = 2500;
 
 /** Whether Clerk is configured. False in dev, CI and e2e builds without the key. */
 export function useAuthEnabled(): boolean {
@@ -16,17 +19,38 @@ export function validPublishableKey(key: string | undefined): string | null {
   return trimmed && /^pk_(test|live)_/.test(trimmed) ? trimmed : null;
 }
 
+function withTimeout<T>(promise: Promise<T>, ms: number, fallback: T): Promise<T> {
+  return new Promise<T>((resolve) => {
+    const timer = setTimeout(() => {
+      resolve(fallback);
+    }, ms);
+    promise
+      .then((value) => {
+        clearTimeout(timer);
+        resolve(value);
+      })
+      .catch(() => {
+        clearTimeout(timer);
+        resolve(fallback);
+      });
+  });
+}
+
 function ClerkApiBridge() {
+  const { isLoaded, isSignedIn, getToken } = useAuth();
+
   useEffect(() => {
     configureApiClient({
-      // Clerk throws while offline or if its script fails to load. The API call then goes
-      // out without a token and the server answers 401, which is the honest result.
-      getToken: () => getToken().catch(() => null),
+      getToken: () => {
+        if (isLoaded && !isSignedIn) return Promise.resolve(null);
+        const raw = isLoaded ? getToken() : clerkGetToken();
+        return withTimeout(raw, TOKEN_TIMEOUT_MS, null);
+      },
     });
     return () => {
       configureApiClient({});
     };
-  }, []);
+  }, [isLoaded, isSignedIn, getToken]);
   return null;
 }
 

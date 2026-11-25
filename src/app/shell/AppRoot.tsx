@@ -24,7 +24,7 @@ function useFlags(): { readonly flags: FeatureFlags; readonly loaded: boolean } 
   });
   useEffect(() => {
     let cancelled = false;
-    apiFetch<ConfigResponse>("/config")
+    apiFetch<ConfigResponse>("/config", { skipAuth: true })
       .then((config) => {
         if (!cancelled) setState({ flags: config.flags ?? {}, loaded: true });
       })
@@ -42,7 +42,35 @@ export function AppRoot() {
   const path = useCurrentPath();
   const { flags } = useFlags();
   const [inboxUnread, setInboxUnread] = useState(0);
+  const [viewer, setViewer] = useState<{ isAdmin: boolean; isSignedIn: boolean }>({
+    isAdmin: false,
+    isSignedIn: false,
+  });
   const Page = resolveRoute(path)?.route.component;
+
+  useEffect(() => {
+    const controller = new AbortController();
+    apiFetch<{ role?: string; status?: string }>("/me", {
+      signal: controller.signal,
+      redirectOnUnauthorized: false,
+    })
+      .then((me) => {
+        if (!controller.signal.aborted) {
+          setViewer({
+            isAdmin: me.role === "admin" && me.status === "active",
+            isSignedIn: true,
+          });
+        }
+      })
+      .catch(() => {
+        if (!controller.signal.aborted) {
+          setViewer({ isAdmin: false, isSignedIn: false });
+        }
+      });
+    return () => {
+      controller.abort();
+    };
+  }, [path]);
 
   useEffect(() => {
     if (peekJoinRsvpIntent()) {
@@ -51,7 +79,7 @@ export function AppRoot() {
   }, []);
 
   useEffect(() => {
-    if (flags.inbox !== true) return;
+    if (flags.inbox !== true || !viewer.isSignedIn) return;
     const controller = new AbortController();
     fetchNotifications(controller.signal, { redirectOnUnauthorized: false })
       .then((page) => {
@@ -61,14 +89,19 @@ export function AppRoot() {
     return () => {
       controller.abort();
     };
-  }, [flags.inbox, path]);
+  }, [flags.inbox, path, viewer.isSignedIn]);
 
   const badges = flags.inbox === true && inboxUnread > 0 ? { inbox: inboxUnread } : {};
 
   return (
     <FeatureFlagsProvider flags={flags}>
       <ToastProvider>
-        <AppShell path={path} badges={badges}>
+        <AppShell
+          path={path}
+          badges={badges}
+          isAdmin={viewer.isAdmin}
+          isSignedIn={viewer.isSignedIn}
+        >
           {Page ? (
             <Page />
           ) : (

@@ -1,3 +1,4 @@
+import { detectInstallContext } from "../components/install/platform";
 import { useFeatureFlags } from "../lib/flags";
 import { navigate } from "../lib/navigate";
 import { BottomSheet } from "../components/ui/BottomSheet";
@@ -7,14 +8,17 @@ import { moreMenu, visibleNavItems } from "./navigation";
 export function MoreSheet({
   open,
   isAdmin,
+  isSignedIn = false,
   onClose,
 }: {
   readonly open: boolean;
   readonly isAdmin: boolean;
+  readonly isSignedIn?: boolean;
   readonly onClose: () => void;
 }) {
   const flags = useFeatureFlags();
-  const items = visibleNavItems(moreMenu, flags, isAdmin);
+  const { standalone } = detectInstallContext();
+  const items = visibleNavItems(moreMenu, flags, isAdmin, { standalone, isSignedIn });
 
   return (
     <BottomSheet open={open} title="More" onClose={onClose}>

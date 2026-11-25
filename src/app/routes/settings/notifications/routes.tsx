@@ -1,7 +1,9 @@
 import "./notifications.css";
 import { useCallback, useEffect, useState } from "react";
 
-import { ErrorState, Skeleton } from "../../../components/ui";
+import { usePush } from "../../../components/install/hooks";
+import { browserPush } from "../../../components/install/pushPort";
+import { Button, ErrorState, Skeleton } from "../../../components/ui";
 import type { AppRoute } from "../../registry";
 import { fetchPrefs, savePrefs, type NotificationPrefs, type PrefsUpdate } from "./prefsApi";
 
@@ -17,6 +19,7 @@ const LABELS: Record<string, { title: string; hint: string }> = {
 };
 
 function Settings() {
+  const { permission, enable } = usePush(browserPush);
   const [state, setState] = useState<
     { status: "loading" } | { status: "error" } | { status: "ready"; prefs: NotificationPrefs }
   >({ status: "loading" });
@@ -66,6 +69,34 @@ function Settings() {
       <h1 id="prefs-title" className="bcq-page__title">
         Notifications
       </h1>
+      <section className="bcq-prefs__device" aria-labelledby="prefs-device-title">
+        <h2 id="prefs-device-title" className="bcq-prefs__device-title">
+          Push on this device
+        </h2>
+        {permission === "granted" ? (
+          <p className="bcq-prefs__hint" role="status">
+            Push notifications are on for this device.
+          </p>
+        ) : permission === "denied" ? (
+          <p className="bcq-prefs__hint">
+            Push notifications are blocked. Allow them for this site in your browser or phone
+            settings.
+          </p>
+        ) : permission === null ? (
+          <p className="bcq-prefs__hint">
+            This browser can&apos;t show push notifications. On iPhone, add BOLT HQ to your home
+            screen first.
+          </p>
+        ) : (
+          <Button
+            onClick={() => {
+              void enable();
+            }}
+          >
+            Turn on notifications
+          </Button>
+        )}
+      </section>
       {state.status === "loading" ? <Skeleton label="Loading your settings" /> : null}
       {state.status === "error" ? (
         <ErrorState

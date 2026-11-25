@@ -13,7 +13,8 @@ export type NavIconName =
   | "history"
   | "shield"
   | "download"
-  | "admin";
+  | "admin"
+  | "logout";
 
 interface NavBase {
   readonly id: string;
@@ -23,6 +24,10 @@ interface NavBase {
   readonly flag?: string;
   /** Hidden unless the signed-in member is an admin. */
   readonly requiresAdmin?: boolean;
+  /** Hidden unless the viewer is signed in. */
+  readonly requiresSignedIn?: boolean;
+  /** Hidden when already running as an installed PWA (standalone). */
+  readonly hideInStandalone?: boolean;
   /** Key into the badge counts passed to the shell, for example "inbox". */
   readonly badge?: string;
 }
@@ -51,8 +56,21 @@ export const moreMenu: readonly NavLink[] = [
   { id: "notifications", label: "Notifications", path: "/settings/notifications", icon: "bell" },
   { id: "attendance-history", label: "Attendance history", path: "/history", icon: "history" },
   { id: "privacy", label: "Privacy", path: "/privacy", icon: "shield" },
-  { id: "install", label: "Install the app", path: "/install", icon: "download" },
+  {
+    id: "install",
+    label: "Install the app",
+    path: "/install",
+    icon: "download",
+    hideInStandalone: true,
+  },
   { id: "admin", label: "Admin", path: "/admin", icon: "admin", requiresAdmin: true },
+  {
+    id: "sign-out",
+    label: "Sign out",
+    path: "/sign-out",
+    icon: "logout",
+    requiresSignedIn: true,
+  },
 ];
 
 /** Sections listed on the Admin index. Every entry is admin-only. */
@@ -69,15 +87,23 @@ export const adminIndex: readonly NavLink[] = [
   { id: "admin-health", label: "System health", path: "/admin/health", requiresAdmin: true },
 ];
 
-/** Keeps items whose flag is on (or unset) and whose admin rule passes. */
+export interface VisibleNavOptions {
+  readonly standalone?: boolean;
+  readonly isSignedIn?: boolean;
+}
+
+/** Keeps items whose flag is on (or unset) and whose admin/auth/install rules pass. */
 export function visibleNavItems<T extends NavItem>(
   items: readonly T[],
   flags: FeatureFlags,
   isAdmin = false,
+  options: VisibleNavOptions = {},
 ): T[] {
   return items.filter(
     (item) =>
       (item.flag === undefined || flags[item.flag] === true) &&
-      (item.requiresAdmin !== true || isAdmin),
+      (item.requiresAdmin !== true || isAdmin) &&
+      (item.requiresSignedIn !== true || options.isSignedIn === true) &&
+      (item.hideInStandalone !== true || options.standalone !== true),
   );
 }

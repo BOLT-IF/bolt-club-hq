@@ -35,6 +35,8 @@ export interface ApiRequestOptions {
   readonly signal?: AbortSignal;
   /** Set false for background reads (like the shell's unread badge) that shouldn't redirect signed-out visitors. */
   readonly redirectOnUnauthorized?: boolean;
+  /** Set true for public endpoints (like /config) so they never wait on Clerk token loading. */
+  readonly skipAuth?: boolean;
 }
 
 let config: ApiClientConfig = {};
@@ -79,7 +81,7 @@ export async function apiFetch<T = void>(
 ): Promise<T> {
   const headers = new Headers({ Accept: "application/json", "X-Client-Version": CLIENT_VERSION });
 
-  const token = await (config.getToken ?? (() => null))();
+  const token = options.skipAuth ? null : await (config.getToken ?? (() => null))();
   if (token) headers.set("Authorization", `Bearer ${token}`);
   if (options.idempotencyKey) headers.set("Idempotency-Key", options.idempotencyKey);
 

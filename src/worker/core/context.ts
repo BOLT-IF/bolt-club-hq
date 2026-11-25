@@ -86,6 +86,10 @@ export function configureRequestDeps(next: Partial<RequestDeps>): void {
 /** Sets db, clock and actor. The ENV=test identity header wins over the bearer token. */
 export function contextMiddleware(): MiddlewareHandler<AppEnv> {
   return async (c, next) => {
+    if ((c.get("db") as Db | undefined) !== undefined) {
+      await next();
+      return;
+    }
     const { release } = deps;
     const db = await deps.db(c.env);
     c.set("db", db);

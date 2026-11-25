@@ -108,12 +108,16 @@ test.describe("polls with images on mobile (S9.2)", () => {
     const images = page.locator("article img");
     await expect(images).toHaveCount(2);
     for (let i = 0; i < 2; i++) {
-      await expect(images.nth(i)).toBeVisible();
-      const loaded = await images.nth(i).evaluate((el) => {
-        const img = el as unknown as { complete: boolean; naturalWidth: number };
-        return img.complete && img.naturalWidth > 0;
-      });
-      expect(loaded).toBe(true);
+      const img = images.nth(i);
+      await expect(img).toBeVisible();
+      await expect
+        .poll(() =>
+          img.evaluate((el) => {
+            const node = el as unknown as { complete: boolean; naturalWidth: number };
+            return node.complete && node.naturalWidth > 0;
+          }),
+        )
+        .toBe(true);
     }
     expect(tracker.mediaRequests.sort()).toEqual(["/media/med_orange.png", "/media/med_slate.png"]);
 

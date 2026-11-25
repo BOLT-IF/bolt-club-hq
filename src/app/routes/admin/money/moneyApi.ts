@@ -13,6 +13,24 @@ export interface BalanceRow {
   readonly creditSek: number;
 }
 
+export interface AdminPassRow {
+  readonly id: string;
+  readonly memberId: string;
+  readonly memberName: string;
+  readonly paymentRef: string;
+  readonly seriesId: string;
+  readonly seriesName: string;
+  readonly termName: string;
+  readonly priceCharged: number;
+  readonly eventsCovered: number;
+  readonly purchasedAt: string;
+  readonly chargeStatus: "unpaid" | "partly_paid" | "paid" | "none";
+  readonly unpaidSek: number;
+  readonly revocableAt: string;
+  readonly daysElapsed: number;
+  readonly revocable: boolean;
+}
+
 export interface LedgerItem {
   readonly id: string;
   readonly kind: "charge" | "payment" | "reversal" | "adjustment";
@@ -91,6 +109,10 @@ const MESSAGES: Record<string, string> = {
   already_reversed: "That entry has already been reversed or waived.",
   cannot_reverse_reversal: "A reversal can't be reversed. Add a charge instead.",
   not_waivable: "Only charges can be waived.",
+  pass_not_found: "That pass no longer exists. Reload the page.",
+  pass_already_revoked: "That pass has already been revoked.",
+  pass_paid: "This pass has been paid and cannot be revoked.",
+  revoke_too_early: "This pass cannot be revoked yet.",
   idempotency_key_in_progress: "Still saving the first attempt. Try again in a moment.",
   idempotency_conflict: "This was already saved with different details. Reload the page.",
 };

@@ -1,24 +1,19 @@
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
+import basicGolden from "../../../contracts/roster-import-v1/golden/basic.json";
+import fullNameMatchGolden from "../../../contracts/roster-import-v1/golden/full-name-match.json";
+import guestsGolden from "../../../contracts/roster-import-v1/golden/guests.json";
+import matchCaseGolden from "../../../contracts/roster-import-v1/golden/match-case.json";
 import {
   buildRosterImportPayload,
   buildRosterImportUrl,
   decodeRosterImportFragment,
   encodeRosterImportPayload,
-  type RosterImportV1Payload,
 } from "./index";
-
-const GOLDEN_DIR = resolve(process.cwd(), "contracts/roster-import-v1/golden");
-
-function loadGolden(name: string): RosterImportV1Payload {
-  return JSON.parse(readFileSync(resolve(GOLDEN_DIR, name), "utf8")) as RosterImportV1Payload;
-}
 
 describe("roster-link domain (S8.3)", () => {
   it("output matches the golden fixtures byte for byte, after decoding", () => {
-    const basic = loadGolden("basic.json");
+    const basic = basicGolden;
     const basicUrl = buildRosterImportUrl(
       "https://roster.example.se",
       {
@@ -55,7 +50,7 @@ describe("roster-link domain (S8.3)", () => {
     expect(basicDecoded).toEqual(basic);
     expect(JSON.stringify(basicDecoded)).toBe(JSON.stringify(basic));
 
-    const fullNameMatch = loadGolden("full-name-match.json");
+    const fullNameMatch = fullNameMatchGolden;
     const fullNameUrl = buildRosterImportUrl(
       "https://roster.example.se/",
       {
@@ -77,7 +72,7 @@ describe("roster-link domain (S8.3)", () => {
     expect(fullNameDecoded).toEqual(fullNameMatch);
     expect(JSON.stringify(fullNameDecoded)).toBe(JSON.stringify(fullNameMatch));
 
-    const guests = loadGolden("guests.json");
+    const guests = guestsGolden;
     const guestsUrl = buildRosterImportUrl(
       "https://roster.example.se",
       {
@@ -111,7 +106,7 @@ describe("roster-link domain (S8.3)", () => {
     expect(guestsDecoded).toEqual(guests);
     expect(JSON.stringify(guestsDecoded)).toBe(JSON.stringify(guests));
 
-    const matchCase = loadGolden("match-case.json");
+    const matchCase = matchCaseGolden;
     const matchCaseUrl = buildRosterImportUrl(
       "https://roster.example.se",
       {
@@ -233,7 +228,7 @@ describe("roster-link domain (S8.3)", () => {
 
   it("keeps a 30-player event under 2,000 characters", () => {
     const players = Array.from({ length: 30 }, (_, i) => ({
-      name: `P${String(i + 1).padStart(2, "0")} Player`,
+      name: `P${String(i + 1).padStart(2, "0")} A`,
       rosterName: `P${String(i + 1).padStart(2, "0")}`,
       guest: false,
       tier: 1,

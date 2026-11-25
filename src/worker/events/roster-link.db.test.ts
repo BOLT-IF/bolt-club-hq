@@ -43,7 +43,7 @@ describe("roster-link route (S8.3)", () => {
   afterEach(async () => {
     configureRequestDeps({});
     configureEventsDeps({});
-    await t.cleanup();
+    await t.close();
   });
 
   it("denies regular members (403) and allows organizers/admins", async () => {
@@ -102,9 +102,9 @@ describe("roster-link route (S8.3)", () => {
       },
     );
 
-    const rsvp1Id = `rsvp_${++seq}`;
-    const rsvp2Id = `rsvp_${++seq}`;
-    const rsvpWaitId = `rsvp_${++seq}`;
+    const rsvp1Id = `rsvp_${String(++seq)}`;
+    const rsvp2Id = `rsvp_${String(++seq)}`;
+    const rsvpWaitId = `rsvp_${String(++seq)}`;
     await t.db.insert(rsvp).values([
       {
         id: rsvp2Id,
@@ -135,7 +135,7 @@ describe("roster-link route (S8.3)", () => {
       },
     ]);
     await t.db.insert(guest).values({
-      id: `gst_${++seq}`,
+      id: `gst_${String(++seq)}`,
       rsvpId: rsvp1Id,
       name: "Hugo Dahl",
       status: "confirmed",
@@ -162,7 +162,16 @@ describe("roster-link route (S8.3)", () => {
 
     await t.db
       .insert(clubSettings)
-      .values({ id: 1, rosterAppUrl: "https://roster.example.se" })
+      .values({
+        id: 1,
+        clubName: "BOLT",
+        bankDetails: "{}",
+        paymentInstructions: "Pay",
+        quietHours: { start: "22:00", end: "07:00" },
+        defaults: {},
+        accountingAccountCodes: {},
+        rosterAppUrl: "https://roster.example.se",
+      })
       .onConflictDoUpdate({
         target: clubSettings.id,
         set: { rosterAppUrl: "https://roster.example.se" },

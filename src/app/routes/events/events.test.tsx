@@ -138,7 +138,7 @@ describe("EventDetailPage", () => {
     expect(screen.queryByText("attendee list")).toBeNull();
   });
 
-  it("marks a past event read-only and hides organizer tools", async () => {
+  it("marks a past event read-only while keeping organizer tools available", async () => {
     stubApi({
       "/events/by-slug/k3f9xq2m": {
         body: {
@@ -150,7 +150,7 @@ describe("EventDetailPage", () => {
     registerSlot("OrganizerToolsSlot", () => <p>organizer tools</p>);
     render(<EventDetailPage />);
     expect(await screen.findByText(/past event/i)).toBeTruthy();
-    expect(screen.queryByText("organizer tools")).toBeNull();
+    expect(screen.getByText("organizer tools")).toBeTruthy();
   });
 
   it("shows a friendly not-found for an unknown slug, and a blocked state for a 403", async () => {

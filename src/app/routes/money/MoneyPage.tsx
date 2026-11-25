@@ -19,6 +19,7 @@ import {
   useToast,
   type StatusTone,
 } from "../../components/ui";
+import { navigate } from "../../lib/navigate";
 
 const TZ = "Europe/Stockholm";
 const eventDay = new Intl.DateTimeFormat("en-GB", {
@@ -92,17 +93,39 @@ function Balance({ ledger }: { readonly ledger: MyLedger }) {
   );
 }
 
+function NavLink({ href, children }: { readonly href: string; readonly children: string }) {
+  return (
+    <a
+      className="bcq-money__link"
+      href={href}
+      onClick={(e) => {
+        if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
+        e.preventDefault();
+        navigate(href);
+      }}
+    >
+      {children}
+    </a>
+  );
+}
+
 function Item({ item }: { readonly item: LedgerItem }) {
   const status = itemStatus(item);
+  const eventHref =
+    item.eventId !== null ? `/history?eventId=${encodeURIComponent(item.eventId)}` : null;
   return (
     <li className="bcq-money__item">
       <span className="bcq-money__row">
         <strong>{itemTitle(item)}</strong>
         <span className="bcq-money__sum">{kr(item.amountSek)}</span>
       </span>
-      {item.eventTitle || item.guestName || item.note ? (
+      {eventHref || item.eventTitle || item.guestName || item.note ? (
         <span className="bcq-money__detail">
-          {item.eventTitle ? <span>{item.eventTitle}</span> : null}
+          {eventHref ? (
+            <NavLink href={eventHref}>{item.eventTitle ?? "View event"}</NavLink>
+          ) : item.eventTitle ? (
+            <span>{item.eventTitle}</span>
+          ) : null}
           {item.eventStartsAt ? (
             <time dateTime={item.eventStartsAt}>
               {eventDay.format(new Date(item.eventStartsAt))}
@@ -250,6 +273,10 @@ export function MoneyPage() {
       <h1 id="money-title" className="bcq-page__title">
         Money
       </h1>
+      <nav aria-label="Money actions" className="bcq-money__nav">
+        <NavLink href="/money/claims">Payment claims</NavLink>
+        <NavLink href="/money/passes">Passes</NavLink>
+      </nav>
       {state.status === "loading" ? <Skeleton label="Loading your balance" /> : null}
       {state.status === "error" ? (
         <ErrorState

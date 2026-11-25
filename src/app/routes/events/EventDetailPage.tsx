@@ -87,9 +87,7 @@ export function EventDetailPage() {
 
       <Slot name="RsvpSlot" event={event} viewer={viewer} />
       <Slot name="ShareSlot" event={event} viewer={viewer} />
-      {viewer.canManage && !event.readOnly ? (
-        <Slot name="OrganizerToolsSlot" event={event} viewer={viewer} />
-      ) : null}
+      {viewer.canManage ? <Slot name="OrganizerToolsSlot" event={event} viewer={viewer} /> : null}
       {viewer.canSeeAttendees ? <Slot name="AttendeesSlot" event={event} viewer={viewer} /> : null}
     </article>
   );

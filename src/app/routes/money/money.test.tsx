@@ -151,8 +151,21 @@ describe("member money screen", () => {
     expect(within(guestRow).getByText(/Thursday XD/)).toBeTruthy();
     expect(within(guestRow).getByText(/Thu 14 Jan/)).toBeTruthy();
     expect(within(guestRow).getByText("Partly paid, 90 kr left")).toBeTruthy();
+    expect(within(guestRow).getByRole("link", { name: "Thursday XD" }).getAttribute("href")).toBe(
+      "/history?eventId=ev1",
+    );
 
     expect(within(rows[2]!).getByText("Paid")).toBeTruthy();
+  });
+
+  it("links to payment claims and passes", async () => {
+    stubApi(owing);
+    renderMoney();
+    await screen.findByText("You owe 90 kr");
+    expect(screen.getByRole("link", { name: "Payment claims" }).getAttribute("href")).toBe(
+      "/money/claims",
+    );
+    expect(screen.getByRole("link", { name: "Passes" }).getAttribute("href")).toBe("/money/passes");
   });
 
   it("displays credit as credit, not as a negative debt", async () => {

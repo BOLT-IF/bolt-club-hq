@@ -1,5 +1,16 @@
 .bcq-auth {
   display: flex;
-  justify-content: center;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
   padding: 24px 16px;
+}
+.bcq-auth__privacy {
+  margin: 0;
+  font-size: 0.875rem;
+}
+.bcq-auth__privacy a {
+  color: var(--bcq-brand-deep);
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }

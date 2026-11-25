@@ -1,6 +1,6 @@
 # BOLT HQ: handoff and how to resume
 
-Last updated 2026-11-25. **46 of 48 stories are on `main` (plus integrator chore #55, unslop #64, and deploy simplify #72); 2 stories are in progress (`S11.1`, `S11.3`).** Read this file top to bottom, then `docs/STORIES.md`, `docs/DECISIONS.md` (newest first) and `docs/PLAN.md`. Update this file at the end of every session.
+Last updated 2026-11-25. **46 of 48 stories are on `main` (all non-blocked stories complete; 2 human-blocked: `S0.6`, `S5.6`).** Read this file top to bottom, then `docs/STORIES.md`, `docs/DECISIONS.md` (newest first) and `docs/PLAN.md`. Update this file at the end of every session.
 
 ## Resume prompt (copy and paste this to a new agent)
 
@@ -21,16 +21,13 @@ Last updated 2026-11-25. **46 of 48 stories are on `main` (plus integrator chore
 | Polls and install | S9.1 polls, S9.2 poll images on R2 (#62), S10.1 home dashboard (#70), S10.2 install and push onboarding | merged |
 | Sharing | S7.1 share links, edge OG, request-to-join (#71) | merged |
 | Brand and deploy | BOLT HQ theme, logo icons, KV/Hyperdrive/R2 config (#53), unslop UI polish (#64), deploy.yml migrate-only (#72) | merged |
-| Integrator & import | Chore follow-up wiring (#55), S11.2 member import (#58) | merged |
+| Integrator & import | Chore follow-up wiring (#55), S11.2 member import (#58), S11.1 club-week scenarios (#74), S11.3 launch checklist (#73) | merged |
 
 Two migrations exist: `0000_initial` and `0001_polls`. Neither has been applied to Neon yet.
 
-## In progress (2 stories, capped at 2 at a time)
+## In progress
 
-| Story | Branch / PR | Notes |
-|---|---|---|
-| S11.1 Club-week scenarios | `story/s11.1-club-week` | Launching |
-| S11.3 Device QA and launch checklist | `story/s11.3-launch-checklist` | Launching |
+None.
 
 ## Not started (2 human-blocked)
 
@@ -38,8 +35,6 @@ Two migrations exist: `0000_initial` and `0001_polls`. Neither has been applied 
 |---|---|---|---|
 | S5.6 manager.io export | S | S5.4, S2.3 (met) | `src/worker/accounting/`, `src/app/routes/admin/money/export*`. **Blocked on the treasurer confirming the import format** |
 | **S0.6 Real-device spike** | M | human | Needs a Clerk production instance and a real iPhone and Android. Until it runs, the push batch cap (20) and "hide Google sign-in in the installed iOS app" are provisional |
-
-Fan-out order: `(S11.1, S11.3)` → final integrator wrap-up PR (wire remaining UI links in `FOLLOWUPS.md` section A).
 
 ## Next steps (do these first)
 
@@ -63,7 +58,7 @@ The site is live at **https://bolt-club-hq.bashok001.workers.dev** but cannot be
 2. **Sign-in.** Cloudflare Worker secrets: `CLERK_SECRET_KEY`, `CLERK_PUBLISHABLE_KEY`, `BOOTSTRAP_ADMIN_EMAIL`. Build variable in the Cloudflare build settings: `VITE_CLERK_PUBLISHABLE_KEY` (needed at build time, so trigger a rebuild afterwards). Set the app name in the Clerk dashboard to BOLT HQ.
 3. **Flags.** Set `FLAG_EVENTS`, `FLAG_MONEY`, `FLAG_INBOX` to "on" in `wrangler.jsonc` once sign-in works. Add `FLAG_POLLS` to `wrangler.jsonc` and `worker-configuration.d.ts` first (it does not exist yet).
 4. **Push and health.** Secrets `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` (back them up; never rotate casually) and `HEALTHCHECK_PING_URL` (a healthchecks.io check with about a 1 hour period). Optional `SENTRY_DSN`.
-5. **GitHub secrets** so the other workflows can run: `DATABASE_URL`, `RESTORE_TARGET_URL`, `BACKUP_ENCRYPTION_KEY`, `BACKUP_BUCKET_TOKEN`, `LHCI_TARGET_URL`; repo variable `PUBLIC_BASE_URL`. See `docs/ops/secrets.md`. Decide on a required reviewer for the `production` environment before adding `DATABASE_URL`.
+5. **GitHub secrets** (`deploy.yml` was simplified in #72 so only `DATABASE_URL` secret + `PUBLIC_BASE_URL` repo variable are needed for `deploy.yml`; `RESTORE_TARGET_URL`, `BACKUP_ENCRYPTION_KEY`, `BACKUP_BUCKET_TOKEN`, `LHCI_TARGET_URL` are for the backup/restore/Lighthouse workflows). See `docs/ops/secrets.md` and `docs/LAUNCH.md`. Decide on a required reviewer for the `production` environment before adding `DATABASE_URL`.
 6. **S0.6 device spike:** a Clerk production instance and real iPhone and Android devices.
 7. **Treasurer:** confirm the manager.io import format (S5.6) and the provisional account-code keys (`pass`, `adhoc`, `guest`, `payment`).
 8. **Off-site backup store** with 90-day retention (GitHub artifacts keep only 30).

@@ -2,14 +2,7 @@ import { Hono } from "hono";
 import { eq } from "drizzle-orm";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import {
-  clubSettings,
-  ledgerEntry,
-  notification,
-  rsvp,
-  series,
-  term,
-} from "../../../db/schema";
+import { clubSettings, ledgerEntry, notification, rsvp, series, term } from "../../../db/schema";
 import { FixedClock } from "../core/clock";
 import { configureRequestDeps } from "../core/context";
 import { TEST_IDENTITY_HEADER } from "../core/test-identity";
@@ -134,9 +127,9 @@ describe("claim-a-spot (S4.4b)", () => {
   });
 
   afterEach(async () => {
-    configureRequestDeps();
-    configureRsvpDeps();
-    configureEventsDeps();
+    configureRequestDeps({});
+    configureRsvpDeps({});
+    configureEventsDeps({});
     await t.close();
   });
 
@@ -147,9 +140,9 @@ describe("claim-a-spot (S4.4b)", () => {
     const w2 = await makeMember(t.db);
 
     await send("PUT", `/events/${e.id}/rsvp`, host.clerkUserId, { body: { guests: [] } });
-    clock.advanceBy(1000);
+    clock.advance(1000);
     await send("PUT", `/events/${e.id}/rsvp`, w1.clerkUserId, { body: { guests: [] } });
-    clock.advanceBy(1000);
+    clock.advance(1000);
     await send("PUT", `/events/${e.id}/rsvp`, w2.clerkUserId, { body: { guests: [] } });
 
     // Close event: host confirmed, w1 & w2 waitlisted.
@@ -173,9 +166,9 @@ describe("claim-a-spot (S4.4b)", () => {
     const statuses = [res1.status, res2.status].sort((a, b) => a - b);
     expect(statuses).toEqual([200, 409]);
 
-    const confirmedRows = (
-      await t.db.select().from(rsvp).where(eq(rsvp.eventId, e.id))
-    ).filter((row) => row.status === "confirmed");
+    const confirmedRows = (await t.db.select().from(rsvp).where(eq(rsvp.eventId, e.id))).filter(
+      (row) => row.status === "confirmed",
+    );
     expect(confirmedRows).toHaveLength(1);
 
     // Winner was charged, and host's late-cancel was refilled (reversed).

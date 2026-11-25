@@ -9,6 +9,7 @@ import {
   notification,
   rsvp,
   series,
+  seriesCaptain,
   term,
 } from "../../../db/schema";
 import { FixedClock } from "../core/clock";
@@ -136,9 +137,9 @@ describe("event capacity changes (S4.4b)", () => {
   });
 
   afterEach(async () => {
-    configureRequestDeps();
-    configureRsvpDeps();
-    configureEventsDeps();
+    configureRequestDeps({});
+    configureRsvpDeps({});
+    configureEventsDeps({});
     await t.close();
   });
 
@@ -147,21 +148,21 @@ describe("event capacity changes (S4.4b)", () => {
     const p1 = await makeMember(t.db);
     const p2 = await makeMember(t.db);
     const p3 = await makeMember(t.db);
-    prepaid.add(p1.id, e.id);
-    prepaid.add(p2.id, e.id);
-    prepaid.add(p3.id, e.id);
+    prepaid.markPrepaid(p1.id, e.id);
+    prepaid.markPrepaid(p2.id, e.id);
+    prepaid.markPrepaid(p3.id, e.id);
 
     await send("PUT", `/events/${e.id}/rsvp`, p1.clerkUserId, { body: { guests: [] } });
-    clock.advanceBy(1000);
+    clock.advance(1000);
     await send("PUT", `/events/${e.id}/rsvp`, p2.clerkUserId, { body: { guests: [] } });
-    clock.advanceBy(1000);
+    clock.advance(1000);
     await send("PUT", `/events/${e.id}/rsvp`, p3.clerkUserId, { body: { guests: [] } });
 
     const res = await send("PATCH", `/events/${e.id}/capacity`, admin.clerkUserId, {
       body: { capacity: 2 },
     });
     expect(res.status).toBe(409);
-    const body = (await res.json()) as { error: string };
+    const body = await res.json<{ error: string }>();
     expect(body.error).toBe("capacity_below_confirmed");
 
     const [unchanged] = await t.db.select().from(event).where(eq(event.id, e.id));
@@ -173,18 +174,19 @@ describe("event capacity changes (S4.4b)", () => {
     const p1 = await makeMember(t.db);
     const p2 = await makeMember(t.db);
     const p3 = await makeMember(t.db);
-    prepaid.add(p1.id, e.id);
-    prepaid.add(p2.id, e.id);
-    prepaid.add(p3.id, e.id);
+    prepaid.markPrepaid(p1.id, e.id);
+    prepaid.markPrepaid(p2.id, e.id);
+    prepaid.markPrepaid(p3.id, e.id);
 
     await send("PUT", `/events/${e.id}/rsvp`, p1.clerkUserId, { body: { guests: [] } });
-    clock.advanceBy(1000);
+    clock.advance(1000);
     await send("PUT", `/events/${e.id}/rsvp`, p2.clerkUserId, { body: { guests: [] } });
-    clock.advanceBy(1000);
+    clock.advance(1000);
     await send("PUT", `/events/${e.id}/rsvp`, p3.clerkUserId, { body: { guests: [] } });
 
     // Non-admin captain cannot override.
-    const captain = await makeMember(t.db, { seriesIds: ["ser_1"] });
+    const captain = await makeMember(t.db);
+    await t.db.insert(seriesCaptain).values({ seriesId: "ser_1", memberId: captain.id });
     const forbiddenRes = await send("PATCH", `/events/${e.id}/capacity`, captain.clerkUserId, {
       body: { capacity: 1, override: true },
     });
@@ -202,14 +204,8 @@ describe("event capacity changes (S4.4b)", () => {
     expect(byMember.get(p2.id)?.status).toBe("waitlisted");
     expect(byMember.get(p3.id)?.status).toBe("waitlisted");
 
-    const p2Notes = await t.db
-      .select()
-      .from(notification)
-      .where(eq(notification.memberId, p2.id));
-    const p3Notes = await t.db
-      .select()
-      .from(notification)
-      .where(eq(notification.memberId, p3.id));
+    const p2Notes = await t.db.select().from(notification).where(eq(notification.memberId, p2.id));
+    const p3Notes = await t.db.select().from(notification).where(eq(notification.memberId, p3.id));
     expect(p2Notes.length).toBeGreaterThanOrEqual(1);
     expect(p3Notes.length).toBeGreaterThanOrEqual(1);
   });
@@ -220,7 +216,7 @@ describe("event capacity changes (S4.4b)", () => {
     const m2 = await makeMember(t.db);
 
     await send("PUT", `/events/${e.id}/rsvp`, m1.clerkUserId, { body: { guests: [] } });
-    clock.advanceBy(1000);
+    clock.advance(1000);
     await send("PUT", `/events/${e.id}/rsvp`, m2.clerkUserId, { body: { guests: [] } });
 
     // Close: m1 confirmed, m2 waitlisted.
@@ -238,16 +234,10 @@ describe("event capacity changes (S4.4b)", () => {
     const m2Row = rows.find((r) => r.memberId === m2.id);
     expect(m2Row?.status).toBe("confirmed");
 
-    const m2Entries = await t.db
-      .select()
-      .from(ledgerEntry)
-      .where(eq(ledgerEntry.memberId, m2.id));
+    const m2Entries = await t.db.select().from(ledgerEntry).where(eq(ledgerEntry.memberId, m2.id));
     expect(m2Entries.reduce((s, x) => s + x.amountSek, 0)).toBe(120);
 
-    const m2Notes = await t.db
-      .select()
-      .from(notification)
-      .where(eq(notification.memberId, m2.id));
+    const m2Notes = await t.db.select().from(notification).where(eq(notification.memberId, m2.id));
     expect(m2Notes.some((n) => n.title === "You're in")).toBe(true);
   });
 });

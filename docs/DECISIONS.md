@@ -2,6 +2,12 @@
 
 Decisions made after `PLAN.md` (v3) was written. Newest first. Every entry gives the decision, the reason, and what it changes.
 
+## 2026-11-25: S4.4b claim-a-spot + capacity changes
+
+- **Claim route (`src/worker/rsvp/claim.ts`, mounted in `rsvp/routes.ts`):** `POST /events/:id/claim` (`requireGuard("member")`, `Idempotency-Key` required, optional `{ guestId }`). Locks the `event` row (`FOR UPDATE`) so concurrent claims serialize and exactly one wins. Confirms the `offered` member or guest, charges non-prepaid/guest (`postclose:<eventId>:...`), runs refills (`refill:<chargeId>`), emits `rsvp_changed` (`reason: "promoted"`), and reverts remaining `offered` rows to `waitlisted` once `confirmed >= capacity`.
+- **Capacity route (`src/worker/rsvp/capacity.ts`, mounted in `rsvp/routes.ts`):** `PATCH /events/:id/capacity` (`requireGuard("member")`, `Idempotency-Key` required, `canManageEvent` guard, `{ capacity, override? }`). Lowering capacity below `confirmed` count returns `409 capacity_below_confirmed` unless an admin passes `override: true` (non-admin override returns `403 admin_required`). With override, excess confirmed candidates are waitlisted in reverse priority order (tier 3 guests latest-first, then tier 2, then tier 1 prepaid latest-first), any unreversed event charge is reversed (`capacity:<chargeId>`), and each waitlisted member is notified. Raising capacity promotes from the waitlist (auto-promotes + refills before `autoPromoteCutoffMin`, offers from cutoff onward, and promotes `instant` waitlists).
+- **Frontend (`src/app/components/rsvp/claim.tsx`, `claim-capacity.tsx`):** `ClaimSpotPanel` registers in `RsvpSlot` (renders only when the member or a guest is `offered`) and `CapacityPanel` registers in `OrganizerToolsSlot` (with `ConfirmDialog` for the admin override). Both are imported from `src/app/routes/events/routes.tsx`.
+
 ## 2026-11-25: S8.1 attendance marking
 
 - **Routes (`src/worker/attendance/routes.ts`):** `GET /events/:id/attendance` (`requireGuard("member")`) and `PUT /events/:id/attendance` (`requireGuard("member")`, `Idempotency-Key` required). Both enforce `canManageEvent(actor, event)` (admin, creator of one-off, or captain of series).

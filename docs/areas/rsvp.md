@@ -29,10 +29,14 @@ Errors: 400 `invalid_body` / `guest_limit` (`max`), 404 `not_found` (unknown eve
   - Late RSVPs confirm immediately when space is free and waitlist is empty; otherwise join waitlist in tier order (prepaid tier 1 at top without bumping confirmed; guests added after close are tier 3). Guest name edits are free.
   - Late cancel of a confirmed member cascades to their guests (`late_cancelled`), leaves charges standing unless refilled, and runs `promote()` (auto-promotes before `autoPromoteCutoffMin`, or marks `offered` and notifies from cutoff onward).
   - Refills reverse the earliest unrefilled late-cancel's charge (`refill:<chargeId>`) and notify the member.
+- **Claim & capacity (`claim.ts`, `capacity.ts`, S4.4b)**:
+  - `POST /events/:id/claim` (`Idempotency-Key`, optional `{ guestId }`) serializes on `event FOR UPDATE` so concurrent claims have one winner, charges non-prepaid/guests, runs refills, and clears remaining `offered` rows when full.
+  - `PATCH /events/:id/capacity` (`Idempotency-Key`, `canManageEvent`, `{ capacity, override? }`) blocks lowering below confirmed without admin `override: true`, waitlists excess confirmed (latest first in reverse tier order) and notifies them on override, and promotes/offers from the waitlist when raising capacity.
 
 ## Frontend (`src/app/components/rsvp/`)
 
 - `RsvpPanel` fills `RsvpSlot` (`register.tsx`, imported by `src/app/routes/events/routes.tsx`).
 - `PostCloseRsvpPanel` (`postclose.tsx`, imported by `src/app/routes/events/routes.tsx`) also fills `RsvpSlot` and renders late RSVP, guest edits, and late cancel controls when the event is closed and editable.
+- `ClaimSpotPanel` (`claim.tsx`) fills `RsvpSlot` when the member or a guest is `offered`; `CapacityPanel` (`claim-capacity.tsx`) fills `OrganizerToolsSlot` for managers. Both are imported by `src/app/routes/events/routes.tsx`.
 - It shows a status chip (Confirmed, Requested, Waitlisted), a guest stepper capped at `maxGuestsPerMember` with optional names, RSVP/Update and Cancel. Each tap gets a fresh `Idempotency-Key`.
 - After close it shows the status only ("RSVPs are closed"). It renders nothing on 401/403, because the page already explains pending access.

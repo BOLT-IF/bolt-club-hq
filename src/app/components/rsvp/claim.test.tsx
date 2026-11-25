@@ -100,7 +100,7 @@ describe("ClaimSpotPanel & CapacityPanel (S4.4b)", () => {
     configureApiClient({
       fetch: (input, init) => {
         const headers = new Headers(init?.headers);
-        const body = typeof init?.body === "string" ? JSON.parse(init.body) : undefined;
+        const body: unknown = typeof init?.body === "string" ? JSON.parse(init.body) : undefined;
         const call: Call = {
           method: init?.method ?? "GET",
           path: input.replace("/api/v1", ""),
@@ -123,7 +123,7 @@ describe("ClaimSpotPanel & CapacityPanel (S4.4b)", () => {
     });
 
     render(<CapacityPanel event={closedEvent({ capacity: 4 })} viewer={managerViewer} />);
-    const input = screen.getByLabelText(/event capacity/i);
+    const input = screen.getByLabelText(/new capacity/i);
     fireEvent.change(input, { target: { value: "2" } });
     fireEvent.click(screen.getByRole("button", { name: "Update capacity" }));
 

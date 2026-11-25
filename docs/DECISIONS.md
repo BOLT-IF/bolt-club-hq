@@ -2,6 +2,11 @@
 
 Decisions made after `PLAN.md` (v3) was written. Newest first. Every entry gives the decision, the reason, and what it changes.
 
+## 2026-11-24: S6.5b reminder admin UI
+
+- **Placeholders sourced from `/admin/reminder-rules`:** `RuleForm` renders tap-to-insert chips directly from the `GET /admin/reminder-rules` response's `placeholders[kind]` list and validates unknown `{placeholder}` tokens client-side against that list before submitting (while still mapping server `400 { error: "validation", fields }` onto fields).
+- **409 `rule_has_sends` flow:** Deleting a rule asks for confirmation first; if the API answers `409 rule_has_sends`, the UI explains that sent rules stay in the send log and offers "Disable instead" (sending `PUT` with `enabled: false`), or notes it is already disabled if `enabled` is already `false`.
+- **403 handling:** A non-admin who navigates directly to `/admin/reminders` gets an "Admins only" empty state matching `/admin/settings` rather than a generic error banner.
 ## 2026-11-24: S4.3 close processing + charges
 
 - **Close notifications only on status resolution:** `createNotifyPort({ db: tx, clock })` (`category: "rsvp_status"`, key `close-notify:<eventId>:<memberId>`, link `/events/<shareSlug>`) notifies members whose RSVP status or guest status changed at close (`requested` → `confirmed`/`waitlisted`, or a status flip). Prepaid series members without guests (who already saw Confirmed before close, PLAN §2) and `instant` event participants whose status did not change are not redundantly notified.

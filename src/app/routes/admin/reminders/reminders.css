@@ -1,0 +1,232 @@
+/* Admin reminder rules (S6.5b). Mobile-first, 48px touch targets, builds on ui.css tokens. */
+.bcq-reminders-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.bcq-reminders-head .bcq-page__title {
+  margin: 0;
+}
+
+.bcq-reminders-stack {
+  display: grid;
+  gap: 1rem;
+}
+
+.bcq-reminders-list {
+  display: grid;
+  gap: 0.875rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.bcq-reminder-card {
+  display: grid;
+  gap: 0.625rem;
+  padding: 1rem;
+  border: 1px solid var(--bcq-line);
+  border-radius: var(--bcq-radius);
+  background: var(--bcq-card);
+}
+
+.bcq-reminder-card__top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.bcq-reminder-card__title {
+  margin: 0;
+  font: 700 1.125rem/1.3 var(--bcq-font);
+}
+
+.bcq-reminder-card__meta {
+  margin: 0;
+  color: var(--bcq-muted);
+  font-size: 0.9375rem;
+}
+
+.bcq-reminder-card__template {
+  margin: 0;
+  padding: 0.625rem 0.75rem;
+  border-radius: var(--bcq-radius-sm);
+  background: var(--bcq-paper);
+  border: 1px solid var(--bcq-line);
+  font-size: 0.9375rem;
+  overflow-wrap: anywhere;
+}
+
+.bcq-reminder-card__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+}
+
+.bcq-reminder-form {
+  display: grid;
+  gap: 0.9rem;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  border: 1px solid var(--bcq-line);
+  border-radius: var(--bcq-radius);
+  background: var(--bcq-card);
+}
+
+.bcq-reminder-form__title {
+  margin: 0;
+  font: 700 1.2rem/1.25 var(--bcq-font);
+}
+
+.bcq-reminder-field {
+  display: grid;
+  gap: 0.3rem;
+}
+
+.bcq-reminder-field label {
+  font-weight: 600;
+}
+
+.bcq-reminder-field input,
+.bcq-reminder-field select,
+.bcq-reminder-field textarea {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: var(--bcq-touch);
+  padding: 0.6rem 0.8rem;
+  border: 2px solid var(--bcq-line);
+  border-radius: var(--bcq-radius-sm);
+  background: #fff;
+  color: var(--bcq-ink);
+  font: 400 1rem/1.4 var(--bcq-font);
+}
+
+.bcq-reminder-field [aria-invalid="true"] {
+  border-color: var(--bcq-danger);
+}
+
+.bcq-reminder-field__hint {
+  margin: 0;
+  color: var(--bcq-muted);
+  font-size: 0.875rem;
+}
+
+.bcq-reminder-field__error {
+  margin: 0;
+  color: var(--bcq-danger-ink);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.bcq-reminder-check {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-height: var(--bcq-touch);
+  font-weight: 600;
+}
+
+.bcq-reminder-check input {
+  width: 1.5rem;
+  height: 1.5rem;
+  flex: none;
+}
+
+.bcq-placeholders {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.bcq-placeholders__label {
+  margin: 0;
+  color: var(--bcq-muted);
+  font-size: 0.875rem;
+}
+
+.bcq-placeholders__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.bcq-placeholder-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--bcq-touch);
+  padding: 0 0.85rem;
+  border: 1px solid var(--bcq-line);
+  border-radius: 999px;
+  background: var(--bcq-brand-soft);
+  color: var(--bcq-ink);
+  font:
+    600 0.875rem/1 ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    monospace;
+  cursor: pointer;
+}
+
+.bcq-placeholder-chip:hover {
+  background: var(--bcq-bolt-soft);
+  border-color: var(--bcq-brand-deep);
+}
+
+.bcq-reminder-form__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.bcq-preview {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.bcq-preview__count {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.bcq-preview__section-title {
+  margin: 0 0 0.35rem;
+  font: 700 0.9375rem/1.3 var(--bcq-font);
+  color: var(--bcq-ink-soft);
+}
+
+.bcq-preview__sample {
+  display: grid;
+  gap: 0.3rem;
+  padding: 0.85rem;
+  border-radius: var(--bcq-radius-sm);
+  border: 1px solid var(--bcq-line);
+  background: var(--bcq-paper);
+}
+
+.bcq-preview__sample-title {
+  margin: 0;
+  font: 700 1rem/1.3 var(--bcq-font);
+}
+
+.bcq-preview__sample-body {
+  margin: 0;
+}
+
+.bcq-preview__sample-link {
+  margin: 0;
+  color: var(--bcq-muted);
+  font-size: 0.875rem;
+}
+
+.bcq-preview__recipients {
+  margin: 0;
+  padding-left: 1.25rem;
+  display: grid;
+  gap: 0.25rem;
+}

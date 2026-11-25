@@ -6,6 +6,7 @@ import { audit } from "../core/audit";
 import { contextMiddleware } from "../core/context";
 import type { CurrentMember } from "../core/ports";
 import { requireGuard } from "../core/permissions";
+import { deleteMediaKeys } from "../media/validate";
 import { createNotifyPort } from "../notifications/notify";
 import type { AppEnv } from "../types";
 import { activeMemberIds, getPoll, listPolls, replaceVote, toDtos, type PollRow } from "./model";
@@ -79,6 +80,7 @@ export default new Hono<AppEnv>()
           id: `${id}_o${String(i).padStart(2, "0")}`,
           pollId: id,
           label,
+          imageKey: input.optionImages?.[i] ?? null,
         })),
       );
       await audit(
@@ -151,13 +153,17 @@ export default new Hono<AppEnv>()
   })
   .delete("/polls/:id", requireGuard("admin"), async (c) => {
     const actor = actorOf(c);
-    const deleted = await c.var.db.transaction(async (tx) => {
+    const imageKeys = await c.var.db.transaction(async (tx) => {
       const [row] = await tx
         .select()
         .from(poll)
         .where(eq(poll.id, c.req.param("id")))
         .for("update");
-      if (!row) return false;
+      if (!row) return null;
+      const options = await tx
+        .select({ imageKey: pollOption.imageKey })
+        .from(pollOption)
+        .where(eq(pollOption.pollId, row.id));
       await tx.delete(pollVote).where(eq(pollVote.pollId, row.id));
       await tx.delete(pollOption).where(eq(pollOption.pollId, row.id));
       await tx.delete(poll).where(eq(poll.id, row.id));
@@ -173,9 +179,15 @@ export default new Hono<AppEnv>()
         },
         newId("aud"),
       );
-      return true;
+      return options.flatMap((o) => (o.imageKey ? [o.imageKey] : []));
     });
-    return deleted ? c.body(null, 204) : notFound(c);
+    if (imageKeys === null) return notFound(c);
+    try {
+      await deleteMediaKeys(c.env.MEDIA, imageKeys);
+    } catch {
+      // R2 cleanup is best-effort once DB rows are gone.
+    }
+    return c.body(null, 204);
   })
   // Replacing your own ballot is naturally idempotent, so no Idempotency-Key (not money/RSVP).
   .put("/polls/:id/vote", requireGuard("member"), async (c) => {

@@ -4,6 +4,8 @@ import { contextMiddleware } from "../core/context";
 import { idempotencyKeyMiddleware } from "../core/idempotency";
 import { requireGuard } from "../core/permissions";
 import type { AppEnv } from "../types";
+import { closeDueEvents } from "./close";
+import "./close-tick";
 import { rsvpDeps } from "./deps";
 import {
   DEFAULT_GUEST_NAME,
@@ -63,7 +65,9 @@ function reply(c: Context<AppEnv>, result: RsvpResult) {
 export default new Hono<AppEnv>()
   .use(PATH, contextMiddleware())
   .get(PATH, requireGuard("member"), async (c) => {
-    const result = await getRsvp(c.var.db, c.req.param("id"), actorId(c));
+    const eventId = c.req.param("id");
+    await closeDueEvents(c.var.db, c.var.clock, { targetEventId: eventId });
+    const result = await getRsvp(c.var.db, eventId, actorId(c));
     return reply(c, result);
   })
   .put(PATH, requireGuard("member"), idempotent("PUT /api/v1/events/:id/rsvp"), async (c) => {

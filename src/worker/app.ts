@@ -17,6 +17,10 @@ export function createApp(): Hono<AppEnv> {
   app.route("/", createMediaServeApp());
   app.route("/", createShareServeApp());
   app.use("/api/v1/*", originGuard());
+  app.use("/api/v1/*", async (c, next) => {
+    await next();
+    c.header("Cache-Control", "no-store");
+  });
   mountBackendRoutes(app);
   return app;
 }

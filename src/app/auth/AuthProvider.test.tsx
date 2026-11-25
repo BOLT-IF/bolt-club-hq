@@ -17,6 +17,7 @@ vi.mock("@clerk/react", () => ({
     </div>
   ),
   getToken: getTokenMock,
+  useAuth: () => ({ isLoaded: true, isSignedIn: true, getToken: getTokenMock }),
 }));
 
 import { AuthProvider, useAuthEnabled } from "./AuthProvider";

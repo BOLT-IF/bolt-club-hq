@@ -2,18 +2,21 @@
 
 html {
   -webkit-text-size-adjust: 100%;
+  overflow-x: clip;
 }
 body {
   margin: 0;
   background: var(--bcq-paper);
   color: var(--bcq-ink);
   font: 400 1rem/1.5 var(--bcq-font);
+  overflow-x: clip;
 }
 
 .bcq-app {
   min-height: 100dvh;
   display: flex;
   flex-direction: column;
+  overflow-x: clip;
 }
 
 .bcq-skip {

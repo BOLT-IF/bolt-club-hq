@@ -46,6 +46,8 @@ function setup(post: (path: string, body: unknown) => Response = () => json(200,
         return Promise.resolve(json(200, { requests }));
       if (method === "GET" && path === "/invites")
         return Promise.resolve(json(200, { invites: [invite] }));
+      if (method === "GET" && path === "/admin/members")
+        return Promise.resolve(json(200, { members: [] }));
       const res = post(path, body);
       if (res.ok && path.startsWith("/join-requests/")) requests = [];
       return Promise.resolve(res);
@@ -136,5 +138,50 @@ describe("admin approvals page", () => {
     await waitFor(() => {
       expect(calls).toContainEqual({ method: "DELETE", path: "/invites/inv1", body: undefined });
     });
+  });
+
+  it("shows pending members who signed in without an invite and lets admin approve them", async () => {
+    const calls: Array<{ method: string; path: string }> = [];
+    let pendingMembers = [
+      {
+        id: "m_direct",
+        displayName: "Sam Direct",
+        rosterName: null,
+        email: "sam@example.com",
+        role: "member",
+        status: "pending",
+        paymentRef: "BC-SAM",
+      },
+    ];
+    configureApiClient({
+      onUnauthorized: () => undefined,
+      fetch: (input, init) => {
+        const path = input.replace("/api/v1", "");
+        const method = init?.method ?? "GET";
+        calls.push({ method, path });
+        if (method === "GET" && path === "/admin/join-requests")
+          return Promise.resolve(json(200, { requests: [] }));
+        if (method === "GET" && path === "/invites")
+          return Promise.resolve(json(200, { invites: [] }));
+        if (method === "GET" && path === "/admin/members")
+          return Promise.resolve(json(200, { members: pendingMembers }));
+        if (method === "POST" && path === "/members/m_direct/approve") {
+          pendingMembers = [];
+          return Promise.resolve(json(200, { memberId: "m_direct", status: "active" }));
+        }
+        return Promise.resolve(json(200, {}));
+      },
+    });
+    render(
+      <ToastProvider>
+        <AdminApprovals />
+      </ToastProvider>,
+    );
+    const item = await screen.findByRole("listitem", { name: /Sam Direct/ });
+    fireEvent.click(within(item).getByRole("button", { name: "Approve Sam Direct" }));
+    await waitFor(() => {
+      expect(calls).toContainEqual({ method: "POST", path: "/members/m_direct/approve" });
+    });
+    expect(await screen.findByText(/No one is waiting/i)).toBeTruthy();
   });
 });

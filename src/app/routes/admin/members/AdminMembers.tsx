@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState, type SyntheticEvent } from "react";
 
 import { apiFetch } from "../../../api/client";
+import { navigate } from "../../../lib/navigate";
 import {
   BottomSheet,
   Button,
@@ -60,9 +61,14 @@ export function AdminMembers() {
     };
   }, []);
 
-  async function change(path: string, body: unknown, done: string): Promise<boolean> {
+  async function change(
+    path: string,
+    body: unknown,
+    done: string,
+    method: "PATCH" | "POST" = "PATCH",
+  ): Promise<boolean> {
     try {
-      await apiFetch(path, { method: "PATCH", body });
+      await apiFetch(path, body === undefined ? { method } : { method, body });
       toast.show(done, "success");
       await load();
       return true;
@@ -86,6 +92,19 @@ export function AdminMembers() {
       <h1 id="admin-members-title" className="bcq-page__title">
         Members
       </h1>
+      <p className="bcq-field__hint">
+        Need to invite someone?{" "}
+        <a
+          href="/admin/approvals"
+          onClick={(e) => {
+            e.preventDefault();
+            navigate("/admin/approvals");
+          }}
+        >
+          Create an invite link
+        </a>
+        .
+      </p>
       {state.members.length === 0 ? (
         <EmptyState title="No members yet">Members appear here once they join.</EmptyState>
       ) : (
@@ -106,6 +125,23 @@ export function AdminMembers() {
                   Payment reference <strong>{m.paymentRef}</strong>
                   {m.email ? ` · ${m.email}` : ""}
                 </p>
+                {m.status === "pending" ? (
+                  <div className="bcq-member__actions">
+                    <Button
+                      aria-label={`Approve ${m.displayName}`}
+                      onClick={() =>
+                        void change(
+                          `/members/${m.id}/approve`,
+                          undefined,
+                          "Member approved",
+                          "POST",
+                        )
+                      }
+                    >
+                      Approve
+                    </Button>
+                  </div>
+                ) : null}
                 {switchable ? (
                   <div className="bcq-member__actions">
                     <Button

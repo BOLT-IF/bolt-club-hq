@@ -284,7 +284,8 @@ export function HomePage() {
         <div className="bcq-home__card">
           <h2 className="bcq-home__card-title">Membership pending</h2>
           <p className="bcq-home__muted">
-            Your request to join BOLT IF is waiting for an admin to approve it.
+            Your account is waiting for an admin to approve it. An admin can approve you directly,
+            or you can open an invite link they send you.
           </p>
           <AppLink href="/join" className="bcq-home__link">
             Check join status

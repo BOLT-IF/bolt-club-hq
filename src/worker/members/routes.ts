@@ -306,6 +306,33 @@ routes.patch("/members/:id/status", context, requireGuard("admin"), async (c) =>
   return result;
 });
 
+/** Direct admin approval for pending accounts (including direct sign-ins without an invite link). */
+routes.post("/members/:id/approve", context, requireGuard("admin"), async (c) => {
+  const actor = actorOf(c);
+  const id = c.req.param("id");
+  return guarded(c, async (tx) => {
+    const target = await lockMember(tx, id);
+    if (target.status === "active") return c.json({ memberId: target.id, status: "active" });
+    if (target.status !== "pending") return refuse(409, "invalid_transition");
+    const joinedAt = c.var.clock.now();
+    await tx.update(member).set({ status: "active", joinedAt }).where(eq(member.id, target.id));
+    await audit(
+      tx,
+      c.var.clock,
+      {
+        actorId: actor.id,
+        action: "member.approve",
+        entity: "member",
+        entityId: target.id,
+        before: { status: "pending" },
+        after: { status: "active", joinedAt },
+      },
+      crypto.randomUUID(),
+    );
+    return c.json({ memberId: target.id, status: "active" });
+  });
+});
+
 routes.route("/", invitesRoutes); // S1.3
 routes.route("/", joinRoutes); // S1.3
 

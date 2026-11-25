@@ -1,6 +1,9 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
 
+// WebKit's service worker bypasses Playwright page.route() once sw.js claims the client.
+test.use({ serviceWorkers: "block" });
+
 const reply = (status: number, body: unknown) => ({
   status,
   contentType: "application/json",
@@ -76,6 +79,7 @@ test("member submits a payment claim and sees rejected reason in their list", as
   await expect(page.getByText("300 kr")).toBeVisible();
   expect(idempotencyKey).toBeTruthy();
 
+  await expect(page.locator(".bcq-toast").last()).toHaveCSS("opacity", "1");
   const axe = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa"]).analyze();
   const serious = axe.violations.filter((v) => v.impact === "serious" || v.impact === "critical");
   expect(serious.map((v) => `${v.id}: ${v.help}`)).toEqual([]);
@@ -165,6 +169,7 @@ test("admin confirms a member claim, rejects another with reason, and cannot dec
   await expect(list.getByRole("listitem")).toHaveCount(1);
   expect(rejectKey).toBeTruthy();
 
+  await expect(page.locator(".bcq-toast").last()).toHaveCSS("opacity", "1");
   const axe = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa"]).analyze();
   const serious = axe.violations.filter((v) => v.impact === "serious" || v.impact === "critical");
   expect(serious.map((v) => `${v.id}: ${v.help}`)).toEqual([]);

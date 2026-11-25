@@ -5,6 +5,7 @@ import { idempotencyKeyMiddleware } from "../core/idempotency";
 import { requireGuard } from "../core/permissions";
 import type { AppEnv } from "../types";
 import "./alert-tick";
+import { meAttendanceRoutes } from "./me";
 import {
   getAttendance,
   putAttendance,
@@ -85,4 +86,5 @@ export default new Hono<AppEnv>()
       return c.json({ error: "invalid_attendee" }, 400);
     }
     return c.json(result.data);
-  });
+  })
+  .route("/", meAttendanceRoutes);

@@ -1,6 +1,6 @@
 # BOLT HQ: handoff and how to resume
 
-Last updated 2026-11-25. **44 of 48 stories are on `main` (plus integrator chore #55 and unslop #64); 2 stories are in progress (`S10.1`, `S7.1`).** Read this file top to bottom, then `docs/STORIES.md`, `docs/DECISIONS.md` (newest first) and `docs/PLAN.md`. Update this file at the end of every session.
+Last updated 2026-11-25. **46 of 48 stories are on `main` (plus integrator chore #55, unslop #64, and deploy simplify #72); 2 stories are in progress (`S11.1`, `S11.3`).** Read this file top to bottom, then `docs/STORIES.md`, `docs/DECISIONS.md` (newest first) and `docs/PLAN.md`. Update this file at the end of every session.
 
 ## Resume prompt (copy and paste this to a new agent)
 
@@ -18,8 +18,9 @@ Last updated 2026-11-25. **44 of 48 stories are on `main` (plus integrator chore
 | Money | S5.1 ledger, S5.2 member money screen, S5.3 passes (#60), S5.4 admin money, S5.5 payment claims & screens (#57) | merged |
 | Notifications | S6.1 inbox and policies, S6.2 web push, S6.3 preferences and mute, S6.4 scheduler, S6.5a reminder engine, S6.5b reminder UI (#56), S6.6 broadcasts | merged |
 | Attendance | S8.1 attendance marking (#65), S8.2 member attendance history (#68), S8.3 roster deep link (#69) | merged |
-| Polls and install | S9.1 polls, S9.2 poll images on R2 (#62), S10.2 install and push onboarding | merged |
-| Brand and deploy | BOLT HQ theme, logo icons, KV/Hyperdrive/R2 config (#53), unslop UI polish (#64) | merged |
+| Polls and install | S9.1 polls, S9.2 poll images on R2 (#62), S10.1 home dashboard (#70), S10.2 install and push onboarding | merged |
+| Sharing | S7.1 share links, edge OG, request-to-join (#71) | merged |
+| Brand and deploy | BOLT HQ theme, logo icons, KV/Hyperdrive/R2 config (#53), unslop UI polish (#64), deploy.yml migrate-only (#72) | merged |
 | Integrator & import | Chore follow-up wiring (#55), S11.2 member import (#58) | merged |
 
 Two migrations exist: `0000_initial` and `0001_polls`. Neither has been applied to Neon yet.
@@ -28,19 +29,17 @@ Two migrations exist: `0000_initial` and `0001_polls`. Neither has been applied 
 
 | Story | Branch / PR | Notes |
 |---|---|---|
-| S10.1 Home dashboard | `story/s10.1-home` | Launching |
-| S7.1 Share links, OG, request to join | `story/s7.1-share-og` | Launching (provisional S0.6 defaults) |
+| S11.1 Club-week scenarios | `story/s11.1-club-week` | Launching |
+| S11.3 Device QA and launch checklist | `story/s11.3-launch-checklist` | Launching |
 
-## Not started (2 remaining + 2 human-blocked). Dependencies are all met unless noted
+## Not started (2 human-blocked)
 
 | Story | Size | Needs | Owns (summary) |
 |---|---|---|---|
 | S5.6 manager.io export | S | S5.4, S2.3 (met) | `src/worker/accounting/`, `src/app/routes/admin/money/export*`. **Blocked on the treasurer confirming the import format** |
-| S11.1 Club-week scenarios | M | all functional stories | `tests/scenarios/`, `tests/e2e/club-week*` |
-| S11.3 Device QA and launch checklist | S | S11.1, S10.2 | `docs/LAUNCH.md` |
 | **S0.6 Real-device spike** | M | human | Needs a Clerk production instance and a real iPhone and Android. Until it runs, the push batch cap (20) and "hide Google sign-in in the installed iOS app" are provisional |
 
-Fan-out order (at most 2 stories at a time): `(S10.1, S7.1)` → `S11.1` → `S11.3`, followed by the final integrator wrap-up PR.
+Fan-out order: `(S11.1, S11.3)` → final integrator wrap-up PR (wire remaining UI links in `FOLLOWUPS.md` section A).
 
 ## Next steps (do these first)
 

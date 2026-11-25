@@ -24,7 +24,7 @@ export function NavIcon({ name }: { readonly name: NavIconName }) {
         d={PATHS[name]}
         fill="none"
         stroke="currentColor"
-        strokeWidth="1.8"
+        strokeWidth="1.5"
         strokeLinecap="round"
         strokeLinejoin="round"
       />

@@ -77,9 +77,13 @@ function describeAdminClaimError(error: unknown): { message: string; reload: boo
 type LoadState =
   | { readonly kind: "loading" }
   | { readonly kind: "error" }
-  | { readonly kind: "ready"; readonly claims: readonly AdminPaymentClaim[] };
+  | {
+      readonly kind: "ready";
+      readonly claims: readonly AdminPaymentClaim[];
+      readonly history: readonly AdminPaymentClaim[];
+    };
 
-/** Admin pending claims queue (S5.5, PLAN §9): one-tap confirm or reject with reason; own claims blocked. */
+/** Admin claims queue (S5.5, PLAN §9): one-tap confirm or reject with reason, plus decided history. */
 export function AdminClaimsPage() {
   const moneyOn = useFeatureFlag("money");
   const toast = useToast();
@@ -89,12 +93,14 @@ export function AdminClaimsPage() {
   const confirmKeysRef = useRef(new Map<string, string>());
 
   const load = useCallback((signal?: AbortSignal) => {
-    return apiFetch<{ claims: AdminPaymentClaim[] }>(
+    return apiFetch<{ claims: AdminPaymentClaim[]; history?: AdminPaymentClaim[] }>(
       "/admin/payment-claims",
       signal ? { signal } : {},
     )
       .then((data) => {
-        if (!signal?.aborted) setState({ kind: "ready", claims: data.claims });
+        if (!signal?.aborted) {
+          setState({ kind: "ready", claims: data.claims, history: data.history ?? [] });
+        }
       })
       .catch(() => {
         if (!signal?.aborted) setState({ kind: "error" });
@@ -205,6 +211,38 @@ export function AdminClaimsPage() {
           ))}
         </ul>
       )}
+
+      {state.history.length > 0 ? (
+        <section aria-labelledby="admin-claims-history-title">
+          <h2 id="admin-claims-history-title" className="bcq-page__title">
+            History
+          </h2>
+          <ul className="bcq-members" aria-label="Decided payment claims">
+            {state.history.map((claim) => (
+              <li key={claim.id} className="bcq-member">
+                <div className="bcq-member__head">
+                  <span className="bcq-member__name">{claim.displayName}</span>
+                  <span className="bcq-money-amount">{claim.amountSek} kr</span>
+                  <StatusChip tone={claim.status === "confirmed" ? "success" : "danger"}>
+                    {claim.status === "confirmed" ? "Confirmed" : "Rejected"}
+                  </StatusChip>
+                </div>
+                <p className="bcq-member__meta">
+                  Paid <time dateTime={claim.paidOn}>{formatDay(claim.paidOn)}</time> · Ref{" "}
+                  {claim.paymentRef}
+                  {claim.decidedAt
+                    ? ` · Decided ${claimDayFmt.format(new Date(claim.decidedAt))}`
+                    : ""}
+                  {claim.note ? ` · ${claim.note}` : ""}
+                </p>
+                {claim.rejectReason ? (
+                  <p className="bcq-field__hint">Reason: {claim.rejectReason}</p>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
 
       {rejecting ? (
         <RejectClaimSheet

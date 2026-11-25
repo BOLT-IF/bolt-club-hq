@@ -220,4 +220,24 @@ describe("admin payment claims queue", () => {
     fireEvent.click(screen.getByRole("button", { name: /confirm/i }));
     expect(await screen.findByText(/own payment claim/i)).toBeTruthy();
   });
+
+  it("shows confirmed and rejected claims in the History section", async () => {
+    const decided: AdminClaimDto = {
+      ...boClaim,
+      id: "clm_old",
+      status: "rejected",
+      decidedAt: "2027-03-04T12:00:00Z",
+      rejectReason: "Wrong amount",
+    };
+    configureApiClient({
+      fetch: vi.fn(() => Promise.resolve(json(200, { claims: [], history: [decided] }))),
+      onUnauthorized: () => undefined,
+    });
+    renderAdminClaims();
+
+    expect(await screen.findByText(/No pending claims/i)).toBeTruthy();
+    const history = screen.getByRole("list", { name: /decided payment claims/i });
+    expect(within(history).getByText("Rejected")).toBeTruthy();
+    expect(within(history).getByText(/Wrong amount/)).toBeTruthy();
+  });
 });

@@ -1,10 +1,13 @@
-/** Pure poll rules (S9.1, PLAN §10). No I/O; time comes in as `now`. */
+/** Pure poll rules (S9.1, S9.2, PLAN §10). No I/O; time comes in as `now`. */
+
+import { isValidMediaKey } from "../media/validate";
 
 export const RESULTS_VISIBILITY = ["always", "after_vote", "after_close", "admins"] as const;
 export type ResultsVisibility = (typeof RESULTS_VISIBILITY)[number];
 
 export const MIN_OPTIONS = 2;
 export const MAX_OPTIONS = 20;
+export const MAX_IMAGES_PER_POLL = 8;
 const MAX_QUESTION = 300;
 const MAX_LABEL = 120;
 
@@ -86,6 +89,7 @@ function parseClosesAt(v: unknown, now: Date): Date | null | undefined {
 export interface CreatePoll {
   question: string;
   options: string[];
+  optionImages?: (string | null)[];
   multiChoice: boolean;
   anonymous: boolean;
   resultsVisibility: ResultsVisibility;
@@ -95,11 +99,36 @@ export interface CreatePoll {
 const CREATE_KEYS = new Set([
   "question",
   "options",
+  "optionImages",
   "multiChoice",
   "anonymous",
   "resultsVisibility",
   "closesAt",
 ]);
+
+function parseOptionImages(
+  raw: unknown,
+  optionCount: number,
+): Parsed<(string | null)[] | undefined> {
+  if (raw === undefined) return { ok: true, value: undefined };
+  if (!Array.isArray(raw) || raw.length !== optionCount) {
+    return { ok: false, error: "invalid_option_images" };
+  }
+  const keys: (string | null)[] = [];
+  let count = 0;
+  for (const item of raw) {
+    if (item === null) {
+      keys.push(null);
+    } else if (typeof item === "string" && isValidMediaKey(item)) {
+      keys.push(item);
+      count++;
+    } else {
+      return { ok: false, error: "invalid_option_images" };
+    }
+  }
+  if (count > MAX_IMAGES_PER_POLL) return { ok: false, error: "too_many_images" };
+  return { ok: true, value: keys };
+}
 
 export function parseCreate(body: unknown, now: Date): Parsed<CreatePoll> {
   if (!isObject(body)) return { ok: false, error: "invalid_body" };
@@ -120,6 +149,9 @@ export function parseCreate(body: unknown, now: Date): Parsed<CreatePoll> {
     return { ok: false, error: "invalid_options" };
   }
 
+  const images = parseOptionImages(body.optionImages, options.length);
+  if (!images.ok) return images;
+
   const { multiChoice = false, anonymous = false, resultsVisibility = "always" } = body;
   if (typeof multiChoice !== "boolean" || typeof anonymous !== "boolean") {
     return { ok: false, error: "invalid_settings" };
@@ -131,7 +163,15 @@ export function parseCreate(body: unknown, now: Date): Parsed<CreatePoll> {
 
   return {
     ok: true,
-    value: { question, options, multiChoice, anonymous, resultsVisibility, closesAt },
+    value: {
+      question,
+      options,
+      ...(images.value === undefined ? {} : { optionImages: images.value }),
+      multiChoice,
+      anonymous,
+      resultsVisibility,
+      closesAt,
+    },
   };
 }
 

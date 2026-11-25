@@ -71,7 +71,11 @@ export async function toDtos(db: Db | Tx, rows: PollRow[], viewer: CurrentMember
       closesAt: r.closesAt?.toISOString() ?? null,
       closed: isClosed(r, now),
       createdAt: r.createdAt.toISOString(),
-      options: opts.map((o) => ({ id: o.id, label: o.label })),
+      options: opts.map((o) => ({
+        id: o.id,
+        label: o.label,
+        imageUrl: o.imageKey ? `/media/${o.imageKey}` : null,
+      })),
       myVote: mine.filter((v) => v.memberId === viewer.id).map((v) => v.optionId),
       resultsVisible: showResults,
       results: showResults

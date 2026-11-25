@@ -1,6 +1,13 @@
-import { apiFetch } from "../../api/client";
+import { API_BASE, ApiError, CLIENT_VERSION, apiFetch } from "../../api/client";
+import { markClientOutdated } from "../../lib/clientVersion";
 
 export type ResultsVisibility = "always" | "after_vote" | "after_close" | "admins";
+
+export interface PollOption {
+  readonly id: string;
+  readonly label: string;
+  readonly imageUrl?: string | null;
+}
 
 export interface PollResultOption {
   readonly optionId: string;
@@ -19,7 +26,7 @@ export interface Poll {
   readonly closesAt: string | null;
   readonly closed: boolean;
   readonly createdAt: string;
-  readonly options: ReadonlyArray<{ readonly id: string; readonly label: string }>;
+  readonly options: readonly PollOption[];
   readonly myVote: readonly string[];
   readonly resultsVisible: boolean;
   readonly results: {
@@ -31,10 +38,51 @@ export interface Poll {
 export interface NewPoll {
   readonly question: string;
   readonly options: readonly string[];
+  readonly optionImages?: readonly (string | null)[];
   readonly multiChoice: boolean;
   readonly anonymous: boolean;
   readonly resultsVisibility: ResultsVisibility;
   readonly closesAt: string | null;
+}
+
+export interface UploadedMedia {
+  readonly key: string;
+  readonly url: string;
+}
+
+export async function uploadPollImage(
+  blob: Blob,
+  getAuthToken?: () => Promise<string | null>,
+): Promise<UploadedMedia> {
+  const headers = new Headers({
+    Accept: "application/json",
+    "X-Client-Version": CLIENT_VERSION,
+  });
+  if (getAuthToken) {
+    const token = await getAuthToken();
+    if (token) headers.set("Authorization", `Bearer ${token}`);
+  }
+  const form = new FormData();
+  form.append("file", blob, "option-image");
+  const response = await globalThis.fetch(`${API_BASE}/media`, {
+    method: "POST",
+    headers,
+    body: form,
+  });
+  if (response.status === 426) {
+    markClientOutdated();
+  }
+  if (!response.ok) {
+    const text = await response.text();
+    let parsed: unknown = text;
+    try {
+      parsed = JSON.parse(text);
+    } catch {
+      // Keep plain text error body.
+    }
+    throw new ApiError(response.status, parsed);
+  }
+  return (await response.json()) as UploadedMedia;
 }
 
 export async function listPolls(): Promise<Poll[]> {

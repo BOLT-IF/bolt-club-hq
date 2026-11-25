@@ -334,7 +334,7 @@ Login is off the critical path. From W2 on, stories use the **test-identity over
   - Raising capacity promotes from the waitlist.
 
 ### S4.4c Event cancellation + material changes: S · W5
-- **Depends on:** S4.3, S3.2 · **Owns:** `src/worker/rsvp/eventchange*`, `src/app/components/organizer/edit*`, `src/app/routes/events/routes.tsx` (integrator-sanctioned 2026-11-24: import lines that register this story's event-page slots), `src/worker/rsvp/routes.ts` (integrator-sanctioned 2026-11-24: one-line mount of the eventchange sub-app)
+- **Depends on:** S4.3, S3.2 · **Owns:** `src/worker/rsvp/eventchange*`, `src/app/components/organizer/edit*`, `src/app/routes/events/routes.tsx` (integrator-sanctioned 2026-11-24: import lines that register this story's event-page slots), `src/worker/rsvp/routes.ts` (integrator-sanctioned 2026-11-24: one-line mount of the eventchange sub-app), `src/worker/rsvp/postclose.ts` (integrator-sanctioned 2026-11-25: 24h material-change free-cancel check in `lateCancelRsvp`)
 - **Tests first:**
   - Cancelling an event leaves its net charges at 0.
   - A cancel inside the 24h window after a material change is reversed for free; outside it, normal rules apply.

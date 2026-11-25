@@ -11,6 +11,8 @@ export interface PassOffer {
   readonly durationMin: number;
   readonly location: string | null;
   readonly passPrice: number;
+  readonly regularPassPrice?: number;
+  readonly discounted?: boolean;
   readonly priceSek: number;
   readonly remainingEvents: number;
   readonly totalEvents: number;

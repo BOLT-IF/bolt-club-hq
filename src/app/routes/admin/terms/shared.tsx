@@ -29,6 +29,7 @@ export interface SeriesRow {
   location: string | null;
   capacity: number;
   passPrice: number;
+  discountedPassPrice: number | null;
   adhocFee: number;
   maxGuestsDefault: number;
   rsvpCloseOffsetMin: number;
@@ -37,6 +38,7 @@ export interface SeriesRow {
   skipDatesLocked: boolean;
   passCap: number;
   captains: Array<{ id: string; displayName: string }>;
+  discountEligible?: Array<{ id: string; displayName: string }>;
 }
 
 export const STATUS_LABEL: Record<TermStatus, string> = {
@@ -72,6 +74,7 @@ const MESSAGES: Record<string, string> = {
   term_not_deletable: "Only an empty draft term can be deleted.",
   series_in_use: "This series already has events or passes.",
   invalid_captains: "Captains must be active members.",
+  invalid_discount_members: "Discounted members must be active members.",
   forbidden_field: "Only an admin can change those fields.",
 };
 

@@ -14,6 +14,7 @@ import {
   pushSubscription,
   rsvp,
   seriesCaptain,
+  seriesDiscountEligible,
 } from "../../../db/schema";
 import { audit } from "../core/audit";
 import type { Clock } from "../core/clock";
@@ -143,6 +144,7 @@ export async function eraseMember(
       await tx.delete(pushSubscription).where(eq(pushSubscription.memberId, targetId));
       await tx.delete(notificationPref).where(eq(notificationPref.memberId, targetId));
       await tx.delete(seriesCaptain).where(eq(seriesCaptain.memberId, targetId));
+      await tx.delete(seriesDiscountEligible).where(eq(seriesDiscountEligible.memberId, targetId));
       await tx.delete(idempotencyRecord).where(eq(idempotencyRecord.actorId, targetId));
 
       const memberRsvps = await tx

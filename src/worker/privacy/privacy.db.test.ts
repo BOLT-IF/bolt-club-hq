@@ -28,6 +28,7 @@ import {
   rsvp,
   series,
   seriesCaptain,
+  seriesDiscountEligible,
   term,
 } from "../../../db/schema";
 import { FixedClock } from "../core/clock";
@@ -60,6 +61,7 @@ const EXPORT_TABLE_SPEC: Record<string, { exportKey: string; excludedColumns: re
     member: { exportKey: "member", excludedColumns: [] },
     join_request: { exportKey: "joinRequests", excludedColumns: [] },
     series_captain: { exportKey: "seriesCaptains", excludedColumns: [] },
+    series_discount_eligible: { exportKey: "seriesDiscountEligibles", excludedColumns: [] },
     pass: { exportKey: "passes", excludedColumns: ["grantedBy"] },
     rsvp: { exportKey: "rsvps", excludedColumns: [] },
     guest: { exportKey: "guests", excludedColumns: [] },
@@ -224,6 +226,10 @@ describe("privacy: export, erasure, retention (S2.5)", () => {
       createdAt: new Date("2027-01-01T10:00:00.000Z"),
     });
     await t.db.insert(seriesCaptain).values({
+      seriesId: "ser_1",
+      memberId: m.id,
+    });
+    await t.db.insert(seriesDiscountEligible).values({
       seriesId: "ser_1",
       memberId: m.id,
     });

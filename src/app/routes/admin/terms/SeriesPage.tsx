@@ -116,6 +116,7 @@ function SeriesDetail() {
             />
 
             <Captains series={series} onSaved={load.reload} />
+            <DiscountEligible series={series} onSaved={load.reload} />
           </>
         )}
       </Loaded>
@@ -182,6 +183,67 @@ function Captains({
       ))}
       <Button disabled={busy} onClick={() => void save()}>
         Save captains
+      </Button>
+    </fieldset>
+  );
+}
+
+function DiscountEligible({
+  series,
+  onSaved,
+}: {
+  readonly series: SeriesRow;
+  readonly onSaved: () => void;
+}) {
+  const toast = useToast();
+  const candidates = useLoad<{ members: Array<{ id: string; displayName: string }> }>(
+    "/series/captain-candidates",
+  );
+  const [picked, setPicked] = useState<ReadonlySet<string>>(
+    () => new Set((series.discountEligible ?? []).map((m) => m.id)),
+  );
+  const [busy, setBusy] = useState(false);
+
+  if (candidates.error || !candidates.data) return null;
+
+  async function save() {
+    setBusy(true);
+    try {
+      await apiFetch(`/series/${encodeURIComponent(series.id)}/discount-eligible`, {
+        method: "PUT",
+        body: { memberIds: [...picked] },
+      });
+      toast.show("Discount eligibility saved", "success");
+      onSaved();
+    } catch (error) {
+      toast.show(errorMessage(error), "danger");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <fieldset className="bcq-checks">
+      <legend className="bcq-section-title">Discounted rate eligibility</legend>
+      {candidates.data.members.map((m) => (
+        <label key={m.id} className="bcq-check">
+          <input
+            type="checkbox"
+            checked={picked.has(m.id)}
+            onChange={(e) => {
+              setPicked((current) => {
+                const next = new Set(current);
+                if (e.target.checked) next.add(m.id);
+                else next.delete(m.id);
+                return next;
+              });
+            }}
+          />
+          <span>{m.displayName}</span>
+        </label>
+      ))}
+      <Button disabled={busy} onClick={() => void save()}>
+        Save eligible members
       </Button>
     </fieldset>
   );

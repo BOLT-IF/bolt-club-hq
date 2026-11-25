@@ -31,6 +31,9 @@ export function TermPage() {
 function TermDetail() {
   const { id = "" } = useRouteParams();
   const load = useLoad<{ term: TermRow; series: SeriesRow[] }>(`/terms/${encodeURIComponent(id)}`);
+  const candidates = useLoad<{ members: Array<{ id: string; displayName: string }> }>(
+    "/series/captain-candidates",
+  );
   const toast = useToast();
   const [confirming, setConfirming] = useState(false);
 
@@ -119,6 +122,7 @@ function TermDetail() {
                   <h2 className="bcq-section-title">Add a series</h2>
                   <SeriesForm
                     submitLabel="Add series"
+                    eligibleCandidates={candidates.data?.members ?? []}
                     onSubmit={async (changes) => {
                       try {
                         await apiFetch("/series", {

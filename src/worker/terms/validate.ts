@@ -23,6 +23,16 @@ const wholeNumber =
   (v) =>
     typeof v === "number" && Number.isInteger(v) && v >= min && v <= max ? v : undefined;
 
+const nullableWholeNumber =
+  (min: number, max = 10_000_000): Field<number | null> =>
+  (v) =>
+    v === null ? null : wholeNumber(min, max)(v);
+
+const memberIdArray: Field<string[]> = (v) =>
+  Array.isArray(v) && v.length <= 500 && v.every((id) => typeof id === "string" && id.length > 0)
+    ? [...new Set(v as string[])]
+    : undefined;
+
 /** A real calendar date, YYYY-MM-DD. */
 const isoDate: Field<string> = (v) => {
   if (typeof v !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(v)) return undefined;
@@ -122,6 +132,7 @@ const SERIES_SPECS = {
   location: nullableText,
   capacity: wholeNumber(1, 1000),
   passPrice: wholeNumber(0),
+  discountedPassPrice: nullableWholeNumber(0),
   adhocFee: wholeNumber(0),
   maxGuestsDefault: wholeNumber(0, 20),
   rsvpCloseOffsetMin: wholeNumber(0, 60 * 24 * 30),
@@ -138,15 +149,17 @@ export interface SeriesCreate {
   location?: string | null;
   capacity: number;
   passPrice: number;
+  discountedPassPrice?: number | null;
   adhocFee: number;
   maxGuestsDefault: number;
   rsvpCloseOffsetMin: number;
+  discountEligibleIds?: string[];
 }
 
 export function parseSeriesCreate(input: unknown): Parsed<SeriesCreate> {
   const r = read(
     input,
-    { termId: text, ...SERIES_SPECS },
+    { termId: text, ...SERIES_SPECS, discountEligibleIds: memberIdArray },
     [
       "termId",
       "name",
@@ -176,6 +189,7 @@ export interface SeriesPatch {
   location?: string | null;
   capacity?: number;
   passPrice?: number;
+  discountedPassPrice?: number | null;
   adhocFee?: number;
   maxGuestsDefault?: number;
   rsvpCloseOffsetMin?: number;
@@ -200,11 +214,13 @@ export const CAPTAIN_EDITABLE_FIELDS: readonly SeriesPatchField[] = [
   "rsvpCloseOffsetMin",
 ];
 
-export function parseCaptainIds(input: unknown): Parsed<string[]> {
+export function parseMemberIds(input: unknown, max = 500): Parsed<string[]> {
   const obj = asObject(input);
   const ids = obj?.memberIds;
-  if (!Array.isArray(ids) || ids.length > 50 || !ids.every((id) => typeof id === "string" && id)) {
+  if (!Array.isArray(ids) || ids.length > max || !ids.every((id) => typeof id === "string" && id)) {
     return fail("memberIds must be a list of member ids");
   }
   return { ok: true, value: [...new Set(ids as string[])] };
 }
+
+export const parseCaptainIds = (input: unknown) => parseMemberIds(input, 50);

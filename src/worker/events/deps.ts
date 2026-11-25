@@ -1,13 +1,11 @@
 import type { PublishOgPort } from "../core/ports";
+import { createKvPublishOg } from "../share/og";
 
 export interface EventsDeps {
   publishOg: (env: Cloudflare.Env) => PublishOgPort;
 }
 
-/** Production no-op until S7.1 supplies the KV-backed implementation (STORIES S7.1). */
-export const noopPublishOg: PublishOgPort = { publishOg: () => Promise.resolve() };
-
-const defaults: EventsDeps = { publishOg: () => noopPublishOg };
+const defaults: EventsDeps = { publishOg: createKvPublishOg };
 
 let deps: EventsDeps = defaults;
 

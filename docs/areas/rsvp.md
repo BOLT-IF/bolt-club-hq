@@ -29,6 +29,9 @@ Errors: 400 `invalid_body` / `guest_limit` (`max`), 404 `not_found` (unknown eve
   - Late RSVPs confirm immediately when space is free and waitlist is empty; otherwise join waitlist in tier order (prepaid tier 1 at top without bumping confirmed; guests added after close are tier 3). Guest name edits are free.
   - Late cancel of a confirmed member cascades to their guests (`late_cancelled`), leaves charges standing unless refilled, and runs `promote()` (auto-promotes before `autoPromoteCutoffMin`, or marks `offered` and notifies from cutoff onward).
   - Refills reverse the earliest unrefilled late-cancel's charge (`refill:<chargeId>`) and notify the member.
+- **Event cancellation & material changes (`eventchange.ts`, S4.4c)**:
+  - `POST /events/:id/cancel` cancels the event, cancels all active RSVPs/guests, reverses all unreversed charges (`event-cancel:<chargeId>`), and notifies active/charged participants.
+  - `PATCH /events/:id/details` updates `title`, `location`, `startsAt`, `endsAt`, `rsvpCloseAt`, or `adhocFee` (returning `409 event_closed` if `adhocFee` is edited after close). Material changes (`startsAt`, `endsAt`, `location`) after close set `materialChangeAt` and notify active participants; `lateCancelRsvp` reverses charges for free (`free-cancel:<chargeId>`) while `now < materialChangeAt + 24h`.
 
 ## Frontend (`src/app/components/rsvp/`)
 

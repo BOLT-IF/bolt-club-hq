@@ -191,17 +191,27 @@ describe("event cancellation + material changes (S4.4c)", () => {
 
     // Inside 24h window (at +30h, 5h after material change): alice cancels for free.
     clock.set(at(30));
-    const freeCancelRes = await send("POST", `/events/${ev.id}/rsvp/late-cancel`, alice.clerkUserId, {
-      body: {},
-    });
+    const freeCancelRes = await send(
+      "POST",
+      `/events/${ev.id}/rsvp/late-cancel`,
+      alice.clerkUserId,
+      {
+        body: {},
+      },
+    );
     expect(freeCancelRes.status).toBe(200);
     expect(await netEventCharges(ev.id)).toBe(120);
 
     // Outside 24h window (at +50h? Event ends at +50h, so check at +49h -> wait: 25 + 24 = 49h!).
     clock.set(at(49));
-    const normalCancelRes = await send("POST", `/events/${ev.id}/rsvp/late-cancel`, bob.clerkUserId, {
-      body: {},
-    });
+    const normalCancelRes = await send(
+      "POST",
+      `/events/${ev.id}/rsvp/late-cancel`,
+      bob.clerkUserId,
+      {
+        body: {},
+      },
+    );
     expect(normalCancelRes.status).toBe(200);
     // Normal rules apply: no waitlist refill, so bob's 120 kr charge stands.
     expect(await netEventCharges(ev.id)).toBe(120);
@@ -221,5 +231,89 @@ describe("event cancellation + material changes (S4.4c)", () => {
 
     const [unchanged] = await t.db.select().from(event).where(eq(event.id, ev.id));
     expect(unchanged?.adhocFee).toBe(120);
+  });
+
+  it("editing the fee before close succeeds, and title-only change after close does not open free-cancel window", async () => {
+    const admin = await makeMember(t.db, { role: "admin" });
+    const alice = await makeMember(t.db);
+    const ev = await seedSeries(admin.id);
+
+    await send("PUT", `/events/${ev.id}/rsvp`, alice.clerkUserId, { body: { guests: [] } });
+
+    const preCloseFee = await send("PATCH", `/events/${ev.id}/details`, admin.clerkUserId, {
+      body: { adhocFee: 150 },
+    });
+    expect(preCloseFee.status).toBe(200);
+
+    clock.set(at(24));
+    expect(await closeEvent(t.db, clock, ev.id)).toBe(true);
+    expect(await netEventCharges(ev.id)).toBe(150);
+
+    // Title-only edit after close is NOT a material change.
+    clock.set(at(25));
+    const titleRes = await send("PATCH", `/events/${ev.id}/details`, admin.clerkUserId, {
+      body: { title: "Thursday Mixed Special" },
+    });
+    expect(titleRes.status).toBe(200);
+
+    const [afterTitle] = await t.db.select().from(event).where(eq(event.id, ev.id));
+    expect(afterTitle?.materialChangeAt).toBeNull();
+
+    // Cancelling now does NOT reverse the charge.
+    clock.set(at(26));
+    const cancelRes = await send("POST", `/events/${ev.id}/rsvp/late-cancel`, alice.clerkUserId, {
+      body: {},
+    });
+    expect(cancelRes.status).toBe(200);
+    expect(await netEventCharges(ev.id)).toBe(150);
+  });
+
+  it("single guest cancel inside 24h material-change window reverses only that guest charge", async () => {
+    const admin = await makeMember(t.db, { role: "admin" });
+    const alice = await makeMember(t.db);
+    const ev = await seedSeries(admin.id);
+
+    const rsvpRes = await send("PUT", `/events/${ev.id}/rsvp`, alice.clerkUserId, {
+      body: { guests: ["G1"] },
+    });
+    const rsvpJson = await rsvpRes.json<{ rsvp: { guests: { id: string }[] } }>();
+    const guestId = rsvpJson.rsvp.guests[0]?.id;
+    expect(guestId).toBeDefined();
+
+    clock.set(at(24));
+    expect(await closeEvent(t.db, clock, ev.id)).toBe(true);
+    expect(await netEventCharges(ev.id)).toBe(240);
+
+    clock.set(at(25));
+    await send("PATCH", `/events/${ev.id}/details`, admin.clerkUserId, {
+      body: { startsAt: at(49).toISOString(), endsAt: at(51).toISOString() },
+    });
+
+    clock.set(at(26));
+    const guestCancel = await send("POST", `/events/${ev.id}/rsvp/late-cancel`, alice.clerkUserId, {
+      body: { guestId },
+    });
+    expect(guestCancel.status).toBe(200);
+    expect(await netEventCharges(ev.id)).toBe(120);
+  });
+
+  it("enforces manager authorization and rejects cancelling already-cancelled or ended events", async () => {
+    const admin = await makeMember(t.db, { role: "admin" });
+    const member = await makeMember(t.db);
+    const ev = await seedSeries(admin.id);
+
+    const forbiddenCancel = await send("POST", `/events/${ev.id}/cancel`, member.clerkUserId);
+    expect(forbiddenCancel.status).toBe(403);
+
+    const forbiddenEdit = await send("PATCH", `/events/${ev.id}/details`, member.clerkUserId, {
+      body: { location: "Hall Z" },
+    });
+    expect(forbiddenEdit.status).toBe(403);
+
+    const okCancel = await send("POST", `/events/${ev.id}/cancel`, admin.clerkUserId);
+    expect(okCancel.status).toBe(200);
+
+    const doubleCancel = await send("POST", `/events/${ev.id}/cancel`, admin.clerkUserId);
+    expect(doubleCancel.status).toBe(409);
   });
 });

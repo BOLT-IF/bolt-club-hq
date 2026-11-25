@@ -8,7 +8,9 @@ Everything the story agents and the integrator said still needs doing, collected
 
 - [x] **"New event" link** on `src/app/routes/events/EventListPage.tsx` pointing to `/events/new`. Nothing links to the page today. _(S3.3)_ — done in integrator chore PR
 - [x] **"Schedule and occurrences" link** on `src/app/routes/admin/terms/SeriesPage.tsx` pointing to `/admin/terms/series/:id/schedule`. Nothing links to the screen. _(S3.2)_ — done in integrator chore PR
-- [ ] **Claims links** on `src/app/routes/money/MoneyPage.tsx` (to `/money/claims`) and `src/app/routes/admin/money/AdminBalances.tsx` (to `/admin/money/claims`), after the S5.5 screens exist. _(S5.5)_
+- [ ] **Claims links** on `src/app/routes/money/MoneyPage.tsx` (to `/money/claims`) and `src/app/routes/admin/money/AdminBalances.tsx` (to `/admin/money/claims`), now that the S5.5 screens (#57) are merged. _(S5.5)_
+- [ ] **Passes link** on `src/app/routes/money/MoneyPage.tsx` (to `/money/passes`), if desired. _(S5.3)_
+- [ ] **Privacy link** on `src/app/routes/auth/SignInPage.tsx` (to `/privacy`, PLAN §16), and optional "Erase member" action on `src/app/routes/admin/members/AdminMembers.tsx`. _(S2.5)_
 - [x] **"Request to join" link** to `/join/event/<slug>` on the event page's 403 state in `EventDetailPage.tsx`. A pending member sees no call to action there. May overlap S7.1. _(S1.3)_ — done in integrator chore PR
 - [x] **Complete the saved RSVP after approval:** call `completeJoinRsvpIntent()` (`src/app/routes/join/joinIntent.ts`) from `src/app/shell/AppRoot.tsx`. Today the saved RSVP only completes when the approved member opens `/join`. _(S1.3)_ — done in integrator chore PR
 - [x] **Inbox unread badge:** wire `badges.inbox` in the shell; `GET /notifications` already returns `unreadCount`. _(S6.1)_ — done in integrator chore PR
@@ -33,15 +35,15 @@ Everything the story agents and the integrator said still needs doing, collected
 
 ## B. Finish within a story (not a chore)
 
-- [ ] **S5.5 screens:** member `src/app/routes/money/claims*` and admin `src/app/routes/admin/money/claims*`. The API (`/me/payment-claims`, `/admin/payment-claims`, confirm and reject) is merged. Add the claim routes to `docs/areas/ledger.md`. _(S5.5)_
-- [ ] **S4.3** must call `markDue(ctx.kv, rsvp_close_at)` when events get close times, and register its close hook with `registerTickHook`. S4.2 deliberately did not call `markDue`. S3.2 already calls `markDue` for generated events. _(S4.2, S6.4)_
-- [ ] **S4.3, S5.3 charge inside a transaction:** pass their transaction as `db` to `createLedgerService` or `createChargePort`, with stable keys such as `close:<eventId>:<memberId>` and `reverse:<entryId>`. _(S5.1)_
-- [ ] **S5.3** implements `isPrepaid` and replaces `nobodyPrepaid` via `configureRsvpDeps({ prepaid })`. Pass revocation and the "revocable" filter in admin money belong to S5.3. _(S4.2, S5.4)_
+- [x] **S5.5 screens:** member `src/app/routes/money/claims*` and admin `src/app/routes/admin/money/claims*`. The API (`/me/payment-claims`, `/admin/payment-claims`, confirm and reject) is merged. Add the claim routes to `docs/areas/ledger.md`. _(S5.5)_ — done in #57
+- [x] **S4.3** must call `markDue(ctx.kv, rsvp_close_at)` when events get close times, and register its close hook with `registerTickHook`. S4.2 deliberately did not call `markDue`. S3.2 already calls `markDue` for generated events. _(S4.2, S6.4)_ — done in #59
+- [x] **S4.3, S5.3 charge inside a transaction:** pass their transaction as `db` to `createLedgerService` or `createChargePort`, with stable keys such as `close:<eventId>:<memberId>` and `reverse:<entryId>`. _(S5.1)_ — done in #59 and #60
+- [x] **S5.3** implements `isPrepaid` and replaces `nobodyPrepaid` via `configureRsvpDeps({ prepaid })`. Pass revocation and the "revocable" filter in admin money belong to S5.3. _(S4.2, S5.4)_ — done in #60
 - [ ] **S7.1** must call `configureEventsDeps({ publishOg })` and remove the no-op `PublishOgPort` default (DoD 8). OG key is `og:event:<slug>`; the value is a JSON snapshot of public fields only. _(S3.0)_
 - [ ] **S4.2 / S4.4x / S7.1 / S8.x slot fillers** call `registerSlot(name, Component)` from `src/app/routes/events/slots` at module load, in their own `routes.tsx`. Their Owns lines already include the import line in `events/routes.tsx`. _(S3.0)_
 - [ ] **Event creation API:** `createEvent` is the only insert path. Callers: S3.2 (done), S3.3 (done); anything new must use it. _(S3.0)_
-- [ ] **S8.2, S2.5** (own attendance, own export) must pass `allowInactive` on their own-data routes. _(S2.1)_
-- [ ] **S6.5b** UI uses S6.5a's API: `/admin/reminder-rules`, `/:id/preview`, and the placeholder list in the list response. S6.5a left "poll closing soon" to S9.1 (done there). _(S6.5a)_
+- [x] **S2.5** (own export) passes `allowInactive` on its own-data route (`S8.2` still to do). _(S2.1)_ — S2.5 done in #61
+- [x] **S6.5b** UI uses S6.5a's API: `/admin/reminder-rules`, `/:id/preview`, and the placeholder list in the list response. S6.5a left "poll closing soon" to S9.1 (done there). _(S6.5a)_ — done in #56
 - [ ] **S6.5a** payment-reminder interval counts Stockholm calendar days; deleting a rule that already sent returns 409 (disable instead). Reminders use mute categories `new_events` and `payment_due`. Keep when building the UI. _(S6.5a)_
 - [ ] **S5.6** needs the treasurer's manager.io import format before it can start. _(S2.3)_
 - [ ] **S10.1 Home** may take over `<InstallPrompt/>` from `AppShell`. _(S10.2)_

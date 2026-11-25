@@ -1,6 +1,6 @@
 # BOLT HQ: handoff and how to resume
 
-Last updated 2026-11-25, morning. **31 of 48 stories are on `main` (plus integrator chore #55); 6 Wave-1 stories are in progress (`S4.3`, `S5.3`, `S2.5`, `S9.2`, `S6.5b` #56, `S5.5` screens #57).** Read this file top to bottom, then `docs/STORIES.md`, `docs/DECISIONS.md` (newest first) and `docs/PLAN.md`. Update this file at the end of every session.
+Last updated 2026-11-25. **38 of 48 stories are on `main` (plus integrator chore #55); 2 stories are in progress (`S4.4a`, `S8.1`).** Read this file top to bottom, then `docs/STORIES.md`, `docs/DECISIONS.md` (newest first) and `docs/PLAN.md`. Update this file at the end of every session.
 
 ## Resume prompt (copy and paste this to a new agent)
 
@@ -12,47 +12,40 @@ Last updated 2026-11-25, morning. **31 of 48 stories are on `main` (plus integra
 |---|---|---|
 | Foundations | R1 roster import, S0.1–S0.5, S0.7 | merged: repo, CI, deploy workflow, PWA, UI kit, observability, schema, core contracts |
 | Identity | S1.1 Clerk sign-in, S1.3 invites and approval | merged |
-| Members | S2.1 members and roles, S2.3 club settings, S2.4 audit viewer | merged |
+| Members | S2.1 members and roles, S2.3 club settings, S2.4 audit viewer, S2.5 privacy (#61) | merged |
 | Events | S3.0 events core, S3.1 terms and series, S3.2 recurrence, S3.3 one-off events | merged |
-| RSVP | S4.1 allocation engine, S4.2 RSVP before close | merged |
-| Money | S5.1 ledger, S5.2 member money screen, S5.4 admin money, S5.5 payment claims | merged. S5.5 is API only: the two claim screens are not built |
-| Notifications | S6.1 inbox and policies, S6.2 web push, S6.3 preferences and mute, S6.4 scheduler, S6.5a reminder engine, S6.6 broadcasts | merged |
-| Polls and install | S9.1 polls, S10.2 install and push onboarding | merged |
+| RSVP | S4.1 allocation engine, S4.2 RSVP before close, S4.3 close processing (#59) | merged |
+| Money | S5.1 ledger, S5.2 member money screen, S5.3 passes (#60), S5.4 admin money, S5.5 payment claims & screens (#57) | merged |
+| Notifications | S6.1 inbox and policies, S6.2 web push, S6.3 preferences and mute, S6.4 scheduler, S6.5a reminder engine, S6.5b reminder UI (#56), S6.6 broadcasts | merged |
+| Polls and install | S9.1 polls, S9.2 poll images on R2 (#62), S10.2 install and push onboarding | merged |
 | Brand and deploy | BOLT HQ theme, logo icons, KV/Hyperdrive/R2 config (#53) | merged |
 | Integrator & import | Chore follow-up wiring (#55), S11.2 member import (#58) | merged |
 
 Two migrations exist: `0000_initial` and `0001_polls`. Neither has been applied to Neon yet.
 
-## In progress (6 Wave-1 stories)
+## In progress (2 stories, capped at 2 at a time)
 
 | Story | Branch / PR | Notes |
 |---|---|---|
-| **S4.3 Close processing and charges** | `story/s4.3-close` | Critical path; resuming |
-| S5.3 Passes | `story/s5.3-passes` | Resuming |
-| S2.5 Privacy: export, erasure, retention | `story/s2.5-privacy` | Resuming |
-| S9.2 Image options on R2 | `story/s9.2-poll-images` | Resuming |
-| S6.5b Reminder admin UI | `story/s6.5b-reminder-ui` / PR #56 | `ci` green, e2e shard 3 failed; resuming to fix/verify |
-| S5.5 Payment claims screens | `story/s5.5-claims-ui` / PR #57 | `ci` green, e2e shards 1/3/4 failed; resuming to fix/verify |
+| S4.4a Late RSVP, cancel, promotion, refill | `story/s4.4a-postclose` | Launching |
+| S8.1 Attendance marking | `story/s8.1-attendance` | Launching |
 
-## Not started (11 stories). Dependencies are all met unless noted
+## Not started (8 remaining + 2 human-blocked). Dependencies are all met unless noted
 
 | Story | Size | Needs | Owns (summary) |
 |---|---|---|---|
-| **S4.3** *(moved to In progress)* | | | |
 | S5.6 manager.io export | S | S5.4, S2.3 (met) | `src/worker/accounting/`, `src/app/routes/admin/money/export*`. **Blocked on the treasurer confirming the import format** |
-| S4.4a Late RSVP, cancel, promotion, refill | M | S4.3 | `src/worker/rsvp/postclose*`, `src/app/components/rsvp/postclose*` |
-| S4.4b Claim-a-spot, capacity changes | S | S4.3 | `src/worker/rsvp/claim*`, `src/worker/rsvp/capacity*`, `src/app/components/rsvp/claim*` |
-| S4.4c Event cancellation, material changes | S | S4.3, S3.2 | `src/worker/rsvp/eventchange*`, `src/app/components/organizer/edit*` |
-| S8.1 Attendance marking | S | S4.3 | `src/worker/attendance/`, `src/app/components/organizer/attendance*` |
-| S8.3 Roster deep link (club side) | S | S4.3, S2.3 | `src/domain/roster-link/`, `src/worker/events/roster-link*`, `contracts/roster-import-v1/` |
+| S4.4b Claim-a-spot, capacity changes | S | S4.3 (met) | `src/worker/rsvp/claim*`, `src/worker/rsvp/capacity*`, `src/app/components/rsvp/claim*` |
+| S4.4c Event cancellation, material changes | S | S4.3, S3.2 (met) | `src/worker/rsvp/eventchange*`, `src/app/components/organizer/edit*` |
+| S8.3 Roster deep link (club side) | S | S4.3, S2.3 (met) | `src/domain/roster-link/`, `src/worker/events/roster-link*`, `contracts/roster-import-v1/` |
 | S8.2 Member attendance history | S | S8.1, S5.2 | `src/app/routes/me/attendance*`, `src/worker/attendance/me*` |
 | S10.1 Home dashboard | S | S4.4a, S5.5, S9.1 | `src/app/routes/home/`. May take over `<InstallPrompt/>` from `AppShell` |
 | S7.1 Share links, OG, request to join | M | S3.0, S4.2, S1.3 (met), **S0.6 (not done)** | `src/worker/share/`, `src/app/components/share/`, `src/app/routes/share/`. Must call `configureEventsDeps({ publishOg })` and drop the no-op |
-| S11.1 Club-week scenarios | M | all functional stories | `tests/scenarios/`, `tests/e2e/club-week*`. Start growing it early |
+| S11.1 Club-week scenarios | M | all functional stories | `tests/scenarios/`, `tests/e2e/club-week*` |
 | S11.3 Device QA and launch checklist | S | S11.1, S10.2 | `docs/LAUNCH.md` |
 | **S0.6 Real-device spike** | M | human | Needs a Clerk production instance and a real iPhone and Android. Until it runs, the push batch cap (20) and "hide Google sign-in in the installed iOS app" are provisional |
 
-Fan-out order after the 6 in-progress stories land: **at most 2 stories at a time** to keep PR rebasing minimal (`S4.4a/b/c`, `S8.1`, `S8.3` after `S4.3`, then `S8.2`, `S10.1`, `S7.1`, `S11.1`, `S11.3`).
+Fan-out order (at most 2 stories at a time): `(S4.4a, S8.1)` → `(S4.4b, S4.4c)` → `(S8.3, S8.2)` → `(S10.1, S7.1)` → `S11.1` → `S11.3`, followed by the final integrator wrap-up PR.
 
 ## Next steps (do these first)
 

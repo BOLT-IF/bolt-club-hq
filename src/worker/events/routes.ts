@@ -6,6 +6,7 @@ import { closeDueEvents } from "../rsvp/close";
 import type { AppEnv } from "../types";
 import { eventsDeps } from "./deps";
 import oneoffRoutes from "./oneoff-routes";
+import rosterLinkRoutes from "./roster-link";
 import {
   getEventById,
   getEventBySlug,
@@ -71,6 +72,7 @@ export default new Hono<AppEnv>()
   .use("/events/*", contextMiddleware())
   .use("/series/*", contextMiddleware())
   .route("/", oneoffRoutes)
+  .route("/", rosterLinkRoutes)
   .get("/events", requireGuard("member"), async (c) => {
     await closeDueEvents(c.var.db, c.var.clock);
     const scope = c.req.query("scope") === "past" ? "past" : "upcoming";

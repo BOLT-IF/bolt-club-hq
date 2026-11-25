@@ -2,6 +2,12 @@
 
 Decisions made after `PLAN.md` (v3) was written. Newest first. Every entry gives the decision, the reason, and what it changes.
 
+## 2026-11-25: S8.3 roster deep link (club side)
+
+- **Domain & fixtures (`src/domain/roster-link/`, `contracts/roster-import-v1/`):** Copied the canonical `roster-import/v1` golden fixtures and `README.md` from `BOLT-IF/roster-generator`. `buildRosterImportPayload` orders confirmed players by `tier` ascending then confirmation time ascending (`rsvp.confirmedAt ?? rsvp.requestedAt` for members, `guest.requestedAt` for guests), resolves `short` from `member.rosterName` falling back to the first whitespace-delimited word of `name` (guests always use first name and `guest: true`), formats `starts_at` in UTC ISO-8601 without `.000` when milliseconds are zero, and encodes UTF-8 JSON as unpadded base64url.
+- **Route (`src/worker/events/roster-link.ts`, mounted in `events/routes.ts`):** `GET /events/:id/roster-link` (`requireGuard("member")` + `canManageEvent` check; `404` missing, `403` non-manager, `409 event_cancelled` when cancelled). Reads `clubSettings.rosterAppUrl`, confirmed `rsvp`s, and confirmed `guest`s, returning `{ rosterAppUrl, url, textList, players }` where `url` is `null` when `rosterAppUrl` is unset and `textList` is one player name per line.
+- **Frontend (`src/app/components/organizer/roster-link*`, registered in `src/app/routes/events/routes.tsx`):** `RosterLinkPanel` registers in `OrganizerToolsSlot` and renders only for `viewer.canManage && event.status === "closed"`. When `url` is `null` (`roster_app_url` unset), the "Open in roster generator" link is hidden while the "Copy list" fallback remains available.
+
 ## 2026-11-25: S4.4b claim-a-spot + capacity changes
 
 - **Claim route (`src/worker/rsvp/claim.ts`, mounted in `rsvp/routes.ts`):** `POST /events/:id/claim` (`requireGuard("member")`, `Idempotency-Key` required, optional `{ guestId }`). Locks the `event` row (`FOR UPDATE`) so concurrent claims serialize and exactly one wins. Confirms the `offered` member or guest, charges non-prepaid/guest (`postclose:<eventId>:...`), runs refills (`refill:<chargeId>`), emits `rsvp_changed` (`reason: "promoted"`), and reverts remaining `offered` rows to `waitlisted` once `confirmed >= capacity`.

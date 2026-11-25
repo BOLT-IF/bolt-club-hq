@@ -13,6 +13,7 @@ Flag: `FLAG_EVENTS` (off until the integrator flips it). Owners: S3.0 core, S3.1
 | `PATCH /events/:id` | member + owner/captain/admin check in handler | Only `title` and `location`. 409 `event_read_only` for past events. |
 | `POST /events` (S3.3) | member + `Idempotency-Key` | Creates a one-off. Body: `title, startsAt, endsAt, capacity` and optional `location, format, maxGuestsPerMember, rsvpCloseAt, adhocFee, allocationMode`. Member: free + instant only (fee/tiered = 403 `admin_only`). Admin: `admin_oneoff`, tiered by default. 201 `{ event: { id, slug } }`. |
 | `GET /events/oneoff/options` (S3.3) | member | `{ canSetFee }` for the create form. |
+| `GET /events/:id/roster-link` (S8.3) | member + `canManageEvent` | `{ rosterAppUrl, url, textList, players }` for non-cancelled events; `url` is `null` when `rosterAppUrl` is unset. |
 
 - `model.ts` `createEvent(ctx, input)` is the one way to insert an event (random slug, audit row, `publishOg`). S3.1/S3.2/S3.3 call it.
 - `rules.ts` is pure: `isReadOnly`, `isOpenForNext`, `canManageEvent`, `canSeeAttendees`, `ogSnapshot`.
@@ -37,4 +38,4 @@ Flag: `FLAG_EVENTS` (off until the integrator flips it). Owners: S3.0 core, S3.1
 |---|---|
 | `RsvpSlot` | S4.2 |
 | `ShareSlot` | S7.1 |
-| `OrganizerToolsSlot`, `AttendeesSlot` | S8.1 / S8.3 |
+| `OrganizerToolsSlot`, `AttendeesSlot` | S8.1 / S8.3 (`RosterLinkPanel` in `OrganizerToolsSlot` on closed events) |

@@ -5,7 +5,7 @@
  * Google is hidden there and the screen leads with email code. This is the one place to
  * change: set it to false to show Google everywhere. See docs/DECISIONS.md (S1.1).
  */
-export const GOOGLE_HIDDEN_IN_INSTALLED_IOS = true;
+export const GOOGLE_HIDDEN_IN_INSTALLED_IOS = false;
 
 export interface ClientKind {
   readonly ios: boolean;

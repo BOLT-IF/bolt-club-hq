@@ -2,20 +2,17 @@ import { describe, expect, it } from "vitest";
 
 import { GOOGLE_HIDDEN_IN_INSTALLED_IOS, detectClient, shouldShowGoogle } from "./google";
 
-describe("Google sign-in visibility (provisional rule, S0.6 not run yet)", () => {
-  it("is a single constant, on by default: hide Google in the installed iOS app", () => {
-    expect(GOOGLE_HIDDEN_IN_INSTALLED_IOS).toBe(true);
-  });
-
-  it("hides Google only in the installed iOS app", () => {
-    expect(shouldShowGoogle({ ios: true, standalone: true })).toBe(false);
+describe("Google sign-in visibility", () => {
+  it("is enabled everywhere (including the installed iOS app)", () => {
+    expect(GOOGLE_HIDDEN_IN_INSTALLED_IOS).toBe(false);
+    expect(shouldShowGoogle({ ios: true, standalone: true })).toBe(true);
     expect(shouldShowGoogle({ ios: true, standalone: false })).toBe(true); // Safari
     expect(shouldShowGoogle({ ios: false, standalone: true })).toBe(true); // Android PWA
     expect(shouldShowGoogle({ ios: false, standalone: false })).toBe(true); // desktop
   });
 
-  it("shows Google everywhere once the rule is switched off", () => {
-    expect(shouldShowGoogle({ ios: true, standalone: true }, false)).toBe(true);
+  it("hides Google in installed iOS app only when the override flag is enabled", () => {
+    expect(shouldShowGoogle({ ios: true, standalone: true }, true)).toBe(false);
   });
 });
 

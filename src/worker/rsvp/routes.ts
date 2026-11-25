@@ -6,6 +6,8 @@ import { requireGuard } from "../core/permissions";
 import type { AppEnv } from "../types";
 import { closeDueEvents } from "./close";
 import "./close-tick";
+import capacityRoutes from "./capacity";
+import claimRoutes from "./claim";
 import { rsvpDeps } from "./deps";
 import eventchangeRoutes from "./eventchange";
 import postcloseRoutes from "./postclose";
@@ -90,4 +92,6 @@ export default new Hono<AppEnv>()
     return reply(c, result);
   })
   .route("/", postcloseRoutes)
+  .route("/", claimRoutes)
+  .route("/", capacityRoutes)
   .route("/", eventchangeRoutes);

@@ -11,6 +11,8 @@ Everything the story agents and the integrator said still needs doing, collected
 - [ ] **Claims links** on `src/app/routes/money/MoneyPage.tsx` (to `/money/claims`) and `src/app/routes/admin/money/AdminBalances.tsx` (to `/admin/money/claims`), now that the S5.5 screens (#57) are merged. _(S5.5)_
 - [ ] **Passes link** on `src/app/routes/money/MoneyPage.tsx` (to `/money/passes`), if desired. _(S5.3)_
 - [ ] **Privacy link** on `src/app/routes/auth/SignInPage.tsx` (to `/privacy`, PLAN §16), and optional "Erase member" action on `src/app/routes/admin/members/AdminMembers.tsx`. _(S2.5)_
+- [ ] **Attendance slot visibility after event ends:** remove `!event.readOnly` from `OrganizerToolsSlot` in `src/app/routes/events/EventDetailPage.tsx` (and update `src/app/routes/events/events.test.tsx`) so organizers can mark attendance after `endsAt`. _(S8.1)_
+- [ ] **Post-close exit cancel (optional):** wire `src/worker/rsvp/cancel.ts` (`cancelMemberRsvps`) to also call `lateCancelRsvp` for future closed events when a member is deactivated. _(S4.4a)_
 - [x] **"Request to join" link** to `/join/event/<slug>` on the event page's 403 state in `EventDetailPage.tsx`. A pending member sees no call to action there. May overlap S7.1. _(S1.3)_ — done in integrator chore PR
 - [x] **Complete the saved RSVP after approval:** call `completeJoinRsvpIntent()` (`src/app/routes/join/joinIntent.ts`) from `src/app/shell/AppRoot.tsx`. Today the saved RSVP only completes when the approved member opens `/join`. _(S1.3)_ — done in integrator chore PR
 - [x] **Inbox unread badge:** wire `badges.inbox` in the shell; `GET /notifications` already returns `unreadCount`. _(S6.1)_ — done in integrator chore PR

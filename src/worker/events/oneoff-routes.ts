@@ -2,6 +2,7 @@ import { Hono, type MiddlewareHandler } from "hono";
 
 import { idempotencyKeyMiddleware } from "../core/idempotency";
 import { requireGuard } from "../core/permissions";
+import { markDue } from "../scheduler/schedule";
 import type { AppEnv } from "../types";
 import { eventsDeps } from "./deps";
 import { createEvent } from "./model";
@@ -42,6 +43,14 @@ const oneoffRoutes = new Hono<AppEnv>()
       },
       { ...plan.value, seriesId: null, createdBy: actor.id },
     );
+    const kv = (c.env as Partial<Cloudflare.Env> | undefined)?.KV;
+    if (kv) {
+      try {
+        await markDue(kv, row.rsvpCloseAt);
+      } catch (error) {
+        c.var.logger.warn("mark_due_failed", { error: String(error) });
+      }
+    }
     return c.json({ event: { id: row.id, slug: row.shareSlug } }, 201);
   });
 

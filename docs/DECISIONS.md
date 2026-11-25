@@ -2,6 +2,14 @@
 
 Decisions made after `PLAN.md` (v3) was written. Newest first. Every entry gives the decision, the reason, and what it changes.
 
+## 2026-11-25: S8.1 attendance marking
+
+- **Routes (`src/worker/attendance/routes.ts`):** `GET /events/:id/attendance` (`requireGuard("member")`) and `PUT /events/:id/attendance` (`requireGuard("member")`, `Idempotency-Key` required). Both enforce `canManageEvent(actor, event)` (admin, creator of one-off, or captain of series).
+- **Defaults & payload:** `GET` returns all `confirmed` `rsvp`s and `confirmed` `guest`s with `attendance` (`"unknown" | "attended" | "no_show"`) and `effectiveAttendance` (`"attended"` when `"unknown"`). `PUT` accepts `{ rsvps?: [{ id, attendance }], guests?: [{ id, attendance }] }` where `attendance` is `"attended" | "no_show"`, audits `attendance.mark` on `event`, and never touches `ledger_entry` (prepaid no-show changes nothing; non-prepaid no-show charge stands). Cancelled events return `409 event_cancelled`.
+- **7-day lock:** Editable by organizers/captains until `now >= endsAt + 7 days`, after which `PUT` returns `403 attendance_locked` for non-admins; admins can always edit.
+- **24h unmarked alert (`attendance-unmarked-alert` tick hook):** Registered from `src/worker/attendance/alert-tick.ts`. For non-cancelled events with `now >= endsAt + 24h` that still have at least one `confirmed` `rsvp` or `guest` with `attendance = 'unknown'`, sends an `admin_tasks` notification to every active admin (`idempotencyKey: attendance-unmarked:<eventId>:<adminId>`, link `/events/<shareSlug>`), and schedules `markDue` for the next unmarked event's `endsAt + 24h`.
+- **Frontend (`src/app/components/organizer/attendance*`):** `AttendancePanel` is registered in `OrganizerToolsSlot` via `src/app/routes/events/routes.tsx`. **Follow-up for integrator:** `EventDetailPage.tsx` currently hides `OrganizerToolsSlot` when `event.readOnly` (`endsAt <= now`), which hides attendance once the event ends; remove `!event.readOnly` from `OrganizerToolsSlot` in `EventDetailPage.tsx` (and update `events.test.tsx`) so organizers can mark attendance after the event ends.
+
 ## 2026-11-24: S2.5 privacy: export, erasure, retention
 
 - **Routes** (`src/worker/privacy/routes.ts`): `GET /me/export` (`requireGuard("member", { allowInactive: true })`, so exited members can export their data; PLAN §6.7, §16) and `POST /admin/members/:id/erase` (`requireGuard("admin")`).

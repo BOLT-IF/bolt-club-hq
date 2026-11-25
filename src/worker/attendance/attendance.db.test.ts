@@ -22,7 +22,6 @@ import { requestIdMiddleware } from "../ops/logging";
 import { closeEvent } from "../rsvp/close";
 import { createTestDatabase, type TestDatabase } from "../test-support/database";
 import { makeMember } from "../test-support/factories";
-import { FakePrepaid } from "../test-support/fakes";
 import type { AppEnv } from "../types";
 import { runAttendanceAlertTick } from "./alert-tick";
 import attendanceRoutes from "./routes";
@@ -64,7 +63,11 @@ describe("attendance marking (S8.1)", () => {
 
   async function seedSeriesEvent(
     creatorId: string,
-    opts: { adhocFee?: number; status?: "scheduled" | "closed" | "cancelled" | "completed" } = {},
+    opts: {
+      adhocFee?: number;
+      capacity?: number;
+      status?: "scheduled" | "closed" | "cancelled" | "completed";
+    } = {},
   ) {
     const [trm] = await t.db
       .insert(term)
@@ -73,7 +76,7 @@ describe("attendance marking (S8.1)", () => {
         name: "Spring 2027",
         startsOn: "2027-01-01",
         endsOn: "2027-06-30",
-        openForPasses: true,
+        status: "active",
       })
       .returning();
     const [ser] = await t.db
@@ -81,17 +84,18 @@ describe("attendance marking (S8.1)", () => {
       .values({
         id: "ser_1",
         termId: trm!.id,
-        title: "Thursday Mixed",
+        name: "Thursday Mixed",
         format: "XD",
         weekday: 4,
         startTime: "18:00",
-        durationMinutes: 90,
+        durationMin: 90,
         capacity: 12,
         passPrice: 500,
         adhocFee: opts.adhocFee ?? 100,
         passCap: 10,
-        maxGuestsPerMember: 1,
-        rsvpCloseOffsetHours: 6,
+        maxGuestsDefault: 1,
+        rsvpCloseOffsetMin: 360,
+        shareSlug: "thu-mix",
       })
       .returning();
     const [evt] = await t.db
@@ -106,7 +110,7 @@ describe("attendance marking (S8.1)", () => {
         startsAt: STARTS_AT,
         endsAt: ENDS_AT,
         location: "Hall X",
-        capacity: 12,
+        capacity: opts.capacity ?? 12,
         adhocFee: opts.adhocFee ?? 100,
         maxGuestsPerMember: 1,
         rsvpCloseAt: RSVP_CLOSE_AT,
@@ -149,7 +153,6 @@ describe("attendance marking (S8.1)", () => {
       amountSek: 500,
       reason: "pass",
       passId: "pas_1",
-      createdBy: prepaidMember.id,
       idempotencyKey: "pass:pas_1",
     });
 
@@ -167,7 +170,7 @@ describe("attendance marking (S8.1)", () => {
       .returning();
 
     const closeClock = new FixedClock(new Date(RSVP_CLOSE_AT.getTime() + 1000));
-    await closeEvent(t.db, closeClock, evt.id, new FakePrepaid([prepaidMember.id]));
+    await closeEvent(t.db, closeClock, evt.id);
 
     const res = await send("PUT", `/events/${evt.id}/attendance`, admin.clerkUserId, {
       body: { rsvps: [{ id: r!.id, attendance: "no_show" }], guests: [] },
@@ -190,7 +193,16 @@ describe("attendance marking (S8.1)", () => {
     const admin = await makeMember(t.db, { role: "admin" });
     const adhocMember = await makeMember(t.db, { displayName: "Adhoc Alex" });
     const hostMember = await makeMember(t.db, { displayName: "Host Hanna" });
-    const { evt } = await seedSeriesEvent(admin.id, { adhocFee: 120 });
+    const { ser, evt } = await seedSeriesEvent(admin.id, { adhocFee: 120, capacity: 3 });
+
+    await t.db.insert(pass).values({
+      id: "pas_host",
+      memberId: hostMember.id,
+      seriesId: ser.id,
+      priceCharged: 500,
+      eventsCovered: 10,
+      status: "active",
+    });
 
     const [rAdhoc] = await t.db
       .insert(rsvp)
@@ -229,6 +241,9 @@ describe("attendance marking (S8.1)", () => {
       })
       .returning();
 
+    const closeClock = new FixedClock(new Date(RSVP_CLOSE_AT.getTime() + 1000));
+    await closeEvent(t.db, closeClock, evt.id);
+
     // Waitlisted member should NOT appear in attendance list
     const waitlistedMember = await makeMember(t.db, { displayName: "Waitlist Will" });
     await t.db.insert(rsvp).values({
@@ -240,14 +255,16 @@ describe("attendance marking (S8.1)", () => {
       requestedAt: new Date(RSVP_CLOSE_AT.getTime() - HOUR),
     });
 
-    const closeClock = new FixedClock(new Date(RSVP_CLOSE_AT.getTime() + 1000));
-    await closeEvent(t.db, closeClock, evt.id, new FakePrepaid([hostMember.id]));
-
     const getRes = await send("GET", `/events/${evt.id}/attendance`, admin.clerkUserId);
     expect(getRes.status).toBe(200);
     const getBody = await getRes.json<{
       hasUnmarked: boolean;
-      attendees: Array<{ kind: string; id: string; attendance: string; effectiveAttendance: string }>;
+      attendees: Array<{
+        kind: string;
+        id: string;
+        attendance: string;
+        effectiveAttendance: string;
+      }>;
     }>();
     expect(getBody.hasUnmarked).toBe(true);
     expect(getBody.attendees.map((a) => a.id).sort()).toEqual(["gst_1", "rsvp_adhoc", "rsvp_host"]);
@@ -300,17 +317,18 @@ describe("attendance marking (S8.1)", () => {
       .values({
         id: "ser_2",
         termId: "trm_1",
-        title: "Other Series",
-        format: "OP",
+        name: "Other Series",
+        format: "open",
         weekday: 2,
         startTime: "18:00",
-        durationMinutes: 90,
+        durationMin: 90,
         capacity: 12,
         passPrice: 500,
         adhocFee: 100,
         passCap: 10,
-        maxGuestsPerMember: 0,
-        rsvpCloseOffsetHours: 6,
+        maxGuestsDefault: 0,
+        rsvpCloseOffsetMin: 360,
+        shareSlug: "other-ser",
       })
       .returning();
     await t.db.insert(seriesCaptain).values({ seriesId: ser2!.id, memberId: otherCaptain.id });
@@ -324,7 +342,7 @@ describe("attendance marking (S8.1)", () => {
         kind: "member_oneoff",
         createdBy: plain.id,
         title: "Saturday Pickup",
-        format: "OP",
+        format: "open",
         startsAt: STARTS_AT,
         endsAt: ENDS_AT,
         location: "Park",
@@ -367,9 +385,9 @@ describe("attendance marking (S8.1)", () => {
     ).toBe(200);
 
     // Creator of one-off allowed; other captain denied
-    expect(
-      (await send("GET", `/events/${oneoff!.id}/attendance`, plain.clerkUserId)).status,
-    ).toBe(200);
+    expect((await send("GET", `/events/${oneoff!.id}/attendance`, plain.clerkUserId)).status).toBe(
+      200,
+    );
     expect(
       (await send("GET", `/events/${oneoff!.id}/attendance`, otherCaptain.clerkUserId)).status,
     ).toBe(403);

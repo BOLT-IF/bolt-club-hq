@@ -36,7 +36,10 @@ describe("AttendancePanel (S8.1)", () => {
     let savedBody: unknown = null;
     configureApiClient({
       fetch: (input, init) => {
-        if (input === "/api/v1/events/evt_1/attendance" && (!init?.method || init.method === "GET")) {
+        if (
+          input === "/api/v1/events/evt_1/attendance" &&
+          (!init?.method || init.method === "GET")
+        ) {
           return Promise.resolve(
             new Response(
               JSON.stringify({
@@ -71,10 +74,43 @@ describe("AttendancePanel (S8.1)", () => {
           );
         }
         if (input === "/api/v1/events/evt_1/attendance" && init?.method === "PUT") {
-          savedBody = JSON.parse(String(init.body));
-          return Promise.resolve(new Response(JSON.stringify({ ok: true }), { status: 200 }));
+          savedBody = JSON.parse(typeof init.body === "string" ? init.body : "{}");
+          return Promise.resolve(
+            new Response(
+              JSON.stringify({
+                eventId: "evt_1",
+                lockedForOrganizer: false,
+                canEdit: true,
+                hasUnmarked: false,
+                attendees: [
+                  {
+                    kind: "member",
+                    id: "rsvp_1",
+                    memberId: "mem_1",
+                    name: "Alice",
+                    tier: 1,
+                    attendance: "attended",
+                    effectiveAttendance: "attended",
+                  },
+                  {
+                    kind: "guest",
+                    id: "gst_1",
+                    rsvpId: "rsvp_1",
+                    hostName: "Alice",
+                    name: "Bob (guest)",
+                    tier: 3,
+                    attendance: "no_show",
+                    effectiveAttendance: "no_show",
+                  },
+                ],
+              }),
+              { status: 200 },
+            ),
+          );
         }
-        return Promise.resolve(new Response(JSON.stringify({ error: "not_found" }), { status: 404 }));
+        return Promise.resolve(
+          new Response(JSON.stringify({ error: "not_found" }), { status: 404 }),
+        );
       },
     });
 
@@ -124,7 +160,7 @@ describe("AttendancePanel (S8.1)", () => {
 
     render(<AttendancePanel event={baseEvent} viewer={managerViewer} />);
 
-    expect(await screen.findByText(/locked after 7 days/i)).toBeTruthy();
+    expect(await screen.findByText(/Ask an admin if a correction is needed/i)).toBeTruthy();
     const saveButton = screen.queryByRole("button", { name: /Save attendance/i });
     expect(saveButton).toBeNull();
   });

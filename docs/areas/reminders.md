@@ -20,3 +20,8 @@ Pure rules: `src/domain/reminders/` (validation, templates, `planPaymentDue`, `p
 - `POST /admin/reminder-rules/:id/preview` → `{ count, recipients: [{memberId, displayName}], sample: {title, body, link} | null }`. Same planner as the real send.
 - Validation errors: 400 `{ error: "validation", fields: { template: "unknown placeholder: {x}", "params.thresholdSek": ... } }`.
 - Placeholders: payment `{name} {balance} {paymentRef}`; event `{name} {event} {when} {closes}`.
+
+## Admin UI (S6.5b)
+- Route `/admin/reminders` (`src/app/routes/admin/reminders/`), auto-globbed into the route registry and linked from `adminIndex` in `src/app/shell/navigation.ts`.
+- Uses `placeholders` from `GET /admin/reminder-rules` both to render tap-to-insert placeholder chips and to reject unknown placeholders client-side before submit (while also mapping server `400 { error: "validation", fields }` responses onto fields).
+- Handles `403` cleanly with an "Admins only" state, `POST` with `Idempotency-Key`, preview in a bottom sheet via `POST /admin/reminder-rules/:id/preview`, enable/disable via `PUT`, and `409 rule_has_sends` on `DELETE` by offering a one-tap "Disable instead" action (or explaining it is already disabled).

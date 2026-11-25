@@ -6,7 +6,6 @@ import { useAuthEnabled } from "../../auth/AuthProvider";
 import { EmptyState, ErrorState, Skeleton } from "../../components/ui/States";
 import { navigate } from "../../lib/navigate";
 import { clearAppCaches } from "../../../sw/client";
-import { unsubscribePush } from "../../../sw/push-client";
 
 async function clearCachesSafely(): Promise<void> {
   // No service worker support (or none registered yet): nothing to clear.
@@ -22,8 +21,10 @@ function SigningOut() {
     let live = true;
     logout({
       signOut: async () => {
-        // Unsubscribe while the Clerk session token is still valid (best effort).
-        await unsubscribePush().catch(() => undefined);
+        // Unsubscribe while the Clerk session token is still valid (best effort, lazy-loaded to keep push-client out of the main chunk).
+        await import("../../../sw/push-client")
+          .then((m) => m.unsubscribePush())
+          .catch(() => undefined);
         await clerk.signOut();
       },
       clearCaches: clearCachesSafely,

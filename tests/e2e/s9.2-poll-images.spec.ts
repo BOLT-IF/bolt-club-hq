@@ -128,7 +128,7 @@ test.describe("polls with images on mobile (S9.2)", () => {
 
     await expect(page.getByText("Your vote is saved.")).toBeVisible();
     expect(tracker.getVotePayload()).toEqual({ optionIds: ["pol_img_1_o01"] });
-    await expect(page.getByText("1 vote")).toBeVisible();
+    await expect(page.getByText("1 vote", { exact: true })).toBeVisible();
 
     const axe = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa"]).analyze();
     const serious = axe.violations.filter((v) => v.impact === "serious" || v.impact === "critical");
@@ -175,8 +175,8 @@ test.describe("polls with images on mobile (S9.2)", () => {
 
     await page.goto("/admin/polls");
     await page.getByLabel("Question").fill("Which jersey?");
-    await page.getByLabel("Option 1").fill("Orange");
-    await page.getByLabel("Option 2").fill("Slate");
+    await page.getByRole("textbox", { name: "Option 1", exact: true }).fill("Orange");
+    await page.getByRole("textbox", { name: "Option 2", exact: true }).fill("Slate");
 
     await page.getByLabel("Image for option 1").setInputFiles({
       name: "orange.png",

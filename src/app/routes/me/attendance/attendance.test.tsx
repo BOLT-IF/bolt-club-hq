@@ -135,11 +135,11 @@ describe("AttendanceHistoryPage (/history, S8.2)", () => {
   it("renders attendance & why history, links to events and back to /money, and is axe-clean", async () => {
     configureApiClient({
       fetch: vi.fn((input: RequestInfo | URL) => {
-        if (String(input) === "/api/v1/me/attendance") {
+        if (typeof input === "string" && input === "/api/v1/me/attendance") {
           return Promise.resolve(json(sampleHistory));
         }
         return Promise.resolve(json({ error: "not_found" }, 404));
-      }) as typeof fetch,
+      }),
     });
 
     const { container } = renderHistory();
@@ -149,9 +149,7 @@ describe("AttendanceHistoryPage (/history, S8.2)", () => {
 
     expect(screen.getByText("Thursday XD")).toBeTruthy();
     expect(screen.getByText("Late-cancelled, spot refilled — charge reversed.")).toBeTruthy();
-    expect(
-      screen.getByText("Covered by season pass (marked no-show, no extra fee)."),
-    ).toBeTruthy();
+    expect(screen.getByText("Covered by season pass (marked no-show, no extra fee).")).toBeTruthy();
     expect(screen.getByText(/Sam Guest/)).toBeTruthy();
 
     // Links to the event pages
@@ -171,7 +169,7 @@ describe("AttendanceHistoryPage (/history, S8.2)", () => {
 
   it("highlights the linked event when ?eventId= is present", async () => {
     configureApiClient({
-      fetch: vi.fn(() => Promise.resolve(json(sampleHistory))) as typeof fetch,
+      fetch: vi.fn(() => Promise.resolve(json(sampleHistory))),
     });
 
     renderHistory("/history?eventId=evt_1");
@@ -189,7 +187,7 @@ describe("AttendanceHistoryPage (/history, S8.2)", () => {
     configureApiClient({
       fetch: vi.fn(() =>
         Promise.resolve(fail ? json({ error: "boom" }, 500) : json({ items: [] })),
-      ) as typeof fetch,
+      ),
     });
 
     renderHistory();

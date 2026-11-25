@@ -115,7 +115,7 @@ describe("member attendance & why history (S8.2)", () => {
 
     const res = await getHistory(exited.clerkUserId);
     expect(res.status).toBe(200);
-    const body = (await res.json()) as { items: Array<{ eventId: string; rsvp: { id: string } }> };
+    const body = await res.json<{ items: Array<{ eventId: string; rsvp: { id: string } }> }>();
     expect(body.items).toHaveLength(1);
     expect(body.items[0]?.eventId).toBe("evt_1");
     expect(body.items[0]?.rsvp.id).toBe("rsvp_exited");
@@ -251,19 +251,17 @@ describe("member attendance & why history (S8.2)", () => {
       amountSek: 100,
       reason: "adhoc",
       eventId: "evt_refilled",
-      createdBy: admin.id,
       idempotencyKey: "close:evt_refilled:mem_1",
     });
     await ledger.reverse({
-      entryId: charge.id,
-      createdBy: admin.id,
-      idempotencyKey: `refill:${charge.id}`,
+      entryId: charge.entryId,
+      idempotencyKey: `refill:${charge.entryId}`,
       note: "Spot refilled",
     });
 
     const res = await getHistory(m.clerkUserId);
     expect(res.status).toBe(200);
-    const body = (await res.json()) as {
+    const body = await res.json<{
       items: Array<{
         eventId: string;
         title: string;
@@ -274,7 +272,7 @@ describe("member attendance & why history (S8.2)", () => {
         guests: Array<{ id: string; name: string; status: string }>;
         ledgerEntries: Array<{ id: string; amountSek: number; guestId: string | null }>;
       }>;
-    };
+    }>();
 
     // Newest event first
     expect(body.items.map((i) => i.eventId)).toEqual(["evt_refilled", "evt_prepaid"]);

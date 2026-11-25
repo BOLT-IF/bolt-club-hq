@@ -22,6 +22,7 @@ import { createTestDatabase, type TestDatabase } from "../test-support/database"
 import { makeMember } from "../test-support/factories";
 import { FakePrepaid, FakePublishOg } from "../test-support/fakes";
 import type { AppEnv } from "../types";
+import { realRsvpCancel } from "./cancel";
 import { closeEvent } from "./close";
 import { configureRsvpDeps } from "./deps";
 import postcloseRoutes from "./postclose";
@@ -467,6 +468,35 @@ describe("post-close RSVP, cancel, promotion, refill (S4.4a)", () => {
 
       const [cRsvp] = await t.db.select().from(rsvp).where(eq(rsvp.memberId, confirmed.id));
       expect(cRsvp!.status).toBe("confirmed");
+    });
+
+    it("member deactivation (realRsvpCancel) late-cancels future closed RSVPs and promotes/refills", async () => {
+      const ev = await addEvent({ capacity: 1, adhocFee: 120 });
+      const exiting = await makeMember(t.db);
+      const waitlisted = await makeMember(t.db);
+
+      await putPre(ev.id, exiting.clerkUserId);
+      clock.advance(1000);
+      await putPre(ev.id, waitlisted.clerkUserId);
+
+      clock.set(at(25));
+      await closeEvent(t.db, clock, ev.id);
+      expect(await balanceOf(exiting.id)).toBe(120);
+
+      await realRsvpCancel.cancelFutureRsvps({
+        db: t.db,
+        clock,
+        memberId: exiting.id,
+        at: clock.now(),
+        idempotencyKey: "exit:test-1",
+      });
+
+      const [exitingRow] = await t.db.select().from(rsvp).where(eq(rsvp.memberId, exiting.id));
+      const [promotedRow] = await t.db.select().from(rsvp).where(eq(rsvp.memberId, waitlisted.id));
+      expect(exitingRow!.status).toBe("late_cancelled");
+      expect(promotedRow!.status).toBe("confirmed");
+      expect(await balanceOf(exiting.id)).toBe(0);
+      expect(await balanceOf(waitlisted.id)).toBe(120);
     });
   });
 });

@@ -1,11 +1,10 @@
-import { Hono, type Context, type MiddlewareHandler } from "hono";
+import { Hono, type Context } from "hono";
 import type { ContentfulStatusCode } from "hono/utils/http-status";
 
 import { LedgerError } from "../../domain/ledger";
 import { contextMiddleware } from "../core/context";
-import { idempotencyKeyMiddleware } from "../core/idempotency";
-import { requireGuard } from "../core/permissions";
-import type { CurrentMember } from "../core/ports";
+import { idempotent as createIdempotent } from "../core/idempotency";
+import { requireActor, requireGuard } from "../core/permissions";
 import { LEDGER_ERROR_STATUS } from "../ledger/admin-routes";
 import type { AppEnv } from "../types";
 import {
@@ -18,20 +17,9 @@ import {
 
 const NOTE_MAX = 500;
 
-function actorOf(c: Context<AppEnv>): CurrentMember {
-  const actor = c.var.actor;
-  if (!actor) throw new Error("passes: guard let a request through without an actor");
-  return actor;
-}
-
+const actorOf = requireActor;
 const context = contextMiddleware();
-
-const idempotent: MiddlewareHandler<AppEnv> = (c, next) =>
-  idempotencyKeyMiddleware({
-    db: c.var.db,
-    route: `${c.req.method} ${c.req.path}`,
-    actorOf: () => actorOf(c).id,
-  })(c, next);
+const idempotent = createIdempotent((c) => `${c.req.method} ${c.req.path}`);
 
 async function jsonObject(
   c: Context,

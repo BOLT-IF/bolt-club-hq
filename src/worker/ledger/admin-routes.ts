@@ -1,13 +1,12 @@
 import { asc, eq, inArray, sql } from "drizzle-orm";
-import { Hono, type Context, type MiddlewareHandler } from "hono";
+import { Hono, type Context } from "hono";
 import type { ContentfulStatusCode } from "hono/utils/http-status";
 
 import { event, guest, ledgerEntry, member } from "../../../db/schema";
 import { LedgerError, type LedgerErrorCode } from "../../domain/ledger";
 import { contextMiddleware } from "../core/context";
-import { idempotencyKeyMiddleware } from "../core/idempotency";
-import { requireGuard } from "../core/permissions";
-import type { CurrentMember } from "../core/ports";
+import { idempotent } from "../core/idempotency";
+import { requireActor, requireGuard } from "../core/permissions";
 import type { AppEnv } from "../types";
 import { createLedgerService, type LedgerEntryView } from "./service";
 
@@ -27,11 +26,7 @@ export const LEDGER_ERROR_STATUS: Record<LedgerErrorCode, ContentfulStatusCode> 
 
 const NOTE_MAX = 500;
 
-function actorOf(c: Context<AppEnv>): CurrentMember {
-  const actor = c.var.actor;
-  if (!actor) throw new Error("ledger admin: guard let a request through without an actor");
-  return actor;
-}
+const actorOf = requireActor;
 
 async function body(c: Context): Promise<Record<string, unknown> | null> {
   const parsed: unknown = await c.req.json().catch(() => null);
@@ -50,12 +45,6 @@ async function write(c: Context<AppEnv>, fn: () => Promise<Response>): Promise<R
     }
     throw error;
   }
-}
-
-/** Money POSTs: one run per `Idempotency-Key` per admin per route (double-tap safe). */
-function idempotent(route: string): MiddlewareHandler<AppEnv> {
-  return (c, next) =>
-    idempotencyKeyMiddleware({ db: c.var.db, route, actorOf: () => actorOf(c).id })(c, next);
 }
 
 /** Ledger idempotency key derived from the HTTP key, scoped to the admin and the route. */

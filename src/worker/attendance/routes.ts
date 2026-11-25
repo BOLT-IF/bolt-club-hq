@@ -1,8 +1,8 @@
-import { Hono, type Context, type MiddlewareHandler } from "hono";
+import { Hono } from "hono";
 
 import { contextMiddleware } from "../core/context";
-import { idempotencyKeyMiddleware } from "../core/idempotency";
-import { requireGuard } from "../core/permissions";
+import { idempotent } from "../core/idempotency";
+import { requireActor, requireGuard } from "../core/permissions";
 import type { AppEnv } from "../types";
 import "./alert-tick";
 import { meAttendanceRoutes } from "./me";
@@ -14,15 +14,6 @@ import {
 } from "./model";
 
 const PATH = "/events/:id/attendance";
-
-function idempotent(route: string): MiddlewareHandler<AppEnv> {
-  return (c, next) =>
-    idempotencyKeyMiddleware({
-      db: c.var.db,
-      route,
-      actorOf: (ctx) => (ctx.get("actor" as never) as { id: string }).id,
-    })(c, next);
-}
 
 function parseItemList(raw: unknown): AttendanceItemInput[] | null {
   if (raw === undefined) return [];
@@ -52,11 +43,7 @@ export function parseAttendanceBody(body: unknown): MarkAttendanceInput | null {
   return { rsvps, guests };
 }
 
-function actorOf(c: Context<AppEnv>) {
-  const actor = c.var.actor;
-  if (!actor) throw new Error("attendance: route reached without an actor");
-  return actor;
-}
+const actorOf = requireActor;
 
 export default new Hono<AppEnv>()
   .use(PATH, contextMiddleware())

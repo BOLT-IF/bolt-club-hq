@@ -1,12 +1,12 @@
 import { and, asc, count, desc, eq, inArray, ne, sql } from "drizzle-orm";
-import { Hono, type Context, type MiddlewareHandler } from "hono";
+import { Hono, type Context } from "hono";
 import type { ContentfulStatusCode } from "hono/utils/http-status";
 
 import { event, member, pass, series, seriesCaptain, term } from "../../../db/schema";
 import { audit } from "../core/audit";
 import { contextMiddleware } from "../core/context";
 import type { Db, Tx } from "../core/db/client";
-import { idempotencyKeyMiddleware } from "../core/idempotency";
+import { idempotent } from "../core/idempotency";
 import { requireGuard } from "../core/permissions";
 import { randomSlug } from "../events/slugs";
 import type { AppEnv } from "../types";
@@ -88,16 +88,6 @@ async function currentPassCap(q: Q, seriesId: string, capacity: number): Promise
     events.map((e) => e.capacity),
   );
 }
-
-/** Money-moving idempotency needs the per-request db, so the middleware is built per request. */
-const idempotent =
-  (route: string): MiddlewareHandler<AppEnv> =>
-  (c, next) =>
-    idempotencyKeyMiddleware({
-      db: c.var.db,
-      route,
-      actorOf: (cc) => actorOf(cc as Context<AppEnv>).id,
-    })(c, next);
 
 const seriesIdParam = (c: Context) => c.req.param("id");
 

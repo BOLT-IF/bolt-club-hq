@@ -1,31 +1,20 @@
 import { eq } from "drizzle-orm";
-import { Hono, type Context, type MiddlewareHandler } from "hono";
+import { Hono, type Context } from "hono";
 
 import { notificationSendLog, reminderRule } from "../../../db/schema";
 import { PLACEHOLDERS, validateRuleInput, type RuleInput } from "../../domain/reminders";
 import { audit } from "../core/audit";
 import { contextMiddleware } from "../core/context";
-import { idempotencyKeyMiddleware } from "../core/idempotency";
-import { requireGuard } from "../core/permissions";
+import { idempotent } from "../core/idempotency";
+import { requireActor, requireGuard } from "../core/permissions";
 import type { AppEnv } from "../types";
 import { planRule, toRule } from "./service";
 import "./tick";
 
 const BASE = "/admin/reminder-rules";
-
-const actorId = (c: Context<AppEnv>): string => {
-  const actor = c.var.actor;
-  if (!actor) throw new Error("reminders route reached without a guard");
-  return actor.id;
-};
-
+const actorId = (c: Context<AppEnv>): string => requireActor(c).id;
 /** A double-tapped create would make two rules and send every reminder twice. */
-const idempotentCreate: MiddlewareHandler<AppEnv> = (c, next) =>
-  idempotencyKeyMiddleware({
-    db: c.var.db,
-    route: `POST /api/v1${BASE}`,
-    actorOf: (cc) => actorId(cc as Context<AppEnv>),
-  })(c, next);
+const idempotentCreate = idempotent(`POST /api/v1${BASE}`);
 
 const toColumns = (input: RuleInput, updatedBy: string) => ({
   category: input.kind,

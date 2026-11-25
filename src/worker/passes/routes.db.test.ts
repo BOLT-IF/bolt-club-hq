@@ -339,11 +339,15 @@ describe("passes routes (S5.3)", () => {
       expect(buy.status).toBe(201);
       expect(buy.body.upgradedRsvps).toBe(1);
 
-      // Event 1 upgraded to confirmed tier 1; event 0 (closed) and one-off stay requested tier 2.
-      const g0 = await call(buyer, "GET", `/events/${events[0]!.id}/rsvp`);
+      // Event 1 upgraded to confirmed tier 1; event 0 (past rsvpCloseAt) and one-off stay requested tier 2.
+      // Read event 0's RSVP row directly so S4.3 close-on-read via GET doesn't close & confirm it.
+      const [rsvp0] = await t.db
+        .select()
+        .from(rsvp)
+        .where(and(eq(rsvp.eventId, events[0]!.id), eq(rsvp.memberId, buyer.id)));
       const g1 = await call(buyer, "GET", `/events/${events[1]!.id}/rsvp`);
       const go = await call(buyer, "GET", `/events/${oneoff.id}/rsvp`);
-      expect(g0.body.rsvp).toMatchObject({ status: "requested", tier: 2 });
+      expect(rsvp0).toMatchObject({ status: "requested", tier: 2 });
       expect(g1.body.rsvp).toMatchObject({ status: "confirmed", tier: 1 });
       expect(go.body.rsvp).toMatchObject({ status: "requested", tier: 2 });
 

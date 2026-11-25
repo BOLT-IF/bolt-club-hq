@@ -32,6 +32,9 @@ Errors: 400 `invalid_body` / `guest_limit` (`max`), 404 `not_found` (unknown eve
 - **Claim & capacity (`claim.ts`, `capacity.ts`, S4.4b)**:
   - `POST /events/:id/claim` (`Idempotency-Key`, optional `{ guestId }`) serializes on `event FOR UPDATE` so concurrent claims have one winner, charges non-prepaid/guests, runs refills, and clears remaining `offered` rows when full.
   - `PATCH /events/:id/capacity` (`Idempotency-Key`, `canManageEvent`, `{ capacity, override? }`) blocks lowering below confirmed without admin `override: true`, waitlists excess confirmed (latest first in reverse tier order) and notifies them on override, and promotes/offers from the waitlist when raising capacity.
+- **Event cancellation & material changes (`eventchange.ts`, S4.4c)**:
+  - `POST /events/:id/cancel` cancels the event, cancels all active RSVPs/guests, reverses all unreversed charges (`event-cancel:<chargeId>`), and notifies active/charged participants.
+  - `PATCH /events/:id/details` updates `title`, `location`, `startsAt`, `endsAt`, `rsvpCloseAt`, or `adhocFee` (returning `409 event_closed` if `adhocFee` is edited after close). Material changes (`startsAt`, `endsAt`, `location`) after close set `materialChangeAt` and notify active participants; `lateCancelRsvp` reverses charges for free (`free-cancel:<chargeId>`) while `now < materialChangeAt + 24h`.
 
 ## Frontend (`src/app/components/rsvp/`)
 

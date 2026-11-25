@@ -9,6 +9,7 @@ import "./close-tick";
 import capacityRoutes from "./capacity";
 import claimRoutes from "./claim";
 import { rsvpDeps } from "./deps";
+import eventchangeRoutes from "./eventchange";
 import postcloseRoutes from "./postclose";
 import {
   DEFAULT_GUEST_NAME,
@@ -92,4 +93,5 @@ export default new Hono<AppEnv>()
   })
   .route("/", postcloseRoutes)
   .route("/", claimRoutes)
-  .route("/", capacityRoutes);
+  .route("/", capacityRoutes)
+  .route("/", eventchangeRoutes);

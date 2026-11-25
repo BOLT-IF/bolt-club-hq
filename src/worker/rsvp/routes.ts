@@ -7,6 +7,7 @@ import type { AppEnv } from "../types";
 import { closeDueEvents } from "./close";
 import "./close-tick";
 import { rsvpDeps } from "./deps";
+import eventchangeRoutes from "./eventchange";
 import postcloseRoutes from "./postclose";
 import {
   DEFAULT_GUEST_NAME,
@@ -88,4 +89,5 @@ export default new Hono<AppEnv>()
     });
     return reply(c, result);
   })
-  .route("/", postcloseRoutes);
+  .route("/", postcloseRoutes)
+  .route("/", eventchangeRoutes);

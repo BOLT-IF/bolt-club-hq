@@ -1,4 +1,5 @@
 import "../../components/organizer/attendance-register";
+import "../../components/organizer/edit-register";
 import "../../components/rsvp/register";
 import "../../components/rsvp/postclose";
 import type { AppRoute } from "../registry";

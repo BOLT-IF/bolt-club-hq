@@ -17,6 +17,7 @@ import { createNotifyPort } from "../notifications/notify";
 import type { AppEnv } from "../types";
 import { closeDueEvents } from "./close";
 import { rsvpDeps } from "./deps";
+import { isInMaterialChangeWindow, reverseMemberEventCharges } from "./eventchange";
 import {
   DEFAULT_GUEST_NAME,
   MAX_GUEST_NAME,
@@ -591,6 +592,7 @@ export async function lateCancelRsvp(
     }
 
     const currentGuests = await guestsOf(tx, row.id);
+    const freeWindow = isInMaterialChangeWindow(e, now);
 
     if (input.guestId) {
       const target = currentGuests.find((g) => g.id === input.guestId && isActive(g.status));
@@ -598,10 +600,18 @@ export async function lateCancelRsvp(
       const wasConfirmed = target.status === "confirmed";
       await tx
         .update(guest)
-        .set({ status: wasConfirmed ? "late_cancelled" : "cancelled" })
+        .set({ status: wasConfirmed && !freeWindow ? "late_cancelled" : "cancelled" })
         .where(eq(guest.id, target.id));
 
       if (wasConfirmed) {
+        if (freeWindow) {
+          await reverseMemberEventCharges(tx, clock, {
+            eventId: e.id,
+            memberId: input.memberId,
+            guestId: target.id,
+            keyPrefix: "free-cancel",
+          });
+        }
         await runPromotionAndRefill(tx, clock, e, row.id);
       }
       const updatedGuests = await guestsOf(tx, row.id);
@@ -615,7 +625,7 @@ export async function lateCancelRsvp(
     const [cancelled] = await tx
       .update(rsvp)
       .set({
-        status: hostWasConfirmed ? "late_cancelled" : "cancelled",
+        status: hostWasConfirmed && !freeWindow ? "late_cancelled" : "cancelled",
         cancelledAt: now,
       })
       .where(eq(rsvp.id, row.id))
@@ -628,8 +638,16 @@ export async function lateCancelRsvp(
       if (g.status === "confirmed") freedSpot = true;
       await tx
         .update(guest)
-        .set({ status: g.status === "confirmed" ? "late_cancelled" : "cancelled" })
+        .set({ status: g.status === "confirmed" && !freeWindow ? "late_cancelled" : "cancelled" })
         .where(eq(guest.id, g.id));
+    }
+
+    if (freeWindow) {
+      await reverseMemberEventCharges(tx, clock, {
+        eventId: e.id,
+        memberId: input.memberId,
+        keyPrefix: "free-cancel",
+      });
     }
 
     if (freedSpot) {

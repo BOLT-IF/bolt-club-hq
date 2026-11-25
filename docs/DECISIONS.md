@@ -2,6 +2,14 @@
 
 Decisions made after `PLAN.md` (v3) was written. Newest first. Every entry gives the decision, the reason, and what it changes.
 
+## 2026-11-25: S4.4c event cancellation + material changes
+
+- **Routes (`src/worker/rsvp/eventchange.ts`, mounted in `rsvp/routes.ts`):** `POST /events/:id/cancel` and `PATCH /events/:id/details`, both `requireGuard("member")` + `Idempotency-Key` + `canManageEvent(actor, event)`. (`PATCH /events/:id` in `events/routes.ts` remains for pre-close `title`/`location` edits.)
+- **Cancellation:** Marks the event `cancelled`, cancels all active RSVPs (`requested`, `confirmed`, `waitlisted`, `offered`) and their active guests, reverses every unreversed charge on the event (`event-cancel:<chargeId>`) leaving net charges at `0`, notifies all active/charged participants (`rsvp_status`, key `event-cancel-notify:<eventId>:<memberId>`), audits `event.cancel`, writes `event_cancelled` outbox, and refreshes OG.
+- **Material changes & 24h free-cancel window:** Editing `startsAt`, `endsAt`, or `location` on a `closed` event sets `materialChangeAt = now` and notifies active participants (`event-change-notify:<eventId>:<ts>:<memberId>`). Title-only edits do not trigger the window. Inside `now < materialChangeAt + 24h`, `lateCancelRsvp` (`src/worker/rsvp/postclose.ts`) sets status to `cancelled` (not `late_cancelled`), reverses the member/guest's unreversed charges (`free-cancel:<chargeId>`), and still runs waitlist promotion. Outside the 24h window (`now >= materialChangeAt + 24h`), normal late-cancel/refill rules apply.
+- **Fee lock:** Editing `adhocFee` on a `closed` event (or after `closedProcessedAt`) returns `409 event_closed`.
+- **Frontend (`src/app/components/organizer/edit*`):** `EventEditPanel` registers into `OrganizerToolsSlot` from `src/app/routes/events/routes.tsx` and lets organizers edit details (with fee disabled when closed) or cancel the event via `ConfirmDialog`.
+
 ## 2026-11-25: S8.1 attendance marking
 
 - **Routes (`src/worker/attendance/routes.ts`):** `GET /events/:id/attendance` (`requireGuard("member")`) and `PUT /events/:id/attendance` (`requireGuard("member")`, `Idempotency-Key` required). Both enforce `canManageEvent(actor, event)` (admin, creator of one-off, or captain of series).

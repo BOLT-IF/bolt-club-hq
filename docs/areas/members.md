@@ -24,7 +24,21 @@ Every change writes an `audit_log` row in the same transaction (`member.update`,
 
 ## Not in this story
 
-Approval of pending members (S1.3), erasure (S2.5), audit viewer (S2.4), notification preferences. No feature flag: there is no `members` flag in `/config`, and the pages are admin-gated or own-data.
+Approval of pending members (S1.3), audit viewer (S2.4), notification preferences. No feature flag: there is no `members` flag in `/config`, and the pages are admin-gated or own-data. Erasure, data export, and retention purges are implemented in `src/worker/privacy/` (S2.5, documented below).
+
+## Privacy, export, erasure, retention (S2.5)
+
+Code: `src/worker/privacy/` (API, Clerk user deletion, retention cron hook), `src/app/routes/privacy/` (UI at `/privacy`).
+
+| Route | Guard | Notes |
+|---|---|---|
+| `GET /me/export` | member, `allowInactive` | Exports the caller's personal data as JSON across every PII table (`member`, `joinRequest`, `seriesCaptain`, `pass`, `rsvp`, `guest`, `ledgerEntry`, `paymentClaim`, `notification`, `pushSubscription`, `notificationPref`, `notificationSendLog`, `pollVote`, `auditLog`). |
+| `POST /admin/members/:id/erase` | admin | Requires `balance === 0` (`409 nonzero_balance`) and not last active admin (`409 last_admin`). Strips PII, sets `status: "erased"` and `"Former member #<id>"`, pseudonymizes `guest` names and `audit_log` JSON, deletes Clerk user via `DELETE /v1/users/{clerkUserId}` (rolling back on failure), keeps `ledger_entry` rows untouched, and cancels future open RSVPs via `rsvp.cancel`. Idempotent on already erased members. |
+
+Retention tick hook (`privacy-retention-purge` in `src/worker/privacy/retention.ts`, registered via `registerTickHook`):
+- Deletes `notification_send_log` entries older than 365 days (`SEND_LOG_RETENTION_DAYS`).
+- Deletes R2 `MEDIA` objects and clears `poll_option.image_key` for polls closed more than 180 days ago (`POLL_IMAGE_RETENTION_DAYS`).
+
 
 ## Invites and join requests (S1.3)
 

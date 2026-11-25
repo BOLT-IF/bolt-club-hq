@@ -15,23 +15,41 @@ function json(status: number, body: unknown): Response {
 }
 
 describe("privacy page (S2.5)", () => {
-  const originalCreateObjectURL = URL.createObjectURL;
-  const originalRevokeObjectURL = URL.revokeObjectURL;
-  const originalAnchorClick = HTMLAnchorElement.prototype.click;
+  const originalCreateDesc = Object.getOwnPropertyDescriptor(URL, "createObjectURL");
+  const originalRevokeDesc = Object.getOwnPropertyDescriptor(URL, "revokeObjectURL");
+  const originalClickDesc = Object.getOwnPropertyDescriptor(HTMLAnchorElement.prototype, "click");
+  let createObjectUrlMock: ReturnType<typeof vi.fn>;
+  let revokeObjectUrlMock: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
     window.history.pushState({}, "", "/privacy");
-    URL.createObjectURL = vi.fn(() => "blob:privacy-export");
-    URL.revokeObjectURL = vi.fn();
-    HTMLAnchorElement.prototype.click = vi.fn();
+    createObjectUrlMock = vi.fn(() => "blob:privacy-export");
+    revokeObjectUrlMock = vi.fn();
+    Object.defineProperty(URL, "createObjectURL", {
+      value: createObjectUrlMock,
+      configurable: true,
+      writable: true,
+    });
+    Object.defineProperty(URL, "revokeObjectURL", {
+      value: revokeObjectUrlMock,
+      configurable: true,
+      writable: true,
+    });
+    Object.defineProperty(HTMLAnchorElement.prototype, "click", {
+      value: vi.fn(),
+      configurable: true,
+      writable: true,
+    });
   });
 
   afterEach(() => {
     cleanup();
     configureApiClient({});
-    URL.createObjectURL = originalCreateObjectURL;
-    URL.revokeObjectURL = originalRevokeObjectURL;
-    HTMLAnchorElement.prototype.click = originalAnchorClick;
+    if (originalCreateDesc) Object.defineProperty(URL, "createObjectURL", originalCreateDesc);
+    if (originalRevokeDesc) Object.defineProperty(URL, "revokeObjectURL", originalRevokeDesc);
+    if (originalClickDesc) {
+      Object.defineProperty(HTMLAnchorElement.prototype, "click", originalClickDesc);
+    }
   });
 
   it("is auto-registered at /privacy", () => {
@@ -82,8 +100,8 @@ describe("privacy page (S2.5)", () => {
       );
     });
     expect(await screen.findByText(/your data export is ready/i)).toBeTruthy();
-    expect(URL.createObjectURL).toHaveBeenCalledOnce();
-    expect(URL.revokeObjectURL).toHaveBeenCalledWith("blob:privacy-export");
+    expect(createObjectUrlMock).toHaveBeenCalledOnce();
+    expect(revokeObjectUrlMock).toHaveBeenCalledWith("blob:privacy-export");
   });
 
   it("shows an accessible error when export is forbidden or fails", async () => {

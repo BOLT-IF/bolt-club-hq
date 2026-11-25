@@ -55,25 +55,23 @@ const testEnv = { ENV: "test", CLERK_SECRET_KEY: "sk_test_privacy" } as unknown 
  * Adding a new table or PII column in `db/schema/` will fail the schema-driven test
  * until it is either included in `/me/export` or explicitly justified as non-PII.
  */
-const EXPORT_TABLE_SPEC: Record<
-  string,
-  { exportKey: string; excludedColumns: readonly string[] }
-> = {
-  member: { exportKey: "member", excludedColumns: [] },
-  join_request: { exportKey: "joinRequests", excludedColumns: [] },
-  series_captain: { exportKey: "seriesCaptains", excludedColumns: [] },
-  pass: { exportKey: "passes", excludedColumns: ["grantedBy"] },
-  rsvp: { exportKey: "rsvps", excludedColumns: [] },
-  guest: { exportKey: "guests", excludedColumns: [] },
-  ledger_entry: { exportKey: "ledgerEntries", excludedColumns: ["createdBy"] },
-  payment_claim: { exportKey: "paymentClaims", excludedColumns: ["decidedBy"] },
-  notification: { exportKey: "notifications", excludedColumns: [] },
-  push_subscription: { exportKey: "pushSubscriptions", excludedColumns: ["keys"] },
-  notification_pref: { exportKey: "notificationPrefs", excludedColumns: [] },
-  notification_send_log: { exportKey: "notificationSendLogs", excludedColumns: [] },
-  poll_vote: { exportKey: "pollVotes", excludedColumns: [] },
-  audit_log: { exportKey: "auditLogs", excludedColumns: [] },
-};
+const EXPORT_TABLE_SPEC: Record<string, { exportKey: string; excludedColumns: readonly string[] }> =
+  {
+    member: { exportKey: "member", excludedColumns: [] },
+    join_request: { exportKey: "joinRequests", excludedColumns: [] },
+    series_captain: { exportKey: "seriesCaptains", excludedColumns: [] },
+    pass: { exportKey: "passes", excludedColumns: ["grantedBy"] },
+    rsvp: { exportKey: "rsvps", excludedColumns: [] },
+    guest: { exportKey: "guests", excludedColumns: [] },
+    ledger_entry: { exportKey: "ledgerEntries", excludedColumns: ["createdBy"] },
+    payment_claim: { exportKey: "paymentClaims", excludedColumns: ["decidedBy"] },
+    notification: { exportKey: "notifications", excludedColumns: [] },
+    push_subscription: { exportKey: "pushSubscriptions", excludedColumns: ["keys"] },
+    notification_pref: { exportKey: "notificationPrefs", excludedColumns: [] },
+    notification_send_log: { exportKey: "notificationSendLogs", excludedColumns: [] },
+    poll_vote: { exportKey: "pollVotes", excludedColumns: [] },
+    audit_log: { exportKey: "auditLogs", excludedColumns: [] },
+  };
 
 const NON_PII_TABLES = new Set([
   "invite",
@@ -120,10 +118,18 @@ describe("privacy: export, erasure, retention (S2.5)", () => {
     await t.close();
   });
 
-  function call(clerkUserId: string | null, method: string, path: string, body?: unknown) {
+  function call(
+    clerkUserId: string | null,
+    method: string,
+    path: string,
+    body?: unknown,
+    extraHeaders?: Record<string, string>,
+  ) {
     const headers: Record<string, string> = {};
     if (clerkUserId) headers[TEST_IDENTITY_HEADER] = clerkUserId;
+    if (method === "POST") headers["Idempotency-Key"] = crypto.randomUUID();
     if (body !== undefined) headers["Content-Type"] = "application/json";
+    if (extraHeaders) Object.assign(headers, extraHeaders);
     return app.request(
       `/api/v1${path}`,
       { method, headers, ...(body === undefined ? {} : { body: JSON.stringify(body) }) },
@@ -315,8 +321,8 @@ describe("privacy: export, erasure, retention (S2.5)", () => {
 
   describe("GET /me/export", () => {
     it("covers every PII table and column in db/schema (schema-driven)", async () => {
-      const schemaTables = Object.values(schema).filter((value): value is PgTable =>
-        is(value, PgTable),
+      const schemaTables: PgTable[] = (Object.values(schema) as unknown[]).filter(
+        (value): value is PgTable => is(value, PgTable),
       );
       expect(schemaTables.length).toBeGreaterThanOrEqual(22);
 
@@ -351,7 +357,9 @@ describe("privacy: export, erasure, retention (S2.5)", () => {
         if (!spec) continue;
         const value = payload[spec.exportKey];
         expect(value, `missing export section ${spec.exportKey}`).toBeDefined();
-        const rows = Array.isArray(value) ? (value as Record<string, unknown>[]) : [value as Record<string, unknown>];
+        const rows = Array.isArray(value)
+          ? (value as Record<string, unknown>[])
+          : [value as Record<string, unknown>];
         expect(rows.length, `expected rows for ${spec.exportKey}`).toBeGreaterThan(0);
 
         const firstRow = rows[0]!;
@@ -401,12 +409,12 @@ describe("privacy: export, erasure, retention (S2.5)", () => {
       await makeLedgerEntry(t.db, debtor.id, { amountSek: 120, reason: "adhoc" });
 
       expect((await call(null, "POST", `/admin/members/${debtor.id}/erase`)).status).toBe(401);
-      expect((await call(plain.clerkUserId, "POST", `/admin/members/${debtor.id}/erase`)).status).toBe(
-        403,
-      );
-      expect((await call(admin.clerkUserId, "POST", "/admin/members/nonexistent/erase")).status).toBe(
-        404,
-      );
+      expect(
+        (await call(plain.clerkUserId, "POST", `/admin/members/${debtor.id}/erase`)).status,
+      ).toBe(403);
+      expect(
+        (await call(admin.clerkUserId, "POST", "/admin/members/nonexistent/erase")).status,
+      ).toBe(404);
 
       const denied = await call(admin.clerkUserId, "POST", `/admin/members/${debtor.id}/erase`);
       expect(denied.status).toBe(409);
@@ -419,9 +427,9 @@ describe("privacy: export, erasure, retention (S2.5)", () => {
         kind: "payment",
         reason: "payment",
       });
-      expect((await call(admin.clerkUserId, "POST", `/admin/members/${creditor.id}/erase`)).status).toBe(
-        409,
-      );
+      expect(
+        (await call(admin.clerkUserId, "POST", `/admin/members/${creditor.id}/erase`)).status,
+      ).toBe(409);
     });
 
     it("refuses erasing the last active admin", async () => {
@@ -466,21 +474,27 @@ describe("privacy: export, erasure, retention (S2.5)", () => {
 
       const clerkCalls: Array<{ url: string; init: RequestInit | undefined }> = [];
       const mockFetch: typeof fetch = (input, init) => {
-        clerkCalls.push({ url: String(input), init });
+        const url =
+          typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url;
+        clerkCalls.push({ url, init });
         return Promise.resolve(new Response(null, { status: 200 }));
       };
       configureClerkErase(createClerkUserDeleter(mockFetch));
 
-      const [{ sum: sumBefore }] = await t.db
+      const [sumBeforeRow] = await t.db
         .select({ sum: sql<string>`coalesce(sum(${ledgerEntry.amountSek}), 0)` })
         .from(ledgerEntry);
-      const [{ count: countBefore }] = await t.db
+      const [countBeforeRow] = await t.db
         .select({ count: sql<number>`count(*)::int` })
         .from(ledgerEntry);
+      const sumBefore = sumBeforeRow?.sum;
+      const countBefore = countBeforeRow?.count;
 
       const res = await call(admin.clerkUserId, "POST", `/admin/members/${target.id}/erase`);
       expect(res.status).toBe(200);
-      const body = await res.json<{ member: { id: string; status: string; displayName: string } }>();
+      const body = await res.json<{
+        member: { id: string; status: string; displayName: string };
+      }>();
       expect(body.member).toEqual({
         id: target.id,
         status: "erased",
@@ -554,14 +568,14 @@ describe("privacy: export, erasure, retention (S2.5)", () => {
       expect(serializedAudits).not.toContain("alice@example.com");
 
       // Ledger entries and sums completely unchanged.
-      const [{ sum: sumAfter }] = await t.db
+      const [sumAfterRow] = await t.db
         .select({ sum: sql<string>`coalesce(sum(${ledgerEntry.amountSek}), 0)` })
         .from(ledgerEntry);
-      const [{ count: countAfter }] = await t.db
+      const [countAfterRow] = await t.db
         .select({ count: sql<number>`count(*)::int` })
         .from(ledgerEntry);
-      expect(sumAfter).toBe(sumBefore);
-      expect(countAfter).toBe(countBefore);
+      expect(sumAfterRow?.sum).toBe(sumBefore);
+      expect(countAfterRow?.count).toBe(countBefore);
 
       // Erased member can no longer export or authenticate.
       expect((await call(originalClerkId, "GET", "/me/export")).status).toBe(401);
@@ -577,7 +591,9 @@ describe("privacy: export, erasure, retention (S2.5)", () => {
       const target = await makeMember(t.db, { displayName: "Bob Rollback" });
 
       configureClerkErase(
-        createClerkUserDeleter(() => Promise.resolve(new Response("upstream error", { status: 500 }))),
+        createClerkUserDeleter(() =>
+          Promise.resolve(new Response("upstream error", { status: 500 })),
+        ),
       );
 
       const res = await call(admin.clerkUserId, "POST", `/admin/members/${target.id}/erase`);
@@ -587,6 +603,30 @@ describe("privacy: export, erasure, retention (S2.5)", () => {
       expect(stillIntact?.status).toBe("active");
       expect(stillIntact?.displayName).toBe("Bob Rollback");
       expect(stillIntact?.clerkUserId).toBe(target.clerkUserId);
+    });
+
+    it("cancels future pre-close RSVPs when erasing an active member", async () => {
+      const admin = await makeMember(t.db, { role: "admin" });
+      await seedClubFixture(admin.id);
+      const active = await makeMember(t.db, { status: "active", displayName: "Active Leaver" });
+      await t.db.insert(rsvp).values({
+        id: "rsvp_open_future",
+        eventId: "evt_1",
+        memberId: active.id,
+        status: "confirmed",
+        tier: 2,
+        requestedAt: new Date("2027-05-01T10:00:00.000Z"),
+      });
+
+      configureClerkErase(
+        createClerkUserDeleter(() => Promise.resolve(new Response(null, { status: 200 }))),
+      );
+
+      const res = await call(admin.clerkUserId, "POST", `/admin/members/${active.id}/erase`);
+      expect(res.status).toBe(200);
+
+      const [updatedRsvp] = await t.db.select().from(rsvp).where(eq(rsvp.id, "rsvp_open_future"));
+      expect(updatedRsvp?.status).toBe("cancelled");
     });
   });
 
@@ -653,7 +693,12 @@ describe("privacy: export, erasure, retention (S2.5)", () => {
       await t.db.insert(pollOption).values([
         { id: "opt_old_img", pollId: "poll_old", label: "A", imageKey: "polls/old.webp" },
         { id: "opt_old_noimg", pollId: "poll_old", label: "B", imageKey: null },
-        { id: "opt_boundary_img", pollId: "poll_boundary", label: "C", imageKey: "polls/boundary.webp" },
+        {
+          id: "opt_boundary_img",
+          pollId: "poll_boundary",
+          label: "C",
+          imageKey: "polls/boundary.webp",
+        },
         { id: "opt_recent_img", pollId: "poll_recent", label: "D", imageKey: "polls/recent.webp" },
         { id: "opt_open_img", pollId: "poll_open", label: "E", imageKey: "polls/open.webp" },
       ]);

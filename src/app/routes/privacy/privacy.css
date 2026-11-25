@@ -1,0 +1,52 @@
+.bcq-privacy {
+  display: grid;
+  gap: 1rem;
+}
+
+.bcq-privacy__card {
+  display: grid;
+  gap: 0.65rem;
+  padding: 1rem 1.15rem;
+  border-radius: var(--bcq-radius);
+  background: var(--bcq-card);
+  border: 1px solid var(--bcq-line);
+}
+
+.bcq-privacy__heading {
+  margin: 0;
+  font: 700 1.125rem/1.3 var(--bcq-font);
+  color: var(--bcq-ink);
+}
+
+.bcq-privacy__text {
+  margin: 0;
+  color: var(--bcq-ink-soft);
+  line-height: 1.5;
+}
+
+.bcq-privacy__list {
+  margin: 0;
+  padding-left: 1.25rem;
+  display: grid;
+  gap: 0.45rem;
+  color: var(--bcq-ink-soft);
+  line-height: 1.45;
+}
+
+.bcq-privacy__status {
+  margin: 0;
+  padding: 0.75rem 0.9rem;
+  border-radius: var(--bcq-radius-sm);
+  background: var(--bcq-success-bg);
+  color: var(--bcq-success-ink);
+  font: 600 0.9375rem/1.35 var(--bcq-font);
+}
+
+.bcq-privacy__error {
+  margin: 0;
+  padding: 0.75rem 0.9rem;
+  border-radius: var(--bcq-radius-sm);
+  background: var(--bcq-danger-bg);
+  color: var(--bcq-danger-ink);
+  font: 600 0.9375rem/1.35 var(--bcq-font);
+}

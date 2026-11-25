@@ -2,6 +2,10 @@
 
 Decisions made after `PLAN.md` (v3) was written. Newest first. Every entry gives the decision, the reason, and what it changes.
 
+## 2026-11-25: S10.1 home dashboard
+
+- **Route & composition (`src/app/routes/home/`):** Registers `/` (`HomePage`), composing existing API endpoints without adding a new backend aggregation endpoint: `GET /me`, `GET /events` + `GET /events/:id/rsvp` (capped at the next 6 non-cancelled upcoming events, split into **Next RSVPs** and **Unanswered events**), `GET /me/ledger`, `GET /me/payment-claims` (pending claims), `GET /passes/offers` (active passes and offer count), `GET /polls` (open polls), and for admins `GET /admin/join-requests` + `GET /admin/payment-claims`.
+- **Feature flag gating & graceful degradation:** Each gated area (`events`, `money`, `polls`) is checked via `useFeatureFlag` before fetching or rendering its card, so `"off"` flags never trigger 404/disabled calls or broken links. Section fetches run in parallel via `Promise.allSettled` after `GET /me` succeeds, so one area's failure never blanks out the rest of the dashboard. Pending members see a membership-pending card linking to `/join`; exited (`inactive`) members see only their money & claims card when `money` is on.
 ## 2026-11-25: Deploy workflow runs migrate and smoke only (Cloudflare Workers Builds deploys `main`)
 
 - **Decision:** Simplified `.github/workflows/deploy.yml` (`migrate and smoke`) to run only `npx drizzle-kit migrate` (using `DATABASE_URL`) and `scripts/ci/smoke.sh` (using `PUBLIC_BASE_URL`), removing `npm run build`, `npx wrangler deploy`, `CLOUDFLARE_API_TOKEN`, and `CLOUDFLARE_ACCOUNT_ID`.

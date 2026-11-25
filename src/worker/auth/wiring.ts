@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { and, asc, eq, like, ne, sql } from "drizzle-orm";
 
 import { member } from "../../../db/schema";
 import { audit } from "../core/audit";
@@ -7,7 +7,14 @@ import { memberLookup, type RequestDeps } from "../core/context";
 import type { Db } from "../core/db/client";
 import { createAuthenticator, envString } from "./clerk";
 import { displayNameFor, isBootstrapEmail, newPaymentRef } from "./members";
-import { createProfileLoader, type ProfileLoader } from "./profile";
+import { createProfileLoader, type ClerkProfile, type ProfileLoader } from "./profile";
+
+export const PREPROVISIONED_CLERK_PREFIX = "preprovisioned:";
+
+/** Unique sentinel `clerk_user_id` assigned to imported members before their first Clerk sign-in. */
+export function preprovisionedClerkId(memberId: string): string {
+  return `${PREPROVISIONED_CLERK_PREFIX}${memberId}`;
+}
 
 export interface ClerkDepsOptions {
   clock?: Clock;
@@ -36,8 +43,60 @@ export function clerkRequestDeps(
     ...(options.fetch ? { fetch: options.fetch } : {}),
   });
 
-  async function createPending(db: Db, env: Cloudflare.Env, clerkUserId: string): Promise<void> {
-    const profile = await loadProfile(env, clerkUserId);
+  async function linkPreprovisioned(
+    db: Db,
+    clerkUserId: string,
+    email: string | null,
+  ): Promise<boolean> {
+    const normalized = email?.trim().toLowerCase() ?? "";
+    if (!normalized) return false;
+    return db.transaction(async (tx) => {
+      const [already] = await tx
+        .select({ id: member.id })
+        .from(member)
+        .where(eq(member.clerkUserId, clerkUserId))
+        .limit(1);
+      if (already) return true;
+
+      const [preprovisioned] = await tx
+        .select()
+        .from(member)
+        .where(
+          and(
+            like(member.clerkUserId, `${PREPROVISIONED_CLERK_PREFIX}%`),
+            sql`lower(${member.email}) = ${normalized}`,
+            ne(member.status, "erased"),
+          ),
+        )
+        .orderBy(asc(member.id))
+        .limit(1)
+        .for("update");
+      if (!preprovisioned) return false;
+
+      await tx.update(member).set({ clerkUserId }).where(eq(member.id, preprovisioned.id));
+      await audit(
+        tx,
+        clock,
+        {
+          actorId: null,
+          action: "member.clerk_linked",
+          entity: "member",
+          entityId: preprovisioned.id,
+          before: { preprovisioned: true },
+          after: { clerkLinked: true },
+        },
+        crypto.randomUUID(),
+      );
+      return true;
+    });
+  }
+
+  async function createPending(
+    db: Db,
+    env: Cloudflare.Env,
+    clerkUserId: string,
+    profile: ClerkProfile,
+  ): Promise<void> {
     const admin = isBootstrapEmail(profile.email, envString(env, "BOOTSTRAP_ADMIN_EMAIL"));
     const now = clock.now();
     for (let attempt = 1; ; attempt++) {
@@ -120,7 +179,11 @@ export function clerkRequestDeps(
       async currentMember({ clerkUserId }) {
         let row = await findByClerkId(db, clerkUserId);
         if (!row) {
-          await createPending(db, env, clerkUserId);
+          const profile = await loadProfile(env, clerkUserId);
+          const linked = await linkPreprovisioned(db, clerkUserId, profile.email);
+          if (!linked) {
+            await createPending(db, env, clerkUserId, profile);
+          }
           row = await findByClerkId(db, clerkUserId);
         }
         if (!row) return null;

@@ -89,7 +89,6 @@ export const adminIndex: readonly NavLink[] = [
   { id: "admin-polls", label: "Polls", path: "/admin/polls", requiresAdmin: true },
   { id: "admin-settings", label: "Settings", path: "/admin/settings", requiresAdmin: true },
   { id: "admin-audit", label: "Audit", path: "/admin/audit", requiresAdmin: true },
-  { id: "admin-health", label: "System health", path: "/admin/health", requiresAdmin: true },
 ];
 
 export interface VisibleNavOptions {

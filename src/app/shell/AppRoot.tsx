@@ -4,10 +4,11 @@ import { apiFetch } from "../api/client";
 import { fetchNotifications } from "../api/notifications";
 import { resolveRoute } from "../routes/registry";
 import { completeJoinRsvpIntent, peekJoinRsvpIntent } from "../routes/join/joinIntent";
-import { EmptyState } from "../components/ui/States";
+import { EmptyState, Skeleton } from "../components/ui/States";
 import { ToastProvider } from "../components/ui/Toast";
 import { FeatureFlagsProvider, type FeatureFlags } from "../lib/flags";
 import { useCurrentPath } from "../lib/navigate";
+import { AdminIndex } from "./AdminIndex";
 import { AppShell } from "./AppShell";
 import "../components/ui/ui.css";
 import "./shell.css";
@@ -42,9 +43,14 @@ export function AppRoot() {
   const path = useCurrentPath();
   const { flags } = useFlags();
   const [inboxUnread, setInboxUnread] = useState(0);
-  const [viewer, setViewer] = useState<{ isAdmin: boolean; isSignedIn: boolean }>({
+  const [viewer, setViewer] = useState<{
+    isAdmin: boolean;
+    isSignedIn: boolean;
+    loaded: boolean;
+  }>({
     isAdmin: false,
     isSignedIn: false,
+    loaded: false,
   });
   const Page = resolveRoute(path)?.route.component;
 
@@ -59,12 +65,13 @@ export function AppRoot() {
           setViewer({
             isAdmin: me.role === "admin" && me.status === "active",
             isSignedIn: true,
+            loaded: true,
           });
         }
       })
       .catch(() => {
         if (!controller.signal.aborted) {
-          setViewer({ isAdmin: false, isSignedIn: false });
+          setViewer({ isAdmin: false, isSignedIn: false, loaded: true });
         }
       });
     return () => {
@@ -104,6 +111,12 @@ export function AppRoot() {
         >
           {Page ? (
             <Page />
+          ) : path === "/admin" ? (
+            viewer.loaded ? (
+              <AdminIndex isAdmin={viewer.isAdmin} />
+            ) : (
+              <Skeleton label="Loading admin" />
+            )
           ) : (
             <EmptyState title="Nothing here yet">
               This page isn&apos;t available. Use the menu below to find what you need.

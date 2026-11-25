@@ -2,6 +2,15 @@
 
 Decisions made after `PLAN.md` (v3) was written. Newest first. Every entry gives the decision, the reason, and what it changes.
 
+## 2026-11-25: S5.3 passes, proration, cap, revocation
+
+- **Proration & offers (`src/domain/proration.ts`):** `proratedPassPrice(passPrice, remainingEvents, totalEvents)` uses integer `round_half_up` (`Math.floor((passPrice * remainingEvents * 2 + totalEvents) / (2 * totalEvents))`). Series with 0 remaining open events (scheduled, `rsvp_close_at > now`, `ends_at > now`) are omitted from `GET /passes/offers` and rejected (`409 no_remaining_events`) on purchase.
+- **Cap concurrency & seat accounting (`src/worker/passes/model.ts`):** `POST /passes` and `POST /admin/passes` lock the `series` row (`FOR UPDATE`) and count all `status = 'active'` passes (including inactive/exited members' passes, PLAN §6.7) against `pass_cap` so concurrent buyers for the last seat strictly serialize.
+- **Charge & RSVP upgrade in one transaction:** Purchase charges the member via `createLedgerService` with key `pass:<passId>` and upgrades any open future series RSVPs from `requested` (tier 2) to `confirmed` (tier 1), emitting `rsvp_changed` (`reason: "rsvp"`).
+- **Real `isPrepaid` wired (`src/worker/rsvp/deps.ts`):** `nobodyPrepaid` is deleted; `defaults.prepaid` is `createPrepaidPort` (`src/worker/passes/prepaid.ts`), which checks for an active pass on the event's series for active members.
+- **Revocation (`POST /admin/passes/:id/revoke`):** Allowed only when `now >= purchasedAt + passUnpaidRevokeDays * 86_400_000` AND the pass's ledger charge is still `unpaid` under FIFO itemization (no partial payment, no paid status). Reverses the charge with `reason: "revocation"`, marks the pass `revoked` (freeing the seat), downgrades open future series RSVPs to `requested` (tier 2, emitting `rsvp_changed`), audits `pass.revoke`, and notifies the member (`payment_status`). There is no refund or member-cancel path.
+- **Frontend:** `/money/passes` (`src/app/routes/money/passes/`) is gated behind `money` and displays the PLAN §6.5 terms notice on both the offer card and purchase confirmation dialog. `AdminBalances.tsx` adds a `Revocable` filter (backed by `GET /admin/passes`) and a `ConfirmDialog` for revocation.
+
 ## 2026-11-24: Integrator follow-up chore & Owns pre-grants
 
 - **Member deactivation (`rsvp.cancel` port):** `RsvpCancelPort.cancelFutureRsvps` takes `{ db, clock, memberId, at, idempotencyKey }` so `members/routes.ts` passes the request `db` and `clock` directly to `realRsvpCancel` (`src/worker/rsvp/cancel.ts`). `noopRsvpCancel` is deleted; `rsvp-cancel.test.ts` verifies the production default is `realRsvpCancel`.

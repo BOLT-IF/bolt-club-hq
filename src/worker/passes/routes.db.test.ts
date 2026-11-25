@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-call -- response bodies are asserted field by field. */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment -- response bodies are asserted field by field. */
 import { and, asc, eq } from "drizzle-orm";
 import { Hono } from "hono";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -7,7 +7,6 @@ import {
   auditLog,
   clubSettings,
   domainEventOutbox,
-  event,
   ledgerEntry,
   member as memberTable,
   notification,
@@ -66,7 +65,16 @@ describe("passes routes (S5.3)", () => {
     }
     const res = await app().request(path, init, testEnv);
     const text = await res.text();
-    return { status: res.status, headers: res.headers, body: text ? JSON.parse(text) : null };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- test response bodies are loosely typed
+    let parsed: any = null;
+    if (text) {
+      try {
+        parsed = JSON.parse(text);
+      } catch {
+        parsed = text;
+      }
+    }
+    return { status: res.status, headers: res.headers, body: parsed };
   }
 
   async function seedSeriesWithDates(opts: {
@@ -492,7 +500,7 @@ describe("passes routes (S5.3)", () => {
       await ledger.recordPayment({
         memberId: buyer.id,
         amountSek: 900,
-        actor: admin,
+        actor: { ...admin, seriesIds: [] },
         idempotencyKey: "pay-full-1",
       });
 
@@ -535,7 +543,7 @@ describe("passes routes (S5.3)", () => {
       await ledger.recordPayment({
         memberId: buyer.id,
         amountSek: 300,
-        actor: admin,
+        actor: { ...admin, seriesIds: [] },
         idempotencyKey: "pay-part-1",
       });
 

@@ -100,6 +100,11 @@ test("More sheet shows Admin and Sign out for signed-in admin, and hides Install
   await expect(sheet.getByRole("link", { name: "Admin" })).toBeVisible();
   await expect(sheet.getByRole("link", { name: "Sign out" })).toBeVisible();
   await expect(sheet.getByRole("link", { name: "Install the app" })).toHaveCount(0);
+
+  await sheet.getByRole("link", { name: "Admin" }).click();
+  await expect(page.getByRole("heading", { name: "Admin" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Members" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Invites & join requests" })).toBeVisible();
 });
 
 test("Notifications settings includes device push section and mute switches", async ({ page }) => {

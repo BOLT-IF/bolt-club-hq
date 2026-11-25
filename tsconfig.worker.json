@@ -16,5 +16,5 @@
     "noEmit": true,
     "types": ["@cloudflare/vitest-pool-workers/types", "vitest/globals", "vite/client"]
   },
-  "include": ["src/worker", "src/domain", "worker-configuration.d.ts"]
+  "include": ["src/worker", "src/domain", "tests/scenarios", "worker-configuration.d.ts"]
 }

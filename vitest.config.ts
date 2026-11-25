@@ -11,6 +11,7 @@ const DB_SUITES = [
   "src/worker/core/context.test.ts",
   // Feature areas: name a Postgres-backed suite *.db.test.ts and it runs here (W2 contract).
   "src/worker/**/*.db.test.ts",
+  "tests/scenarios/**/*.db.test.ts",
 ];
 
 /**

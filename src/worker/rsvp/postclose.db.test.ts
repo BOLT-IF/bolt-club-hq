@@ -4,7 +4,6 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import {
   clubSettings,
-  event,
   guest,
   ledgerEntry,
   notification,
@@ -30,7 +29,6 @@ import rsvpRoutes from "./routes";
 
 const NOW = "2027-04-01T12:00:00Z";
 const HOUR = 3_600_000;
-const MIN = 60_000;
 const at = (hours: number): Date => new Date(new Date(NOW).getTime() + hours * HOUR);
 const testEnv = { ENV: "test" } as unknown as Cloudflare.Env;
 
@@ -153,7 +151,7 @@ describe("post-close RSVP, cancel, promotion, refill (S4.4a)", () => {
     configureRequestDeps({});
     configureRsvpDeps({});
     configureEventsDeps({});
-    await t.cleanup();
+    await t.close();
   });
 
   describe("PLAN §6.4 charging table", () => {
@@ -162,7 +160,7 @@ describe("post-close RSVP, cancel, promotion, refill (S4.4a)", () => {
       const passHolder = await makeMember(t.db);
       const adhoc = await makeMember(t.db);
       const lateMember = await makeMember(t.db);
-      prepaid.grant(passHolder.id, ev.id);
+      prepaid.markPrepaid(passHolder.id, ev.id);
 
       await putPre(ev.id, passHolder.clerkUserId, ["PassGuest"]);
       await putPre(ev.id, adhoc.clerkUserId);
@@ -182,7 +180,7 @@ describe("post-close RSVP, cancel, promotion, refill (S4.4a)", () => {
       const ev = await addEvent({ capacity: 4, adhocFee: 120 });
       const passHolder = await makeMember(t.db);
       const adhoc = await makeMember(t.db);
-      prepaid.grant(passHolder.id, ev.id);
+      prepaid.markPrepaid(passHolder.id, ev.id);
 
       await putPre(ev.id, passHolder.clerkUserId, ["G1"]);
       await putPre(ev.id, adhoc.clerkUserId, ["G2"]);
@@ -203,7 +201,7 @@ describe("post-close RSVP, cancel, promotion, refill (S4.4a)", () => {
       const replacer1 = await makeMember(t.db);
       const replacer2 = await makeMember(t.db);
       const replacer3 = await makeMember(t.db);
-      prepaid.grant(passHolder.id, ev.id);
+      prepaid.markPrepaid(passHolder.id, ev.id);
 
       await putPre(ev.id, passHolder.clerkUserId);
       await putPre(ev.id, adhoc.clerkUserId, ["GuestA"]);
@@ -228,7 +226,7 @@ describe("post-close RSVP, cancel, promotion, refill (S4.4a)", () => {
       const ev = await addEvent({ capacity: 3, adhocFee: 120 });
       const passHolder = await makeMember(t.db);
       const adhoc = await makeMember(t.db);
-      prepaid.grant(passHolder.id, ev.id);
+      prepaid.markPrepaid(passHolder.id, ev.id);
 
       await putPre(ev.id, passHolder.clerkUserId);
       await putPre(ev.id, adhoc.clerkUserId, ["GuestA"]);
@@ -247,7 +245,7 @@ describe("post-close RSVP, cancel, promotion, refill (S4.4a)", () => {
       const ev = await addEvent({ capacity: 4, adhocFee: 120 });
       const passHolder = await makeMember(t.db);
       const adhoc = await makeMember(t.db);
-      prepaid.grant(passHolder.id, ev.id);
+      prepaid.markPrepaid(passHolder.id, ev.id);
 
       await putPre(ev.id, passHolder.clerkUserId);
       await putPre(ev.id, adhoc.clerkUserId, ["GuestA"]);
@@ -268,7 +266,7 @@ describe("post-close RSVP, cancel, promotion, refill (S4.4a)", () => {
       });
       const m1 = await makeMember(t.db);
       const m2 = await makeMember(t.db);
-      prepaid.grant(m1.id, ev.id); // ignored on admin_oneoff
+      prepaid.markPrepaid(m1.id, ev.id); // ignored on admin_oneoff
 
       await putPre(ev.id, m1.clerkUserId);
       clock.set(at(25));
@@ -402,7 +400,7 @@ describe("post-close RSVP, cancel, promotion, refill (S4.4a)", () => {
     it("a guest added after close is tier 3", async () => {
       const ev = await addEvent({ capacity: 1, adhocFee: 120 });
       const host = await makeMember(t.db);
-      prepaid.grant(host.id, ev.id);
+      prepaid.markPrepaid(host.id, ev.id);
 
       await putPre(ev.id, host.clerkUserId);
       clock.set(at(25));
@@ -447,10 +445,7 @@ describe("post-close RSVP, cancel, promotion, refill (S4.4a)", () => {
       expect(await balanceOf(m2.id)).toBe(0);
       expect(await balanceOf(m1.id)).toBe(120); // not refilled yet
 
-      const notifs = await t.db
-        .select()
-        .from(notification)
-        .where(eq(notification.memberId, m2.id));
+      const notifs = await t.db.select().from(notification).where(eq(notification.memberId, m2.id));
       expect(notifs.some((n) => n.category === "rsvp_status")).toBe(true);
     });
 
@@ -458,7 +453,7 @@ describe("post-close RSVP, cancel, promotion, refill (S4.4a)", () => {
       const ev = await addEvent({ capacity: 1, adhocFee: 120 });
       const confirmed = await makeMember(t.db);
       const latePrepaid = await makeMember(t.db);
-      prepaid.grant(latePrepaid.id, ev.id);
+      prepaid.markPrepaid(latePrepaid.id, ev.id);
 
       await putPre(ev.id, confirmed.clerkUserId);
       clock.set(at(25));

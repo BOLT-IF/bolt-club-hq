@@ -7,6 +7,7 @@ import type { AppEnv } from "../types";
 import { closeDueEvents } from "./close";
 import "./close-tick";
 import { rsvpDeps } from "./deps";
+import postcloseRoutes from "./postclose";
 import {
   DEFAULT_GUEST_NAME,
   MAX_GUEST_NAME,
@@ -86,4 +87,5 @@ export default new Hono<AppEnv>()
       memberId: actorId(c),
     });
     return reply(c, result);
-  });
+  })
+  .route("/", postcloseRoutes);

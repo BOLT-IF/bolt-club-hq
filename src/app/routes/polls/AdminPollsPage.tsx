@@ -1,6 +1,9 @@
+import { getToken } from "@clerk/react";
 import { useCallback, useEffect, useState, type SyntheticEvent } from "react";
 
 import { ApiError } from "../../api/client";
+import { useAuthEnabled } from "../../auth/AuthProvider";
+import { ImagePicker, type PickedImage } from "../../components/ImagePicker";
 import { Button, ConfirmDialog, ErrorState, Skeleton } from "../../components/ui";
 import { navigate } from "../../lib/navigate";
 import {
@@ -8,6 +11,8 @@ import {
   createPoll,
   deletePoll,
   listPolls,
+  uploadPollImage,
+  type NewPoll,
   type Poll,
   type ResultsVisibility,
 } from "./api";
@@ -15,6 +20,17 @@ import { PollsGate, PollStatus } from "./shared";
 import "./polls.css";
 
 const MAX_OPTIONS = 20;
+const MAX_IMAGES = 8;
+
+interface OptionDraft {
+  readonly label: string;
+  readonly image: PickedImage | null;
+}
+
+const emptyOptions = (): OptionDraft[] => [
+  { label: "", image: null },
+  { label: "", image: null },
+];
 
 const VISIBILITY_LABELS: Record<ResultsVisibility, string> = {
   always: "Everyone, at any time",
@@ -27,8 +43,9 @@ const VISIBILITY_LABELS: Record<ResultsVisibility, string> = {
 const toIso = (local: string): string | null => (local ? new Date(local).toISOString() : null);
 
 function CreateForm({ onCreated }: { readonly onCreated: (p: Poll) => void }) {
+  const authEnabled = useAuthEnabled();
   const [question, setQuestion] = useState("");
-  const [options, setOptions] = useState(["", ""]);
+  const [options, setOptions] = useState<OptionDraft[]>(emptyOptions);
   const [multiChoice, setMultiChoice] = useState(false);
   const [anonymous, setAnonymous] = useState(false);
   const [visibility, setVisibility] = useState<ResultsVisibility>("always");
@@ -36,21 +53,36 @@ function CreateForm({ onCreated }: { readonly onCreated: (p: Poll) => void }) {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
+  const imageCount = options.filter((o) => o.image !== null).length;
+  const uploadImage = (blob: Blob) =>
+    uploadPollImage(blob, authEnabled ? () => getToken().catch(() => null) : undefined);
+
   const submit = (e: SyntheticEvent) => {
     e.preventDefault();
+    if (options.some((o) => o.image !== null && o.label.trim() === "")) {
+      setError("Every option with an image needs a label.");
+      return;
+    }
+    const activeOptions = options
+      .map((o) => ({ label: o.label.trim(), imageKey: o.image?.key ?? null }))
+      .filter((o) => o.label !== "");
+    const hasImages = activeOptions.some((o) => o.imageKey !== null);
+
     setBusy(true);
     setError(null);
-    createPoll({
+    const payload: NewPoll = {
       question: question.trim(),
-      options: options.map((o) => o.trim()).filter((o) => o !== ""),
+      options: activeOptions.map((o) => o.label),
+      ...(hasImages ? { optionImages: activeOptions.map((o) => o.imageKey) } : {}),
       multiChoice,
       anonymous,
       resultsVisibility: visibility,
       closesAt: toIso(closesAt),
-    })
+    };
+    createPoll(payload)
       .then((p) => {
         setQuestion("");
-        setOptions(["", ""]);
+        setOptions(emptyOptions());
         setMultiChoice(false);
         setAnonymous(false);
         setVisibility("always");
@@ -85,26 +117,40 @@ function CreateForm({ onCreated }: { readonly onCreated: (p: Poll) => void }) {
           }}
         />
       </label>
-      {options.map((value, i) => (
-        <label key={i} className="bcq-field">
-          <span>{`Option ${String(i + 1)}`}</span>
-          <input
-            required={i < 2}
-            maxLength={120}
-            value={value}
-            onChange={(e) => {
+      {options.map((opt, i) => (
+        <div key={i} className="bcq-poll__option-editor">
+          <label className="bcq-field">
+            <span>{`Option ${String(i + 1)}`}</span>
+            <input
+              required={i < 2}
+              maxLength={120}
+              value={opt.label}
+              onChange={(e) => {
+                const next = [...options];
+                next[i] = { ...opt, label: e.target.value };
+                setOptions(next);
+              }}
+            />
+          </label>
+          <ImagePicker
+            label={`Image for option ${String(i + 1)}`}
+            value={opt.image}
+            disabled={!opt.image && imageCount >= MAX_IMAGES}
+            disabledReason={`Maximum ${String(MAX_IMAGES)} images per poll`}
+            onUpload={uploadImage}
+            onChange={(image) => {
               const next = [...options];
-              next[i] = e.target.value;
+              next[i] = { ...opt, image };
               setOptions(next);
             }}
           />
-        </label>
+        </div>
       ))}
       {options.length < MAX_OPTIONS ? (
         <Button
           variant="secondary"
           onClick={() => {
-            setOptions([...options, ""]);
+            setOptions([...options, { label: "", image: null }]);
           }}
         >
           Add option

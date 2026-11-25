@@ -1,6 +1,6 @@
-# Polls (S9.1)
+# Polls (S9.1, S9.2)
 
-Code: `src/worker/polls/` (API, rules, closing reminder) and `src/app/routes/polls/` (screens). Flag: `polls` (`FLAG_POLLS`, not yet in `wrangler.jsonc`, so off).
+Code: `src/worker/polls/` (API, rules, closing reminder), `src/worker/media/` (R2 upload, `/media/:key` serve, 6-month purge), `src/app/components/ImagePicker*`, and `src/app/routes/polls/` (screens). Flag: `polls` (`FLAG_POLLS`, not yet in `wrangler.jsonc`, so off).
 
 ## Data (migration `0001_polls`)
 - `poll`: `question`, `closes_at` (null = open until an admin closes it), `multi_choice`, `anonymous`, `results_visibility` (enum `always | after_vote | after_close | admins`), `created_at`.
@@ -21,12 +21,18 @@ No endpoint ever returns who voted. `toDtos` only joins `member` for polls that 
 |---|---|---|
 | `GET /polls` | member | newest first, `{ polls }` |
 | `GET /polls/:id` | member | `{ poll }`, 404 if unknown |
-| `POST /polls` | admin | `{ question, options[2..20], multiChoice?, anonymous?, resultsVisibility?, closesAt? }` → 201. Notifies every active member (`polls`), audits `poll.create` |
+| `POST /polls` | admin | `{ question, options[2..20], optionImages?, multiChoice?, anonymous?, resultsVisibility?, closesAt? }` → 201 (≤ 8 images). Notifies every active member (`polls`), audits `poll.create` |
 | `PATCH /polls/:id` | admin | `{ question? , closesAt?, close?, resultsVisibility? }`, audits `poll.update` |
-| `DELETE /polls/:id` | admin | removes votes, options, poll → 204, audits `poll.delete` |
+| `DELETE /polls/:id` | admin | removes votes, options, poll, and best-effort R2 images → 204, audits `poll.delete` |
 | `PUT /polls/:id/vote` | member | `{ optionIds }`. Replaces the ballot, so no `Idempotency-Key` |
+| `POST /media` | admin | multipart or raw image (JPEG/PNG/WebP/GIF magic bytes, ≤ 300 KB) → 201 `{ key, url, contentType, size }` |
+| `GET /media/:key` | member | serves R2 object outside `/api/v1` (`Cache-Control: private, max-age=31536000, immutable`, `ETag`) |
 
-Poll DTO: `id, question, multiChoice, anonymous, resultsVisibility, closesAt, closed, createdAt, options[{id,label}], myVote[], resultsVisible, results: { totalVoters, options[{optionId, votes, voters?}] } | null`.
+Poll DTO: `id, question, multiChoice, anonymous, resultsVisibility, closesAt, closed, createdAt, options[{id,label,imageUrl}], myVote[], resultsVisible, results: { totalVoters, options[{optionId, votes, voters?}] } | null`.
+
+## Media & purge (`src/worker/media/`, S9.2)
+- Client (`ImagePicker`) resizes images on canvas to ≤ 300 KB before uploading to `POST /api/v1/media`.
+- `media-purge` tick hook (`src/worker/media/purge.ts`) deletes R2 objects and clears `poll_option.image_key` 6 UTC calendar months after `poll.closes_at`.
 
 ## Closing reminder (PLAN §10: 24 h before)
 Creating a poll, or changing its closing date, calls `markDue(KV, closesAt - 24h)`. The tick hook `poll-closing-reminders` notifies active members who have not voted, for every poll closing within 24 h. It is idempotent per `poll-closing:<pollId>:<memberId>`, so every tick in the window is safe. The scheduler's daily maintenance run catches a lost `markDue`.

@@ -2,6 +2,14 @@
 
 Decisions made after `PLAN.md` (v3) was written. Newest first. Every entry gives the decision, the reason, and what it changes.
 
+## 2026-11-25: S9.2 poll image options on R2
+
+- **Upload & validation (`src/worker/media/`):** `POST /api/v1/media` (admin only, auto-mounted) accepts `multipart/form-data` (`file`) or raw bytes up to 300 KB (`MAX_IMAGE_BYTES`) and inspects magic bytes (`detectImageFormat`: JPEG, PNG, WebP, GIF; rejects SVG/PDF/HTML/spoofed `Content-Type`). Keys are `med_<uuid>.<ext>` stored in R2 `MEDIA` with `httpMetadata.contentType` and `customMetadata` (`uploadedBy`, `uploadedAt`).
+- **Member-only `/media/:key` serving:** Mounted outside `/api/v1` in `src/worker/app.ts` (`createMediaServeApp()`), with `"/media/*"` added to `wrangler.jsonc` `assets.run_worker_first` and `src/worker/index.ts` so requests hit the Worker before static assets. Guarded by `requireGuard("member")`, sets `Cache-Control: private, max-age=31536000, immutable`, `X-Content-Type-Options: nosniff`, and `ETag` (`304` on `If-None-Match`).
+- **Client authenticated image fetch (`MemberImage`):** Because auth uses `Authorization: Bearer` tokens and no cookies (PLAN §11.5), `<img src="/media/...">` cannot authenticate directly. `PollDetailPage` fetches `/media/:key` with the Bearer token via `fetch` and renders an object URL (`URL.createObjectURL`).
+- **Poll integration & 8-image limit:** `POST /api/v1/polls` accepts optional `optionImages: (string | null)[]` aligned with `options`, validated via `isValidMediaKey` and capped at `MAX_IMAGES_PER_POLL = 8`. Poll DTO options include `imageUrl: o.imageKey ? "/media/" + o.imageKey : null`. `DELETE /api/v1/polls/:id` best-effort deletes attached R2 objects after the DB transaction commits.
+- **Purge cron hook (`media-purge`):** Registered via `registerTickHook` (`src/worker/media/purge.ts`). Deletes R2 objects and clears `poll_option.image_key` once `now >= sixMonthsAfter(closesAt)` (exact 6 UTC calendar months with month-end clamping).
+
 ## 2026-11-24: Integrator follow-up chore & Owns pre-grants
 
 - **Member deactivation (`rsvp.cancel` port):** `RsvpCancelPort.cancelFutureRsvps` takes `{ db, clock, memberId, at, idempotencyKey }` so `members/routes.ts` passes the request `db` and `clock` directly to `realRsvpCancel` (`src/worker/rsvp/cancel.ts`). `noopRsvpCancel` is deleted; `rsvp-cancel.test.ts` verifies the production default is `realRsvpCancel`.

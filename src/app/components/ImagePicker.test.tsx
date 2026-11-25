@@ -47,13 +47,20 @@ describe("ImagePicker", () => {
   it("rejects non-image files without calling onUpload", async () => {
     const onUpload = vi.fn();
     const onChange = vi.fn();
-    render(<ImagePicker label="Image for option 1" value={null} onChange={onChange} onUpload={onUpload} />);
+    render(
+      <ImagePicker
+        label="Image for option 1"
+        value={null}
+        onChange={onChange}
+        onUpload={onUpload}
+      />,
+    );
 
     const input = screen.getByLabelText("Image for option 1");
     const txt = new File(["not an image"], "notes.txt", { type: "text/plain" });
     fireEvent.change(input, { target: { files: [txt] } });
 
-    expect(await screen.findByRole("alert")).toHaveTextContent(/jpeg, png, webp, or gif/i);
+    expect((await screen.findByRole("alert")).textContent).toMatch(/jpeg, png, webp, or gif/i);
     expect(onUpload).not.toHaveBeenCalled();
   });
 
@@ -66,7 +73,12 @@ describe("ImagePicker", () => {
     const onUpload = vi.fn(() => Promise.resolve({ key: "med_1.png", url: "/media/med_1.png" }));
     const onChange = vi.fn();
     const { rerender } = render(
-      <ImagePicker label="Image for option 1" value={null} onChange={onChange} onUpload={onUpload} />,
+      <ImagePicker
+        label="Image for option 1"
+        value={null}
+        onChange={onChange}
+        onUpload={onUpload}
+      />,
     );
 
     const input = screen.getByLabelText("Image for option 1");

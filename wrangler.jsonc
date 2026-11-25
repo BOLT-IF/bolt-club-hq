@@ -11,7 +11,7 @@
     "directory": "./dist/client",
     "binding": "ASSETS",
     "not_found_handling": "single-page-application",
-    "run_worker_first": ["/healthz", "/healthz/*", "/api/*"],
+    "run_worker_first": ["/healthz", "/healthz/*", "/api/*", "/media/*"],
   },
 
   // Cron Triggers: two entries (PLAN §11.3 budget), in UTC. Every UTC hour belongs to exactly one.

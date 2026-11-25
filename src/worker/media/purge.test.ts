@@ -21,16 +21,10 @@ describe("media purge (S9.2, R2 via Miniflare)", () => {
     );
     expect(isMediaExpired(null, new Date("2027-09-01T00:00:00.000Z"))).toBe(false);
     expect(
-      isMediaExpired(
-        new Date("2027-03-01T12:00:00.000Z"),
-        new Date("2027-09-01T11:59:59.000Z"),
-      ),
+      isMediaExpired(new Date("2027-03-01T12:00:00.000Z"), new Date("2027-09-01T11:59:59.000Z")),
     ).toBe(false);
     expect(
-      isMediaExpired(
-        new Date("2027-03-01T12:00:00.000Z"),
-        new Date("2027-09-01T12:00:00.000Z"),
-      ),
+      isMediaExpired(new Date("2027-03-01T12:00:00.000Z"), new Date("2027-09-01T12:00:00.000Z")),
     ).toBe(true);
   });
 

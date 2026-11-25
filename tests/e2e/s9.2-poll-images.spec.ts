@@ -1,6 +1,11 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
 
+// tsconfig.node.json has no DOM lib; declare only the browser global read in page.evaluate.
+declare const document: {
+  documentElement: { scrollWidth: number; clientWidth: number };
+};
+
 // 1x1 transparent PNG (67 bytes), valid magic bytes + decodable by Chromium and WebKit.
 const TINY_PNG = Buffer.from(
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=",
@@ -96,13 +101,18 @@ test.describe("polls with images on mobile (S9.2)", () => {
     const tracker = await setupPollRoutes(page);
     await page.goto("/polls/pol_img_1");
 
-    await expect(page.getByRole("heading", { name: "Which jersey design for 2027?" })).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "Which jersey design for 2027?" }),
+    ).toBeVisible();
 
     const images = page.locator("article img");
     await expect(images).toHaveCount(2);
     for (let i = 0; i < 2; i++) {
       await expect(images.nth(i)).toBeVisible();
-      const loaded = await images.nth(i).evaluate((el: HTMLImageElement) => el.complete && el.naturalWidth > 0);
+      const loaded = await images.nth(i).evaluate((el) => {
+        const img = el as unknown as { complete: boolean; naturalWidth: number };
+        return img.complete && img.naturalWidth > 0;
+      });
       expect(loaded).toBe(true);
     }
     expect(tracker.mediaRequests.sort()).toEqual(["/media/med_orange.png", "/media/med_slate.png"]);
@@ -176,14 +186,16 @@ test.describe("polls with images on mobile (S9.2)", () => {
     await expect(page.getByRole("button", { name: /remove image for option 1/i })).toBeVisible();
 
     await page.getByRole("button", { name: "Create poll" }).click();
-    await expect.poll(() => createdBody).toEqual({
-      question: "Which jersey?",
-      options: ["Orange", "Slate"],
-      optionImages: ["med_uploaded.png", null],
-      multiChoice: false,
-      anonymous: false,
-      resultsVisibility: "always",
-      closesAt: null,
-    });
+    await expect
+      .poll(() => createdBody)
+      .toEqual({
+        question: "Which jersey?",
+        options: ["Orange", "Slate"],
+        optionImages: ["med_uploaded.png", null],
+        multiChoice: false,
+        anonymous: false,
+        resultsVisibility: "always",
+        closesAt: null,
+      });
   });
 });

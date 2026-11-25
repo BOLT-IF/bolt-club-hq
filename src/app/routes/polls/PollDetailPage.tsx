@@ -1,6 +1,7 @@
 import { useEffect, useState, type SyntheticEvent } from "react";
 
 import { ApiError } from "../../api/client";
+import { MemberImage } from "../../components/ImagePicker";
 import { Button, EmptyState, ErrorState, Skeleton } from "../../components/ui";
 import { useRouteParams } from "../registry";
 import { getPoll, vote, type Poll, type ResultsVisibility } from "./api";
@@ -34,7 +35,12 @@ function Results({ poll }: { readonly poll: Poll }) {
           return (
             <li key={o.id}>
               <span className="bcq-poll__bar-head">
-                <span>{o.label}</span>
+                <span className="bcq-poll__bar-label">
+                  {o.imageUrl ? (
+                    <MemberImage src={o.imageUrl} className="bcq-poll__bar-thumb" />
+                  ) : null}
+                  <span>{o.label}</span>
+                </span>
                 <span>{plural(votes, "vote")}</span>
               </span>
               <span className="bcq-poll__bar" aria-hidden="true">
@@ -140,17 +146,27 @@ function Detail() {
               {poll.multiChoice ? "Choose one or more" : "Choose one"}
             </legend>
             {poll.options.map((o) => (
-              <label key={o.id} className="bcq-poll__option">
-                <input
-                  type={poll.multiChoice ? "checkbox" : "radio"}
-                  name="poll-option"
-                  value={o.id}
-                  checked={choice.includes(o.id)}
-                  onChange={(e) => {
-                    toggle(o.id, e.target.checked);
-                  }}
-                />
-                <span>{o.label}</span>
+              <label
+                key={o.id}
+                className={
+                  o.imageUrl ? "bcq-poll__option bcq-poll__option--with-image" : "bcq-poll__option"
+                }
+              >
+                {o.imageUrl ? (
+                  <MemberImage src={o.imageUrl} className="bcq-poll__option-img" />
+                ) : null}
+                <span className="bcq-poll__option-row">
+                  <input
+                    type={poll.multiChoice ? "checkbox" : "radio"}
+                    name="poll-option"
+                    value={o.id}
+                    checked={choice.includes(o.id)}
+                    onChange={(e) => {
+                      toggle(o.id, e.target.checked);
+                    }}
+                  />
+                  <span>{o.label}</span>
+                </span>
               </label>
             ))}
           </fieldset>

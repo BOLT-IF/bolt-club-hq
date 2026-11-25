@@ -1,6 +1,7 @@
-import { env, exports } from "cloudflare:workers";
+import { env } from "cloudflare:workers";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
+import worker from "../index";
 import { FixedClock } from "../core/clock";
 import { configureRequestDeps } from "../core/context";
 import type { Db } from "../core/db/client";
@@ -47,25 +48,38 @@ function multipart(bytes: Uint8Array, filename: string, contentType: string): Fo
   return form;
 }
 
+const execCtx = {
+  waitUntil: () => undefined,
+  passThroughOnException: () => undefined,
+} as unknown as ExecutionContext;
+
 async function upload(clerk: string | null, body: BodyInit, headers: Record<string, string> = {}) {
-  return exports.default.fetch(`${BASE}/api/v1/media`, {
-    method: "POST",
-    headers: {
-      ...(clerk ? { [TEST_IDENTITY_HEADER]: clerk } : {}),
-      ...headers,
-    },
-    body,
-  });
+  return worker.fetch(
+    new Request(`${BASE}/api/v1/media`, {
+      method: "POST",
+      headers: {
+        ...(clerk ? { [TEST_IDENTITY_HEADER]: clerk } : {}),
+        ...headers,
+      },
+      body,
+    }),
+    env,
+    execCtx,
+  );
 }
 
 async function fetchMedia(clerk: string | null, key: string, headers: Record<string, string> = {}) {
-  return exports.default.fetch(`${BASE}/media/${key}`, {
-    method: "GET",
-    headers: {
-      ...(clerk ? { [TEST_IDENTITY_HEADER]: clerk } : {}),
-      ...headers,
-    },
-  });
+  return worker.fetch(
+    new Request(`${BASE}/media/${key}`, {
+      method: "GET",
+      headers: {
+        ...(clerk ? { [TEST_IDENTITY_HEADER]: clerk } : {}),
+        ...headers,
+      },
+    }),
+    env,
+    execCtx,
+  );
 }
 
 describe("media upload and serving (S9.2)", () => {
@@ -73,6 +87,7 @@ describe("media upload and serving (S9.2)", () => {
 
   beforeEach(() => {
     configureRequestDeps({
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-class-instance-assignment -- DB is unused by media routes.
       db: () => Promise.resolve({} as Db),
       clock: new FixedClock(NOW),
       currentMember: () => ({
@@ -93,7 +108,11 @@ describe("media upload and serving (S9.2)", () => {
       const enc = new TextEncoder();
       const nonImages: Array<[Uint8Array, string, string]> = [
         [enc.encode("hello world"), "notes.txt", "text/plain"],
-        [enc.encode('<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>'), "x.svg", "image/svg+xml"],
+        [
+          enc.encode('<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>'),
+          "x.svg",
+          "image/svg+xml",
+        ],
         [enc.encode("%PDF-1.4\n%fake"), "doc.pdf", "application/pdf"],
         // Spoofed PNG header/filename with HTML bytes
         [enc.encode("<html>not a png</html>"), "evil.png", "image/png"],
@@ -108,7 +127,10 @@ describe("media upload and serving (S9.2)", () => {
     });
 
     it("rejects empty files and requests without a file", async () => {
-      const empty = await upload("clerk_admin", multipart(new Uint8Array(0), "empty.png", "image/png"));
+      const empty = await upload(
+        "clerk_admin",
+        multipart(new Uint8Array(0), "empty.png", "image/png"),
+      );
       expect(empty.status).toBe(400);
 
       const missing = await upload("clerk_admin", new FormData());
@@ -133,7 +155,12 @@ describe("media upload and serving (S9.2)", () => {
       for (const [bytes, name, expectedMime] of cases) {
         const res = await upload("clerk_admin", multipart(bytes, name, "application/octet-stream"));
         expect(res.status, `upload failed for ${name}`).toBe(201);
-        const body = await res.json<{ key: string; url: string; contentType: string; size: number }>();
+        const body = await res.json<{
+          key: string;
+          url: string;
+          contentType: string;
+          size: number;
+        }>();
         uploadedKeys.push(body.key);
         expect(body.url).toBe(`/media/${body.key}`);
         expect(body.contentType).toBe(expectedMime);

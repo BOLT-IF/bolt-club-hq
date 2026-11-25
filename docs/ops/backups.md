@@ -56,15 +56,15 @@ Until then, the run artifacts are the only copies. Do not treat them as the 90-d
 
 ## Deploy (`.github/workflows/deploy.yml`)
 
-Runs on every push to `main`. The order matters:
+Cloudflare `Workers Builds` deploys the Worker and static assets on every push to `main`.
+This workflow runs the post-deploy database migration and smoke test on every push to `main`:
 
-1. **Preflight:** `require-secrets.sh deploy`. Missing secrets mean the deploy job is skipped
-   and a notice is printed. The workflow stays green.
-2. **`wrangler deploy`** of the Worker and static assets.
-3. **`drizzle-kit migrate`** against `DATABASE_URL`. Migrations run **after** the new Worker is
+1. **Preflight:** `require-secrets.sh deploy` (`DATABASE_URL`). Missing `DATABASE_URL` means
+   the job is skipped and a notice is printed. The workflow stays green.
+2. **`drizzle-kit migrate`** against `DATABASE_URL`. Migrations run **after** the new Worker is
    live, so each migration must be expand-only: the previous Worker version must still work
    against the new schema during the gap.
-4. **Smoke test** (`scripts/ci/smoke.sh`) against `PUBLIC_BASE_URL`: `/healthz` must report
+3. **Smoke test** (`scripts/ci/smoke.sh`) against `PUBLIC_BASE_URL`: `/healthz` must report
    `status: ok`, and `/` must serve the SPA shell.
 
 ### Before the first real deploy

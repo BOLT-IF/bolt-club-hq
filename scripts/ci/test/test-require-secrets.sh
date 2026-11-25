@@ -10,18 +10,18 @@ echo "require-secrets.sh + smoke.sh"
 
 # Guard: with no secrets, the job must SKIP (exit 0) and say so, never fail CI.
 expect_status "no secrets set: guard skips with exit 0" 0 -- \
-  env -u CLOUDFLARE_API_TOKEN -u DATABASE_URL bash "$CI/require-secrets.sh" deploy
-expect_contains "skip notice names a missing secret" "CLOUDFLARE_API_TOKEN"
+  env -u DATABASE_URL bash "$CI/require-secrets.sh" deploy
+expect_contains "skip notice names a missing secret" "DATABASE_URL"
 
 # All secrets set: guard passes and says it will run.
 expect_status "all secrets set: guard proceeds with exit 0" 0 -- \
-  env CLOUDFLARE_API_TOKEN=x CLOUDFLARE_ACCOUNT_ID=a DATABASE_URL=y bash "$CI/require-secrets.sh" deploy
+  env DATABASE_URL=y bash "$CI/require-secrets.sh" deploy
 expect_contains "proceed notice" "proceeding"
 
-# Partially set: still skip, and name only the missing secrets.
+# Partially set (multi-secret job): still skip, and name only the missing secrets.
 expect_status "partial secrets: skip" 0 -- \
-  env -u DATABASE_URL CLOUDFLARE_API_TOKEN=x CLOUDFLARE_ACCOUNT_ID=a bash "$CI/require-secrets.sh" deploy
-expect_contains "partial: names the missing DATABASE_URL" "DATABASE_URL"
+  env -u BACKUP_BUCKET_TOKEN DATABASE_URL=y BACKUP_ENCRYPTION_KEY=k bash "$CI/require-secrets.sh" backup
+expect_contains "partial: names the missing BACKUP_BUCKET_TOKEN" "BACKUP_BUCKET_TOKEN"
 
 # Unknown job names fail closed, so a typo can't silently skip a job.
 expect_status "unknown job name fails" 2 -- \
@@ -34,7 +34,7 @@ expect_status "unknown job name fails" 2 -- \
 OUT="$(mktemp "${TMPDIR:-/tmp}/s05-ghout.XXXXXX")"
 : > "$OUT"
 expect_status "skip writes ready=false" 0 -- \
-  env -u CLOUDFLARE_API_TOKEN -u DATABASE_URL GITHUB_OUTPUT="$OUT" bash "$CI/require-secrets.sh" deploy
+  env -u DATABASE_URL GITHUB_OUTPUT="$OUT" bash "$CI/require-secrets.sh" deploy
 if grep -qx "ready=false" "$OUT" && ! grep -q "ready=true" "$OUT"; then
   ok "skip: GITHUB_OUTPUT has ready=false only"
 else
@@ -43,7 +43,7 @@ fi
 
 : > "$OUT"
 expect_status "proceed writes ready=true" 0 -- \
-  env CLOUDFLARE_API_TOKEN=x CLOUDFLARE_ACCOUNT_ID=a DATABASE_URL=y GITHUB_OUTPUT="$OUT" \
+  env DATABASE_URL=y GITHUB_OUTPUT="$OUT" \
   bash "$CI/require-secrets.sh" deploy
 if grep -qx "ready=true" "$OUT"; then
   ok "proceed: GITHUB_OUTPUT has ready=true"

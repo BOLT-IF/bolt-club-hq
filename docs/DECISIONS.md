@@ -2,6 +2,11 @@
 
 Decisions made after `PLAN.md` (v3) was written. Newest first. Every entry gives the decision, the reason, and what it changes.
 
+## 2026-11-25: Deploy workflow runs migrate and smoke only (Cloudflare Workers Builds deploys `main`)
+
+- **Decision:** Simplified `.github/workflows/deploy.yml` (`migrate and smoke`) to run only `npx drizzle-kit migrate` (using `DATABASE_URL`) and `scripts/ci/smoke.sh` (using `PUBLIC_BASE_URL`), removing `npm run build`, `npx wrangler deploy`, `CLOUDFLARE_API_TOKEN`, and `CLOUDFLARE_ACCOUNT_ID`.
+- **Reason:** Cloudflare `Workers Builds` is already connected to `main` and builds/deploys the Worker and SPA on every merge to `main`. Keeping `wrangler deploy` in GitHub Actions duplicated the deploy and required extra Cloudflare secrets.
+- **Changes:** `.github/workflows/deploy.yml`, `scripts/ci/require-secrets.sh` (`deploy` now requires only `DATABASE_URL`), `scripts/ci/test/test-require-secrets.sh`, `docs/ops/secrets.md`, `docs/ops/backups.md`, and `docs/STATUS.md`.
 ## 2026-11-25: S7.1 share links, edge OG, request-to-join
 
 - **KV `publishOg` (`src/worker/share/og.ts`, `src/worker/events/deps.ts`):** Removed `noopPublishOg` and wired `eventsDeps().publishOg` to `createKvPublishOg`, which writes the public JSON snapshot (`ogSnapshot`: `slug`, `title`, `format`, `location`, `startsAt`, `endsAt`, `status` — no attendee or creator names) to `KV` under `og:event:<slug>`.

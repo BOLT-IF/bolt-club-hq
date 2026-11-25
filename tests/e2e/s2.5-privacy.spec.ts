@@ -13,6 +13,7 @@ async function mockConfig(page: Page) {
 
 test("privacy page is reachable from More, renders notice, downloads export, and passes axe", async ({
   page,
+  browserName,
 }) => {
   await mockConfig(page);
   await page.route("**/api/v1/me/export", (route) =>
@@ -36,10 +37,18 @@ test("privacy page is reachable from More, renders notice, downloads export, and
   await expect(page.getByRole("button", { name: "Back" })).toBeVisible();
   await expect(page.getByText(/7 years/i)).toBeVisible();
 
-  const downloadPromise = page.waitForEvent("download");
+  const exportResponsePromise = page.waitForResponse(
+    (res) => res.url().includes("/api/v1/me/export") && res.status() === 200,
+  );
+  // WebKit/iOS does not reliably emit Playwright's `download` event for blob: <a download> links.
+  const downloadPromise = browserName === "webkit" ? null : page.waitForEvent("download");
   await page.getByRole("button", { name: /download my data/i }).click();
-  const download = await downloadPromise;
-  expect(download.suggestedFilename()).toBe("bolt-hq-data-export.json");
+  await exportResponsePromise;
+  if (downloadPromise) {
+    const download = await downloadPromise;
+    expect(download.suggestedFilename()).toBe("bolt-hq-data-export.json");
+  }
+  await expect(page.getByRole("status")).toHaveText("Your data export is ready.");
 
   const results = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa"]).analyze();
   const serious = results.violations.filter(

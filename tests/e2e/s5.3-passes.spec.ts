@@ -1,6 +1,8 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
 
+test.use({ serviceWorkers: "block" });
+
 const offersResponse = {
   offers: [
     {
@@ -189,7 +191,7 @@ test("admin filters revocable passes and revokes one", async ({ page }) => {
   await list.getByRole("button", { name: /revoke pass/i }).click();
   const dialog = page.getByRole("dialog");
   await dialog.getByRole("button", { name: /confirm revocation/i }).click();
-  await expect(page.getByText("No members match")).toBeVisible();
+  await expect(page.getByText("No revocable passes")).toBeVisible();
 });
 
 test("passes screen has no serious or critical axe violations", async ({ page }) => {

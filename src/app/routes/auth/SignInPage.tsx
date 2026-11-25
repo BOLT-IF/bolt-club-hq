@@ -35,6 +35,18 @@ function SignInForm() {
           ...(showGoogle ? {} : { elements: { socialButtonsRoot: hidden, dividerRow: hidden } }),
         }}
       />
+      <p className="bcq-auth__privacy">
+        <a
+          href="/privacy"
+          onClick={(e) => {
+            if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
+            e.preventDefault();
+            navigate("/privacy");
+          }}
+        >
+          Privacy policy
+        </a>
+      </p>
     </main>
   );
 }

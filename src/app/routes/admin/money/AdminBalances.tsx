@@ -171,6 +171,19 @@ export function AdminBalances() {
         Balances
       </h1>
       <p className="bcq-member__meta">Members owe {totalOwed} kr in total.</p>
+      <p>
+        <a
+          className="bcq-btn bcq-btn--secondary"
+          href="/admin/money/claims"
+          onClick={(e) => {
+            if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
+            e.preventDefault();
+            navigate("/admin/money/claims");
+          }}
+        >
+          Payment claims
+        </a>
+      </p>
 
       <div className="bcq-field">
         <label className="bcq-field__label" htmlFor="balances-search">

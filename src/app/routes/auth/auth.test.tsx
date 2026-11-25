@@ -64,6 +64,7 @@ describe("SignInPage", () => {
       </AuthProvider>,
     );
     expect(screen.getByTestId("clerk-sign-in")).toBeTruthy();
+    expect(screen.getByRole("link", { name: /privacy/i }).getAttribute("href")).toBe("/privacy");
     expect(captured.signIn).toMatchObject({ forceRedirectUrl: "/events/mon-3" });
   });
 

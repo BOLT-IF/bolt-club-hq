@@ -145,6 +145,9 @@ describe("balances page", () => {
     stub();
     renderWith(<AdminBalances />);
     const list = await screen.findByRole("list", { name: /balances/i });
+    expect(screen.getByRole("link", { name: "Payment claims" }).getAttribute("href")).toBe(
+      "/admin/money/claims",
+    );
     expect(within(list).getByText("Bo Berg")).toBeTruthy();
     expect(within(list).getByText(/owes 240 kr/i)).toBeTruthy();
     expect(within(list).getByText(/credit 100 kr/i)).toBeTruthy();

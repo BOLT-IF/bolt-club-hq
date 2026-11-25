@@ -42,7 +42,7 @@ account exists. They are read by the Worker at runtime.
 | `VAPID_PUBLIC_KEY` | Web Push public key | Shared with the browser at subscribe time. |
 | `VAPID_PRIVATE_KEY` | Web Push private key | **Back this up and never rotate casually.** Rotating it invalidates every existing push subscription, so every member must re-enable notifications on every device. |
 | `VAPID_SUBJECT` | `mailto:` or `https:` contact used in the push header | Use the club's contact address. |
-| `HEALTHCHECKS_URL` | healthchecks.io ping URL for the cron dead-man switch (PLAN §15) | The URL itself is the secret; anyone with it can ping the check. |
+| `HEALTHCHECK_PING_URL` | healthchecks.io ping URL for the cron dead-man switch (PLAN §15) | The URL itself is the secret; anyone with it can ping the check. |
 | `SENTRY_DSN` | Sentry DSN for the Worker and browser reporters (S0.7; both post envelopes with `fetch`, no SDK) | A DSN is not a credential for reading data, but treat it as internal. |
 | `BOOTSTRAP_ADMIN_EMAIL` | The one email that becomes admin on first sign-in (S1.1) | Not a secret, but kept out of the repo so the club's admin address is not public. |
 

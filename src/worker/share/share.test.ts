@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { env } from "cloudflare:test";
+import { env } from "cloudflare:workers";
 
 import { createApp } from "../app";
 import { eventsDeps } from "../events/deps";
@@ -40,11 +40,7 @@ describe("share OG and edge routes (S7.1)", () => {
     );
 
     const app = createApp();
-    const res = await app.request(
-      "https://club.example/e/evilslug",
-      undefined,
-      { ...env, KV: kv } as unknown as Cloudflare.Env,
-    );
+    const res = await app.request("https://club.example/e/evilslug", undefined, { ...env, KV: kv });
 
     expect(res.status).toBe(200);
     const html = await res.text();
@@ -55,8 +51,12 @@ describe("share OG and edge routes (S7.1)", () => {
     expect(html).toContain("&#39;xss&#39;");
     expect(html).toContain("&amp;");
     // Every OG meta tag has properly escaped content.
-    expect(html).toMatch(/<meta property="og:title" content="[^"]*&lt;script&gt;alert\(1\)&lt;\/script&gt;[^"]*"\s*\/?>/);
-    expect(html).toMatch(/<meta property="og:description" content="[^"]*&lt;img src=x[^"]*"\s*\/?>/);
+    expect(html).toMatch(
+      /<meta property="og:title" content="[^"]*&lt;script&gt;alert\(1\)&lt;\/script&gt;[^"]*"\s*\/?>/,
+    );
+    expect(html).toMatch(
+      /<meta property="og:description" content="[^"]*&lt;img src=x[^"]*"\s*\/?>/,
+    );
   });
 
   it("carries noindex, a CSP without unsafe-inline scripts, and no attendee names", async () => {
@@ -75,11 +75,7 @@ describe("share OG and edge routes (S7.1)", () => {
     );
 
     const app = createApp();
-    const res = await app.request(
-      "https://club.example/e/club1234",
-      undefined,
-      { ...env, KV: kv } as unknown as Cloudflare.Env,
-    );
+    const res = await app.request("https://club.example/e/club1234", undefined, { ...env, KV: kv });
 
     expect(res.status).toBe(200);
     expect(res.headers.get("X-Robots-Tag")).toContain("noindex");
@@ -112,11 +108,10 @@ describe("share OG and edge routes (S7.1)", () => {
 
     try {
       const app = createApp();
-      const res1 = await app.request(
-        "https://club.example/e/fromneon1",
-        undefined,
-        { ...env, KV: kv } as unknown as Cloudflare.Env,
-      );
+      const res1 = await app.request("https://club.example/e/fromneon1", undefined, {
+        ...env,
+        KV: kv,
+      });
       expect(res1.status).toBe(200);
       expect(neonCalled).toBe(true);
       const html1 = await res1.text();
@@ -126,11 +121,10 @@ describe("share OG and edge routes (S7.1)", () => {
       configureShareDeps({
         findEventBySlug: () => Promise.reject(new Error("neon_timeout")),
       });
-      const res2 = await app.request(
-        "https://club.example/e/someevent",
-        undefined,
-        { ...env, KV: kv } as unknown as Cloudflare.Env,
-      );
+      const res2 = await app.request("https://club.example/e/someevent", undefined, {
+        ...env,
+        KV: kv,
+      });
       expect(res2.status).toBe(200);
       const html2 = await res2.text();
       expect(html2).toContain("BOLT IF");
@@ -149,20 +143,18 @@ describe("share OG and edge routes (S7.1)", () => {
 
     try {
       const app = createApp();
-      const resEvent = await app.request(
-        "https://club.example/e/doesnotexist",
-        undefined,
-        { ...env, KV: kv } as unknown as Cloudflare.Env,
-      );
+      const resEvent = await app.request("https://club.example/e/doesnotexist", undefined, {
+        ...env,
+        KV: kv,
+      });
       expect(resEvent.status).toBe(404);
       expect(resEvent.headers.get("X-Robots-Tag")).toContain("noindex");
       expect(await resEvent.text()).toContain("We couldn&#39;t find that event");
 
-      const resSeries = await app.request(
-        "https://club.example/s/doesnotexist",
-        undefined,
-        { ...env, KV: kv } as unknown as Cloudflare.Env,
-      );
+      const resSeries = await app.request("https://club.example/s/doesnotexist", undefined, {
+        ...env,
+        KV: kv,
+      });
       expect(resSeries.status).toBe(404);
       expect(await resSeries.text()).toContain("We couldn&#39;t find that series");
     } finally {
@@ -172,7 +164,7 @@ describe("share OG and edge routes (S7.1)", () => {
 
   it("production publishOg writes og:event:<slug> JSON to KV (not a no-op)", async () => {
     const kv = makeKv();
-    const port = eventsDeps().publishOg({ ...env, KV: kv } as unknown as Cloudflare.Env);
+    const port = eventsDeps().publishOg({ ...env, KV: kv });
     const snapshot = ogSnapshot({
       shareSlug: "real1234",
       title: "Real KV Event",

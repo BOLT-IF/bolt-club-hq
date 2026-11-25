@@ -44,7 +44,9 @@ describe("SharePanel (S7.1)", () => {
     );
 
     fireEvent.click(screen.getByRole("button", { name: /share/i }));
-    await waitFor(() => expect(share).toHaveBeenCalledTimes(1));
+    await waitFor(() => {
+      expect(share).toHaveBeenCalledTimes(1);
+    });
     expect(share).toHaveBeenCalledWith(
       expect.objectContaining({
         title: "Thu Mixed Doubles",
@@ -68,7 +70,9 @@ describe("SharePanel (S7.1)", () => {
     );
 
     fireEvent.click(screen.getByRole("button", { name: /share/i }));
-    await waitFor(() => expect(writeText).toHaveBeenCalledTimes(1));
+    await waitFor(() => {
+      expect(writeText).toHaveBeenCalledTimes(1);
+    });
     const copied = writeText.mock.calls[0]?.[0] as string;
     expect(copied).toContain("Thu Mixed Doubles");
     expect(copied).toContain("19:00");

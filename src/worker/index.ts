@@ -26,7 +26,9 @@ export default {
     if (
       pathname.startsWith("/healthz") ||
       pathname.startsWith("/api/") ||
-      pathname.startsWith("/media/")
+      pathname.startsWith("/media/") ||
+      pathname.startsWith("/e/") ||
+      pathname.startsWith("/s/")
     ) {
       return app.fetch(request, env, ctx);
     }

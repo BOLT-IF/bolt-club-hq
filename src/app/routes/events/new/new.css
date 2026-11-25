@@ -67,3 +67,18 @@
   background: var(--bcq-danger-bg);
   border-radius: var(--bcq-radius-sm);
 }
+.bcq-form__group {
+  display: grid;
+  gap: 0.75rem;
+}
+.bcq-form__checks {
+  display: grid;
+  gap: 0.25rem;
+  max-height: 14rem;
+  overflow-y: auto;
+  margin: 0;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--bcq-input-border);
+  border-radius: var(--bcq-radius-sm);
+  background: var(--bcq-card);
+}

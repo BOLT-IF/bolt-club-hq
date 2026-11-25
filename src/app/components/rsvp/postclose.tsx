@@ -153,11 +153,12 @@ export function PostCloseRsvpPanel({ event }: SlotProps) {
   const waitlistCount = state?.waitlistCount ?? 0;
   const maxGuests = event.maxGuestsPerMember;
   const paidEvent = event.kind !== "member_oneoff" && event.adhocFee > 0;
+  const instantPaid = event.allocationMode === "instant";
 
   return (
     <section className="bcq-rsvp" aria-labelledby={headingId}>
       <h2 id={headingId} className="bcq-rsvp__title">
-        Late RSVP &amp; changes
+        {instantPaid ? "Your RSVP" : "Late RSVP & changes"}
       </h2>
 
       {load === "error" ? (
@@ -228,7 +229,11 @@ export function PostCloseRsvpPanel({ event }: SlotProps) {
           <div className="bcq-rsvp__actions">
             {!active ? (
               <Button type="submit" block disabled={busy}>
-                {freeSpots > 0 && waitlistCount === 0 ? "Join late" : "Join waitlist"}
+                {freeSpots > 0 && waitlistCount === 0
+                  ? instantPaid
+                    ? "RSVP"
+                    : "Join late"
+                  : "Join waitlist"}
               </Button>
             ) : (
               <>

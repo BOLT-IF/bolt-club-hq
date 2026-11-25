@@ -3,6 +3,7 @@ import type { ContentfulStatusCode } from "hono/utils/http-status";
 
 import {
   auditLog,
+  eventEligibleMember,
   guest,
   idempotencyRecord,
   joinRequest,
@@ -145,6 +146,7 @@ export async function eraseMember(
       await tx.delete(notificationPref).where(eq(notificationPref.memberId, targetId));
       await tx.delete(seriesCaptain).where(eq(seriesCaptain.memberId, targetId));
       await tx.delete(seriesDiscountEligible).where(eq(seriesDiscountEligible.memberId, targetId));
+      await tx.delete(eventEligibleMember).where(eq(eventEligibleMember.memberId, targetId));
       await tx.delete(idempotencyRecord).where(eq(idempotencyRecord.actorId, targetId));
 
       const memberRsvps = await tx

@@ -1,6 +1,6 @@
 import { and, asc, desc, eq, gt, lte, or } from "drizzle-orm";
 
-import { event, series } from "../../../db/schema";
+import { event, eventEligibleMember, series } from "../../../db/schema";
 import { audit } from "../core/audit";
 import type { Clock } from "../core/clock";
 import type { Db } from "../core/db/client";
@@ -19,10 +19,9 @@ export interface EventsContext {
   onOgError?: (error: unknown) => void;
 }
 
-export type NewEvent = Omit<
-  typeof event.$inferInsert,
-  "id" | "shareSlug" | "closedProcessedAt" | "materialChangeAt"
->;
+export type NewEvent = Omit<typeof event.$inferInsert, "id" | "shareSlug" | "materialChangeAt"> & {
+  eligibleMemberIds?: readonly string[];
+};
 
 /** Fields S3.0 lets an organizer edit. Capacity, times and fees belong to S3.2 and S4.4c. */
 export interface EventPatch {
@@ -48,12 +47,18 @@ export async function createEvent(ctx: EventsContext, input: NewEvent): Promise<
     return hit !== undefined;
   });
 
+  const { eligibleMemberIds, ...eventValues } = input;
   const row = await ctx.db.transaction(async (tx) => {
     const [created] = await tx
       .insert(event)
-      .values({ ...input, id: `evt_${crypto.randomUUID()}`, shareSlug: slug })
+      .values({ ...eventValues, id: `evt_${crypto.randomUUID()}`, shareSlug: slug })
       .returning();
     if (!created) throw new Error("createEvent: insert returned no row");
+    if (eligibleMemberIds && eligibleMemberIds.length > 0) {
+      await tx
+        .insert(eventEligibleMember)
+        .values(eligibleMemberIds.map((memberId) => ({ eventId: created.id, memberId })));
+    }
     await audit(
       tx,
       ctx.clock,

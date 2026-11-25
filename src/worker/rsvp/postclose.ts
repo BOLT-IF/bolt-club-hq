@@ -11,6 +11,7 @@ import { publishEvent } from "../core/events";
 import { idempotent } from "../core/idempotency";
 import { requireActor, requireGuard } from "../core/permissions";
 import type { PrepaidPort } from "../core/ports";
+import { canAccessEvent } from "../events/audience";
 import { rsvpTier } from "../events/oneoff-rules";
 import { createLedgerService } from "../ledger/service";
 import { createNotifyPort } from "../notifications/notify";
@@ -662,6 +663,9 @@ export default new Hono<AppEnv>()
     await closeDueEvents(c.var.db, c.var.clock, { targetEventId: eventId });
     const [e] = await c.var.db.select().from(event).where(eq(event.id, eventId));
     if (!e) return c.json({ error: "not_found" }, 404);
+    if (!(await canAccessEvent(c.var.db, requireActor(c), e))) {
+      return c.json({ error: "not_eligible" }, 403);
+    }
 
     const now = c.var.clock.now();
     const row = await findRsvp(c.var.db, eventId, actorId(c));
@@ -705,8 +709,13 @@ export default new Hono<AppEnv>()
   .put(LATE_PATH, requireGuard("member"), idempotent(`PUT /api/v1${LATE_PATH}`), async (c) => {
     const guests = parseGuests(await c.req.json().catch(() => ({})));
     if (!guests) return c.json({ error: "invalid_body" }, 400);
+    const eventId = c.req.param("id");
+    const [e] = await c.var.db.select().from(event).where(eq(event.id, eventId));
+    if (e && !(await canAccessEvent(c.var.db, requireActor(c), e))) {
+      return c.json({ error: "not_eligible" }, 403);
+    }
     const result = await putLateRsvp(c.var.db, c.var.clock, rsvpDeps().prepaid(c.var.db), {
-      eventId: c.req.param("id"),
+      eventId,
       memberId: actorId(c),
       guests,
     });

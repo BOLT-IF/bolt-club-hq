@@ -16,6 +16,8 @@ export interface EventDetail {
   readonly maxGuestsPerMember: number;
   readonly rsvpCloseAt: string;
   readonly allocationMode: "tiered" | "instant";
+  readonly audienceKind?: "all" | "series" | "members";
+  readonly audienceLabel?: string | null;
   readonly status: "scheduled" | "closed" | "cancelled" | "completed";
   /** Past events cannot be edited. */
   readonly readOnly: boolean;

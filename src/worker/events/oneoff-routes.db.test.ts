@@ -2,7 +2,15 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { Hono } from "hono";
 import { eq } from "drizzle-orm";
 
-import { auditLog, event, series, seriesCaptain, term } from "../../../db/schema";
+import {
+  auditLog,
+  event,
+  notification,
+  pass,
+  series,
+  seriesCaptain,
+  term,
+} from "../../../db/schema";
 import { FixedClock } from "../core/clock";
 import { configureRequestDeps } from "../core/context";
 import { TEST_IDENTITY_HEADER } from "../core/test-identity";
@@ -96,14 +104,21 @@ describe("one-off events (S3.3)", () => {
     expect(audits.map((a) => a.action)).toEqual(["event.create"]);
   });
 
-  it("a member can't set a fee or tiered allocation", async () => {
+  it("a member can set an outside-app cost, but can't create club-billed or tiered events", async () => {
     const m = await makeMember(t.db);
-    for (const over of [{ adhocFee: 100 }, { allocationMode: "tiered" }]) {
+    const ok = await create(m.clerkUserId, { adhocFee: 100 });
+    expect(ok.res.status).toBe(201);
+    expect(await row(ok.body.event!.id)).toMatchObject({
+      kind: "member_oneoff",
+      adhocFee: 100,
+      allocationMode: "instant",
+    });
+    for (const over of [{ allocationMode: "tiered" }, { eventScope: "club" }]) {
       const { res, body } = await create(m.clerkUserId, over);
       expect(res.status).toBe(403);
       expect(body.error).toBe("admin_only");
     }
-    expect(await t.db.select().from(event)).toHaveLength(0);
+    expect(await t.db.select().from(event)).toHaveLength(1);
   });
 
   it("an admin creates a paid, tiered admin one-off", async () => {
@@ -189,5 +204,93 @@ describe("one-off events (S3.3)", () => {
     expect((await send("PATCH", path, owner.clerkUserId, { title: "Owner" })).status).toBe(200);
     expect((await send("PATCH", path, admin.clerkUserId, { title: "Admin" })).status).toBe(200);
     expect((await row(body.event!.id)).title).toBe("Admin");
+  });
+
+  it("notifies eligible members with new_events and restricts access to invited groups", async () => {
+    const organizer = await makeMember(t.db, { displayName: "Org" });
+    const invited = await makeMember(t.db, { displayName: "Invited" });
+    const outsider = await makeMember(t.db, { displayName: "Outsider" });
+    const admin = await makeMember(t.db, { role: "admin", displayName: "Admin" });
+
+    // Picked-members event: only invited gets notified; outsider gets 403 and doesn't see it in /events.
+    const { res, body } = await create(organizer.clerkUserId, {
+      title: "Private Hit",
+      audienceKind: "members",
+      eligibleMemberIds: [invited.id],
+    });
+    expect(res.status).toBe(201);
+    const id = body.event!.id;
+
+    const notifs = await t.db.select().from(notification);
+    expect(notifs.map((n) => ({ memberId: n.memberId, category: n.category }))).toEqual([
+      { memberId: invited.id, category: "new_events" },
+    ]);
+
+    const getAs = (clerkUserId: string, path: string) =>
+      app().request(path, { headers: { [TEST_IDENTITY_HEADER]: clerkUserId } }, testEnv);
+
+    expect((await getAs(invited.clerkUserId, `/events/${id}`)).status).toBe(200);
+    expect((await getAs(organizer.clerkUserId, `/events/${id}`)).status).toBe(200);
+    expect((await getAs(admin.clerkUserId, `/events/${id}`)).status).toBe(200);
+    const blocked = await getAs(outsider.clerkUserId, `/events/${id}`);
+    expect(blocked.status).toBe(403);
+    expect(await blocked.json()).toEqual({ error: "not_eligible" });
+
+    const outsiderList = await (
+      await getAs(outsider.clerkUserId, "/events")
+    ).json<{
+      events: Array<{ id: string }>;
+    }>();
+    expect(outsiderList.events).toHaveLength(0);
+    const invitedList = await (
+      await getAs(invited.clerkUserId, "/events")
+    ).json<{
+      events: Array<{ id: string }>;
+    }>();
+    expect(invitedList.events.map((e) => e.id)).toEqual([id]);
+
+    // Series pass holders group: only active pass holders of that series see and get notified.
+    await t.db.insert(term).values({
+      id: "t_grp",
+      name: "Spring",
+      startsOn: "2027-01-01",
+      endsOn: "2027-06-01",
+      status: "active",
+    });
+    await t.db.insert(series).values({
+      id: "ser_grp",
+      termId: "t_grp",
+      name: "Sunday",
+      format: "open",
+      weekday: 7,
+      startTime: "18:00",
+      durationMin: 120,
+      capacity: 12,
+      passPrice: 1000,
+      adhocFee: 100,
+      shareSlug: "sunday-grp",
+      passCap: 12,
+    });
+    await t.db.insert(pass).values({
+      id: "pas_grp_1",
+      memberId: invited.id,
+      seriesId: "ser_grp",
+      priceCharged: 1000,
+      eventsCovered: 10,
+      status: "active",
+    });
+
+    const seriesEvt = await create(admin.clerkUserId, {
+      title: "Sunday Extra",
+      audienceKind: "series",
+      audienceSeriesId: "ser_grp",
+    });
+    expect(seriesEvt.res.status).toBe(201);
+    expect((await getAs(invited.clerkUserId, `/events/${seriesEvt.body.event!.id}`)).status).toBe(
+      200,
+    );
+    expect((await getAs(outsider.clerkUserId, `/events/${seriesEvt.body.event!.id}`)).status).toBe(
+      403,
+    );
   });
 });

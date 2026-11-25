@@ -2,6 +2,7 @@ import { and, asc, eq, or } from "drizzle-orm";
 
 import {
   auditLog,
+  eventEligibleMember,
   guest,
   joinRequest,
   ledgerEntry,
@@ -42,6 +43,7 @@ export async function exportMemberData(db: Db, clock: Clock, memberId: string) {
     joinRequests,
     seriesCaptains,
     seriesDiscountEligibles,
+    eventEligibilities,
     passes,
     rsvps,
     guests,
@@ -83,6 +85,15 @@ export async function exportMemberData(db: Db, clock: Clock, memberId: string) {
       .from(seriesDiscountEligible)
       .where(eq(seriesDiscountEligible.memberId, memberId))
       .orderBy(asc(seriesDiscountEligible.seriesId)),
+
+    db
+      .select({
+        eventId: eventEligibleMember.eventId,
+        memberId: eventEligibleMember.memberId,
+      })
+      .from(eventEligibleMember)
+      .where(eq(eventEligibleMember.memberId, memberId))
+      .orderBy(asc(eventEligibleMember.eventId)),
 
     db
       .select({
@@ -261,6 +272,7 @@ export async function exportMemberData(db: Db, clock: Clock, memberId: string) {
     joinRequests,
     seriesCaptains,
     seriesDiscountEligibles,
+    eventEligibilities,
     passes,
     rsvps,
     guests,

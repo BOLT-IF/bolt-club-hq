@@ -8,6 +8,7 @@ import * as schema from "../../../db/schema";
 import {
   auditLog,
   event,
+  eventEligibleMember,
   guest,
   idempotencyRecord,
   invite,
@@ -62,6 +63,7 @@ const EXPORT_TABLE_SPEC: Record<string, { exportKey: string; excludedColumns: re
     join_request: { exportKey: "joinRequests", excludedColumns: [] },
     series_captain: { exportKey: "seriesCaptains", excludedColumns: [] },
     series_discount_eligible: { exportKey: "seriesDiscountEligibles", excludedColumns: [] },
+    event_eligible_member: { exportKey: "eventEligibilities", excludedColumns: [] },
     pass: { exportKey: "passes", excludedColumns: ["grantedBy"] },
     rsvp: { exportKey: "rsvps", excludedColumns: [] },
     guest: { exportKey: "guests", excludedColumns: [] },
@@ -231,6 +233,10 @@ describe("privacy: export, erasure, retention (S2.5)", () => {
     });
     await t.db.insert(seriesDiscountEligible).values({
       seriesId: "ser_1",
+      memberId: m.id,
+    });
+    await t.db.insert(eventEligibleMember).values({
+      eventId: "evt_1",
       memberId: m.id,
     });
     await t.db.insert(pass).values({

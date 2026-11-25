@@ -10,6 +10,7 @@ import type { Db, Tx } from "../core/db/client";
 import { publishEvent } from "../core/events";
 import { idempotent } from "../core/idempotency";
 import { requireActor, requireGuard } from "../core/permissions";
+import { canAccessEvent } from "../events/audience";
 import { createLedgerService } from "../ledger/service";
 import { createNotifyPort } from "../notifications/notify";
 import type { AppEnv } from "../types";
@@ -397,9 +398,14 @@ export default new Hono<AppEnv>()
   .post(CLAIM_PATH, requireGuard("member"), idempotent(`POST /api/v1${CLAIM_PATH}`), async (c) => {
     const parsed = parseClaimBody(await c.req.json().catch(() => ({})));
     if (!parsed) return c.json({ error: "invalid_body" }, 400);
+    const eventId = c.req.param("id");
+    const [e] = await c.var.db.select().from(event).where(eq(event.id, eventId));
+    if (e && !(await canAccessEvent(c.var.db, requireActor(c), e))) {
+      return c.json({ error: "not_eligible" }, 403);
+    }
 
     const result = await claimSpot(c.var.db, c.var.clock, {
-      eventId: c.req.param("id"),
+      eventId,
       memberId: actorId(c),
       ...(parsed.guestId ? { guestId: parsed.guestId } : {}),
     });

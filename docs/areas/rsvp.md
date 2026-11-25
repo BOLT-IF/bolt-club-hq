@@ -20,6 +20,10 @@ Errors: 400 `invalid_body` / `guest_limit` (`max`), 404 `not_found` (unknown eve
 - **`rsvp_changed`** outbox event, in the same transaction: `{ eventId, memberId, rsvpId, status, previousStatus, tier, guests, reason: rsvp|cancel|promoted|member_exit }`. Written only when something visible changed.
 - **Ports**: `deps.ts` `configureRsvpDeps({ prepaid })`. The production default is `nobodyPrepaid` (always false) until S5.3.
 - **Member exit**: `cancel.ts` `cancelMemberRsvps(db, clock, { memberId, at, idempotencyKey })` and `rsvpCancelAdapter(db, clock)` match S2.1's `RsvpCancelPort`. Only pre-close RSVPs are cancelled; closed events are left for S4.4a's late-cancel rules.
+- **Close processing (`close.ts`, `close-tick.ts`)**:
+  - Triggered by close-on-read (capped at 5 due events; wired into `GET /events`, `GET /events/:id`, `GET /events/by-slug/:slug`, `GET /series/by-slug/:slug/next` in `events/routes.ts` and `GET /events/:id/rsvp` in `rsvp/routes.ts`) and by the `"rsvp-close"` tick hook registered at module load from `rsvp/routes.ts`.
+  - Runs in one transaction per event: locks the event row (`SELECT … FOR UPDATE SKIP LOCKED`), re-checks `closed_processed_at` / `status === "scheduled"` / `rsvp_close_at <= now`, runs `allocate`, persists `confirmed` (`confirmedAt` from `Clock`, preserving existing pre-close `confirmedAt`) and `waitlisted`, updates the event to `closed`, writes charges via `createLedgerService({ db: tx, clock })` (`close:<eventId>:<memberId>` `adhoc`, `close:<eventId>:guest:<guestId>` `guest` on the host; 0 for `member_oneoff` or zero-fee events; 0 for tier-1 prepaid series members' own seats, still charging them for confirmed guests; everyone confirmed charged on `admin_oneoff`), notifies participants whose status or guest status resolved via `createNotifyPort({ db: tx, clock })` (`rsvp_status`, key `close-notify:<eventId>:<memberId>`, link `/events/<slug>`), and writes an `event_closed` outbox row.
+  - `oneoff-routes.ts` calls `markDue(kv, row.rsvpCloseAt)` on one-off creation; `"rsvp-close"` calls `markDue(ctx.kv, next)` for the earliest remaining unclosed scheduled event.
 
 ## Frontend (`src/app/components/rsvp/`)
 

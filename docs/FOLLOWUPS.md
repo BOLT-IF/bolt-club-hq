@@ -13,6 +13,7 @@ Everything the story agents and the integrator said still needs doing, collected
 - [ ] **Privacy link** on `src/app/routes/auth/SignInPage.tsx` (to `/privacy`, PLAN §16), and optional "Erase member" action on `src/app/routes/admin/members/AdminMembers.tsx`. _(S2.5)_
 - [ ] **Attendance slot visibility after event ends:** remove `!event.readOnly` from `OrganizerToolsSlot` in `src/app/routes/events/EventDetailPage.tsx` (and update `src/app/routes/events/events.test.tsx`) so organizers can mark attendance after `endsAt`. _(S8.1)_
 - [ ] **Post-close exit cancel (optional):** wire `src/worker/rsvp/cancel.ts` (`cancelMemberRsvps`) to also call `lateCancelRsvp` for future closed events when a member is deactivated. _(S4.4a)_
+- [ ] **Money → History link:** on `src/app/routes/money/MoneyPage.tsx`, link event-tied ledger items (`item.eventId !== null`) to `/history?eventId=${item.eventId}`. _(S8.2)_
 - [x] **"Request to join" link** to `/join/event/<slug>` on the event page's 403 state in `EventDetailPage.tsx`. A pending member sees no call to action there. May overlap S7.1. _(S1.3)_ — done in integrator chore PR
 - [x] **Complete the saved RSVP after approval:** call `completeJoinRsvpIntent()` (`src/app/routes/join/joinIntent.ts`) from `src/app/shell/AppRoot.tsx`. Today the saved RSVP only completes when the approved member opens `/join`. _(S1.3)_ — done in integrator chore PR
 - [x] **Inbox unread badge:** wire `badges.inbox` in the shell; `GET /notifications` already returns `unreadCount`. _(S6.1)_ — done in integrator chore PR
@@ -44,7 +45,7 @@ Everything the story agents and the integrator said still needs doing, collected
 - [ ] **S7.1** must call `configureEventsDeps({ publishOg })` and remove the no-op `PublishOgPort` default (DoD 8). OG key is `og:event:<slug>`; the value is a JSON snapshot of public fields only. _(S3.0)_
 - [ ] **S4.2 / S4.4x / S7.1 / S8.x slot fillers** call `registerSlot(name, Component)` from `src/app/routes/events/slots` at module load, in their own `routes.tsx`. Their Owns lines already include the import line in `events/routes.tsx`. _(S3.0)_
 - [ ] **Event creation API:** `createEvent` is the only insert path. Callers: S3.2 (done), S3.3 (done); anything new must use it. _(S3.0)_
-- [x] **S2.5** (own export) passes `allowInactive` on its own-data route (`S8.2` still to do). _(S2.1)_ — S2.5 done in #61
+- [x] **S8.2, S2.5** (own attendance, own export) pass `allowInactive` on their own-data routes. _(S2.1)_ — S2.5 done in #61, S8.2 done in #68
 - [x] **S6.5b** UI uses S6.5a's API: `/admin/reminder-rules`, `/:id/preview`, and the placeholder list in the list response. S6.5a left "poll closing soon" to S9.1 (done there). _(S6.5a)_ — done in #56
 - [ ] **S6.5a** payment-reminder interval counts Stockholm calendar days; deleting a rule that already sent returns 409 (disable instead). Reminders use mute categories `new_events` and `payment_due`. Keep when building the UI. _(S6.5a)_
 - [ ] **S5.6** needs the treasurer's manager.io import format before it can start. _(S2.3)_

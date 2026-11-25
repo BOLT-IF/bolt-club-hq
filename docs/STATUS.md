@@ -1,6 +1,6 @@
 # BOLT HQ: handoff and how to resume
 
-Last updated 2026-11-25. **42 of 48 stories are on `main` (plus integrator chore #55 and unslop #64); 2 stories are in progress (`S8.3`, `S8.2`).** Read this file top to bottom, then `docs/STORIES.md`, `docs/DECISIONS.md` (newest first) and `docs/PLAN.md`. Update this file at the end of every session.
+Last updated 2026-11-25. **44 of 48 stories are on `main` (plus integrator chore #55 and unslop #64); 2 stories are in progress (`S10.1`, `S7.1`).** Read this file top to bottom, then `docs/STORIES.md`, `docs/DECISIONS.md` (newest first) and `docs/PLAN.md`. Update this file at the end of every session.
 
 ## Resume prompt (copy and paste this to a new agent)
 
@@ -17,7 +17,7 @@ Last updated 2026-11-25. **42 of 48 stories are on `main` (plus integrator chore
 | RSVP | S4.1 allocation engine, S4.2 RSVP before close, S4.3 close processing (#59), S4.4a post-close RSVP/cancel/refill (#63), S4.4b claim-a-spot & capacity (#67), S4.4c event cancel & material changes (#66) | merged |
 | Money | S5.1 ledger, S5.2 member money screen, S5.3 passes (#60), S5.4 admin money, S5.5 payment claims & screens (#57) | merged |
 | Notifications | S6.1 inbox and policies, S6.2 web push, S6.3 preferences and mute, S6.4 scheduler, S6.5a reminder engine, S6.5b reminder UI (#56), S6.6 broadcasts | merged |
-| Attendance | S8.1 attendance marking (#65) | merged |
+| Attendance | S8.1 attendance marking (#65), S8.2 member attendance history (#68), S8.3 roster deep link (#69) | merged |
 | Polls and install | S9.1 polls, S9.2 poll images on R2 (#62), S10.2 install and push onboarding | merged |
 | Brand and deploy | BOLT HQ theme, logo icons, KV/Hyperdrive/R2 config (#53), unslop UI polish (#64) | merged |
 | Integrator & import | Chore follow-up wiring (#55), S11.2 member import (#58) | merged |
@@ -28,21 +28,19 @@ Two migrations exist: `0000_initial` and `0001_polls`. Neither has been applied 
 
 | Story | Branch / PR | Notes |
 |---|---|---|
-| S8.3 Roster deep link (club side) | `story/s8.3-roster-link` | Launching |
-| S8.2 Member attendance history | `story/s8.2-attendance-history` | Launching |
+| S10.1 Home dashboard | `story/s10.1-home` | Launching |
+| S7.1 Share links, OG, request to join | `story/s7.1-share-og` | Launching (provisional S0.6 defaults) |
 
-## Not started (4 remaining + 2 human-blocked). Dependencies are all met unless noted
+## Not started (2 remaining + 2 human-blocked). Dependencies are all met unless noted
 
 | Story | Size | Needs | Owns (summary) |
 |---|---|---|---|
 | S5.6 manager.io export | S | S5.4, S2.3 (met) | `src/worker/accounting/`, `src/app/routes/admin/money/export*`. **Blocked on the treasurer confirming the import format** |
-| S10.1 Home dashboard | S | S4.4a, S5.5, S9.1 (met) | `src/app/routes/home/`. May take over `<InstallPrompt/>` from `AppShell` |
-| S7.1 Share links, OG, request to join | M | S3.0, S4.2, S1.3 (met), **S0.6 (not done)** | `src/worker/share/`, `src/app/components/share/`, `src/app/routes/share/`. Must call `configureEventsDeps({ publishOg })` and drop the no-op |
 | S11.1 Club-week scenarios | M | all functional stories | `tests/scenarios/`, `tests/e2e/club-week*` |
 | S11.3 Device QA and launch checklist | S | S11.1, S10.2 | `docs/LAUNCH.md` |
 | **S0.6 Real-device spike** | M | human | Needs a Clerk production instance and a real iPhone and Android. Until it runs, the push batch cap (20) and "hide Google sign-in in the installed iOS app" are provisional |
 
-Fan-out order (at most 2 stories at a time): `(S8.3, S8.2)` → `(S10.1, S7.1)` → `S11.1` → `S11.3`, followed by the final integrator wrap-up PR.
+Fan-out order (at most 2 stories at a time): `(S10.1, S7.1)` → `S11.1` → `S11.3`, followed by the final integrator wrap-up PR.
 
 ## Next steps (do these first)
 

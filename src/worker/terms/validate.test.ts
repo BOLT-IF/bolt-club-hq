@@ -45,8 +45,11 @@ describe("term input", () => {
     expect(parseTermCreate(null).ok).toBe(false);
   });
 
-  it("a patch accepts a status but rejects an unknown one and unknown fields", () => {
+  it("a patch accepts a status, season and clubYear, but rejects unknown values and unknown fields", () => {
     expect(parseTermPatch({ status: "open_for_passes" }).ok).toBe(true);
+    expect(parseTermPatch({ season: "fall", clubYear: 2026 }).ok).toBe(true);
+    expect(parseTermPatch({ season: "winter" }).ok).toBe(false);
+    expect(parseTermPatch({ clubYear: 1999 }).ok).toBe(false);
     expect(parseTermPatch({ status: "archived" }).ok).toBe(false);
     expect(parseTermPatch({ nope: 1 }).ok).toBe(false);
   });

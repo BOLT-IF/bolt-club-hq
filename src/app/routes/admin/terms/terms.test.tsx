@@ -185,6 +185,8 @@ describe("TermsPage", () => {
       name: "Spring 2027",
       startsOn: "2027-01-11",
       endsOn: "2027-06-24",
+      season: "spring",
+      clubYear: 2026,
     });
     await waitFor(() => {
       expect(calls.filter((c) => c.method === "GET" && c.path === "/terms").length).toBeGreaterThan(
@@ -217,6 +219,8 @@ describe("TermsPage", () => {
       name: "Autumn 2027",
       startsOn: "2027-07-05",
       endsOn: "2027-12-20",
+      season: "fall",
+      clubYear: 2027,
     });
     await waitFor(() => {
       expect(window.location.pathname).toBe("/admin/terms/t2");

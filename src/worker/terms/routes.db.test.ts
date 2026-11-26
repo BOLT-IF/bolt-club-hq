@@ -152,6 +152,8 @@ describe("terms, series, captains, clone (S3.1)", () => {
       expect(res.status).toBe(201);
       expect(res.body.term).toMatchObject({
         name: "Spring 2027",
+        season: "spring",
+        clubYear: 2026,
         status: "draft",
         clonedFromTermId: null,
       });
@@ -231,6 +233,33 @@ describe("terms, series, captains, clone (S3.1)", () => {
       expect((await call(admin, "DELETE", "/terms/t1")).status).toBe(409);
       expect((await call(admin, "DELETE", "/terms/t2")).status).toBe(409);
       expect((await call(admin, "DELETE", "/terms/t3")).status).toBe(204);
+    });
+
+    it("supports explicit season/clubYear on create, patch, and clone (auto-inferring when omitted)", async () => {
+      const created = await call(admin, "POST", "/terms", {
+        name: "Fall 2026",
+        startsOn: "2026-08-25",
+        endsOn: "2026-12-15",
+      });
+      expect(created.status).toBe(201);
+      expect(created.body.term).toMatchObject({ season: "fall", clubYear: 2026 });
+
+      const patched = await call(admin, "PATCH", `/terms/${String(created.body.term.id)}`, {
+        season: "spring",
+        clubYear: 2025,
+      });
+      expect(patched.status).toBe(200);
+      expect(patched.body.term).toMatchObject({ season: "spring", clubYear: 2025 });
+
+      const cloned = await call(
+        admin,
+        "POST",
+        `/terms/${String(created.body.term.id)}/clone`,
+        { startsOn: "2027-01-11", endsOn: "2027-06-24" },
+        { "Idempotency-Key": "clone-season-1" },
+      );
+      expect(cloned.status).toBe(201);
+      expect(cloned.body.term).toMatchObject({ season: "spring", clubYear: 2026 });
     });
   });
 

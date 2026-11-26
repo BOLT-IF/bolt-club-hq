@@ -31,6 +31,8 @@ export interface ClubSettingsValue {
   quietHours: QuietHours | null;
   passUnpaidRevokeDays: number;
   autoPromoteCutoffMin: number;
+  clubFeeFallSek: number;
+  clubFeeSpringSek: number;
   defaults: Partial<Record<DefaultKey, number>>;
   accountCodes: Record<string, string>;
   rosterAppUrl: string | null;
@@ -44,6 +46,8 @@ export const DEFAULT_SETTINGS: ClubSettingsValue = {
   quietHours: { start: "22:00", end: "08:00" },
   passUnpaidRevokeDays: 21,
   autoPromoteCutoffMin: 180,
+  clubFeeFallSek: 160,
+  clubFeeSpringSek: 85,
   defaults: {},
   accountCodes: {},
   rosterAppUrl: null,

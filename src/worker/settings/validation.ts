@@ -1,5 +1,6 @@
 import {
   DEFAULT_KEYS,
+  DEFAULT_SETTINGS,
   type BankDetails,
   type ClubSettingsValue,
   type DefaultKey,
@@ -128,6 +129,21 @@ export function validateSettingsInput(input: unknown): ValidationResult {
     errors.autoPromoteCutoffMin = "Enter a whole number of minutes from 0 to 10080";
   }
 
+  const clubFeeFallSek =
+    input.clubFeeFallSek === undefined
+      ? DEFAULT_SETTINGS.clubFeeFallSek
+      : wholeNumber(input.clubFeeFallSek, 0, 100000);
+  if (clubFeeFallSek === undefined) {
+    errors.clubFeeFallSek = "Enter a whole number of kronor from 0 to 100000";
+  }
+  const clubFeeSpringSek =
+    input.clubFeeSpringSek === undefined
+      ? DEFAULT_SETTINGS.clubFeeSpringSek
+      : wholeNumber(input.clubFeeSpringSek, 0, 100000);
+  if (clubFeeSpringSek === undefined) {
+    errors.clubFeeSpringSek = "Enter a whole number of kronor from 0 to 100000";
+  }
+
   const defaults = validateDefaults(input.defaults, errors);
   const accountCodes = validateAccountCodes(input.accountCodes, errors);
 
@@ -151,6 +167,8 @@ export function validateSettingsInput(input: unknown): ValidationResult {
       quietHours: quietHours ?? null,
       passUnpaidRevokeDays: passUnpaidRevokeDays as number,
       autoPromoteCutoffMin: autoPromoteCutoffMin as number,
+      clubFeeFallSek: clubFeeFallSek as number,
+      clubFeeSpringSek: clubFeeSpringSek as number,
       defaults,
       accountCodes,
       rosterAppUrl,

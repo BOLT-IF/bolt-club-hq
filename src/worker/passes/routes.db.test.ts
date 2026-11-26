@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import {
   auditLog,
+  clubFee,
   clubSettings,
   domainEventOutbox,
   ledgerEntry,
@@ -444,9 +445,9 @@ describe("passes routes (S5.3)", () => {
       expect(second.status).toBe(409);
       expect(second.body.error).toBe("pass_already_revoked");
 
-      // Ledger: pass charge was reversed with reason "revocation"; net balance is 0.
+      // Ledger: pass charge was reversed with reason "revocation"; Spring club fee (85 kr) remains.
       const ledger = createLedgerService({ db: t.db, clock });
-      expect(await ledger.balance(buyer.id)).toBe(0);
+      expect(await ledger.balance(buyer.id)).toBe(85);
       const entries = await t.db
         .select()
         .from(ledgerEntry)
@@ -504,7 +505,7 @@ describe("passes routes (S5.3)", () => {
       const ledger = createLedgerService({ db: t.db, clock });
       await ledger.recordPayment({
         memberId: buyer.id,
-        amountSek: 900,
+        amountSek: 985,
         actor: { ...admin, seriesIds: [] },
         idempotencyKey: "pay-full-1",
       });
@@ -555,7 +556,8 @@ describe("passes routes (S5.3)", () => {
       clock.set(new Date(new Date(NOW).getTime() + 25 * DAY_MS));
       const rev = await call(admin, "POST", `/admin/passes/${passId}/revoke`, { body: {} });
       expect(rev.status).toBe(200);
-      expect(await ledger.balance(buyer.id)).toBe(-300);
+      // 300 kr payment minus 85 kr Spring club fee leaves -215 kr credit after pass revocation.
+      expect(await ledger.balance(buyer.id)).toBe(-215);
     });
 
     it("applies the self-ledger guard on revocation when another active admin exists", async () => {
@@ -603,9 +605,10 @@ describe("passes routes (S5.3)", () => {
         priceCharged: 0,
         grantedBy: admin.id,
       });
-      expect(
-        await t.db.select().from(ledgerEntry).where(eq(ledgerEntry.memberId, m.id)),
-      ).toHaveLength(0);
+      // Comp pass adds 0 kr for the pass, and charges the Spring club fee (85 kr) once.
+      const entries = await t.db.select().from(ledgerEntry).where(eq(ledgerEntry.memberId, m.id));
+      expect(entries).toHaveLength(1);
+      expect(entries[0]).toMatchObject({ reason: "club_fee", amountSek: 85 });
     });
 
     it("enforces guards and Idempotency-Key on POST routes", async () => {
@@ -778,6 +781,103 @@ describe("passes routes (S5.3)", () => {
         alreadyOwned: false,
         seatsRemaining: 1,
       });
+    });
+  });
+
+  describe("club fee auto-charge on pass", () => {
+    it("charges Fall fee (160) once on first Fall pass and exempts second Fall pass and Spring pass in same clubYear", async () => {
+      const m = await makeMember(t.db, { displayName: "Fall Buyer" });
+      clock.set("2026-09-01T10:00:00Z");
+
+      await seedSeriesWithDates({
+        termId: "term_fall_1",
+        seriesId: "ser_fall_1",
+        startsOn: "2026-09-03",
+        endsOn: "2026-09-10",
+        passPrice: 1000,
+        eventDates: [{ date: "2026-09-03" }, { date: "2026-09-10" }],
+      });
+      await seedSeriesWithDates({
+        termId: "term_fall_2",
+        seriesId: "ser_fall_2",
+        startsOn: "2026-09-04",
+        endsOn: "2026-09-11",
+        passPrice: 500,
+        eventDates: [{ date: "2026-09-04" }, { date: "2026-09-11" }],
+      });
+      await seedSeriesWithDates({
+        termId: "term_spring",
+        seriesId: "ser_spring",
+        startsOn: "2027-01-14",
+        endsOn: "2027-01-21",
+        passPrice: 800,
+        eventDates: [{ date: "2027-01-14" }, { date: "2027-01-21" }],
+      });
+
+      const ledger = createLedgerService({ db: t.db, clock });
+
+      // First Fall pass: 1000 + 160 = 1160.
+      expect((await call(m, "POST", "/passes", { body: { seriesId: "ser_fall_1" } })).status).toBe(
+        201,
+      );
+      expect(await ledger.balance(m.id)).toBe(1160);
+
+      // Second Fall pass: +500 only (no second club fee).
+      expect((await call(m, "POST", "/passes", { body: { seriesId: "ser_fall_2" } })).status).toBe(
+        201,
+      );
+      expect(await ledger.balance(m.id)).toBe(1660);
+
+      // Spring pass in same clubYear (2026/2027): +800 only (no Spring 85 kr fee!).
+      expect((await call(m, "POST", "/passes", { body: { seriesId: "ser_spring" } })).status).toBe(
+        201,
+      );
+      expect(await ledger.balance(m.id)).toBe(2460);
+
+      const fees = await t.db
+        .select()
+        .from(ledgerEntry)
+        .where(and(eq(ledgerEntry.memberId, m.id), eq(ledgerEntry.reason, "club_fee")));
+      expect(fees).toHaveLength(1);
+      expect(fees[0]).toMatchObject({ amountSek: 160, note: "Club fee — Fall 2026/2027" });
+    });
+
+    it("charges Spring fee (85) to a Spring-only joiner and skips external_fall_paid members", async () => {
+      const springOnly = await makeMember(t.db, { displayName: "Spring Only" });
+      const extPaid = await makeMember(t.db, { displayName: "External Fall Paid" });
+      clock.set("2027-01-05T10:00:00Z");
+
+      await seedSeriesWithDates({
+        termId: "term_spring_27",
+        seriesId: "ser_spring_27",
+        startsOn: "2027-01-14",
+        endsOn: "2027-01-21",
+        passPrice: 900,
+        eventDates: [{ date: "2027-01-14" }, { date: "2027-01-21" }],
+      });
+
+      await t.db.insert(clubFee).values({
+        id: "cf_ext_1",
+        memberId: extPaid.id,
+        clubYear: 2026,
+        season: "fall",
+        kind: "external_fall_paid",
+        amountSek: 0,
+        note: "Paid Fall outside app",
+        recordedBy: admin.id,
+      });
+
+      const ledger = createLedgerService({ db: t.db, clock });
+
+      expect(
+        (await call(springOnly, "POST", "/passes", { body: { seriesId: "ser_spring_27" } })).status,
+      ).toBe(201);
+      expect(await ledger.balance(springOnly.id)).toBe(985);
+
+      expect(
+        (await call(extPaid, "POST", "/passes", { body: { seriesId: "ser_spring_27" } })).status,
+      ).toBe(201);
+      expect(await ledger.balance(extPaid.id)).toBe(900);
     });
   });
 });

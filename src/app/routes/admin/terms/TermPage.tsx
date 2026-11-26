@@ -14,6 +14,7 @@ import {
   STATUS_LABEL,
   WEEKDAYS,
   errorMessage,
+  formatTermPeriod,
   useLoad,
   type SeriesRow,
   type TermRow,
@@ -62,7 +63,7 @@ function TermDetail() {
                 <StatusChip>{STATUS_LABEL[term.status]}</StatusChip>
               </div>
               <p className="bcq-card__meta">
-                {term.startsOn} to {term.endsOn}
+                {term.startsOn} to {term.endsOn} · {formatTermPeriod(term)}
               </p>
               {next ? (
                 <Button

@@ -7,6 +7,7 @@ import { requireGuard } from "../core/permissions";
 import type { AppEnv } from "../types";
 import adminRoutes from "./admin-routes";
 import claimsRoutes from "./claims";
+import clubFeeRoutes from "./club-fees";
 import { createLedgerService } from "./service";
 
 function actorId(c: Context<AppEnv>): string {
@@ -81,4 +82,5 @@ export default new Hono<AppEnv>()
     });
   })
   .route("/", adminRoutes)
-  .route("/", claimsRoutes);
+  .route("/", claimsRoutes)
+  .route("/", clubFeeRoutes);

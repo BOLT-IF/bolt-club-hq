@@ -13,6 +13,7 @@ import {
   seriesDiscountEligible,
   term,
 } from "../../../db/schema";
+import { resolveTermMembershipPeriod } from "../../domain/club-fee";
 import { itemize, type LedgerRow } from "../../domain/ledger";
 import { computePassOffer, passTermsNotice } from "../../domain/proration";
 import { localParts, weeklyOccurrences } from "../../domain/recurrence";
@@ -21,6 +22,7 @@ import type { Clock } from "../core/clock";
 import type { Db, Tx } from "../core/db/client";
 import { publishEvent } from "../core/events";
 import type { CurrentMember } from "../core/ports";
+import { ensureClubFeeForMember } from "../ledger/club-fees";
 import { createLedgerService } from "../ledger/service";
 import { createNotifyPort } from "../notifications/notify";
 import { DEFAULT_SETTINGS } from "../settings/model";
@@ -463,6 +465,14 @@ export async function issuePass(
         idempotencyKey: `pass:${passId}`,
       });
     }
+
+    const period = resolveTermMembershipPeriod(t);
+    await ensureClubFeeForMember(tx, clock, {
+      memberId: input.memberId,
+      clubYear: period.clubYear,
+      season: period.season,
+      ...(input.grant ? { actor: input.grant.actor } : {}),
+    });
 
     const upgradedRsvps = await transitionOpenSeriesRsvps(tx, clock, {
       seriesId: s.id,

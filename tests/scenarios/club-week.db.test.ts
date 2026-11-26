@@ -430,7 +430,7 @@ describe("S11.1 club-week full term scenario", () => {
         asc(ledgerEntry.id),
       );
 
-    expect(entries).toHaveLength(13);
+    expect(entries).toHaveLength(15);
 
     const summary = entries.map((e) => ({
       memberId: e.memberId,
@@ -442,7 +442,7 @@ describe("S11.1 club-week full term scenario", () => {
     }));
 
     expect(summary).toEqual([
-      // 1. Paula pass
+      // 1-2. Paula pass + Spring club fee
       {
         memberId: paula.id,
         kind: "charge",
@@ -451,12 +451,28 @@ describe("S11.1 club-week full term scenario", () => {
         eventId: null,
         hasReversalTarget: false,
       },
-      // 2. Rex pass
+      {
+        memberId: paula.id,
+        kind: "charge",
+        amountSek: 85,
+        reason: "club_fee",
+        eventId: null,
+        hasReversalTarget: false,
+      },
+      // 3-4. Rex pass + Spring club fee
       {
         memberId: rex.id,
         kind: "charge",
         amountSek: 400,
         reason: "pass",
+        eventId: null,
+        hasReversalTarget: false,
+      },
+      {
+        memberId: rex.id,
+        kind: "charge",
+        amountSek: 85,
+        reason: "club_fee",
         eventId: null,
         hasReversalTarget: false,
       },
@@ -559,10 +575,10 @@ describe("S11.1 club-week full term scenario", () => {
     ]);
 
     // Verify reversal pointers point to the exact original charge IDs.
-    expect(entries[5]?.reversesEntryId).toBe(entries[3]?.id); // Leo refill -> Leo adhoc
-    expect(entries[8]?.reversesEntryId).toBe(entries[6]?.id); // Paula free cancel -> Paula clinic
-    expect(entries[9]?.reversesEntryId).toBe(entries[7]?.id); // Paula free cancel -> Guest Gina
-    expect(entries[10]?.reversesEntryId).toBe(entries[1]?.id); // Rex revoke -> Rex pass
+    expect(entries[7]?.reversesEntryId).toBe(entries[5]?.id); // Leo refill -> Leo adhoc
+    expect(entries[10]?.reversesEntryId).toBe(entries[8]?.id); // Paula free cancel -> Paula clinic
+    expect(entries[11]?.reversesEntryId).toBe(entries[9]?.id); // Paula free cancel -> Guest Gina
+    expect(entries[12]?.reversesEntryId).toBe(entries[2]?.id); // Rex revoke -> Rex pass
 
     // Verify final balances via admin balances endpoint.
     const balancesRes = await api(admin, "GET", "/admin/balances");
@@ -573,8 +589,8 @@ describe("S11.1 club-week full term scenario", () => {
         m.balanceSek,
       ]),
     );
-    expect(balById.get(paula.id)).toBe(0);
-    expect(balById.get(rex.id)).toBe(0);
+    expect(balById.get(paula.id)).toBe(85);
+    expect(balById.get(rex.id)).toBe(85);
     expect(balById.get(dana.id)).toBe(120);
     expect(balById.get(leo.id)).toBe(0);
     expect(balById.get(captain.id)).toBe(0);

@@ -109,6 +109,8 @@ describe("validateSettingsInput", () => {
         quietHours: null,
         passUnpaidRevokeDays: 21,
         autoPromoteCutoffMin: 180,
+        clubFeeFallSek: 160,
+        clubFeeSpringSek: 85,
         defaults: {},
         accountCodes: {},
         rosterAppUrl: null,
@@ -219,6 +221,18 @@ describe("validateSettingsInput", () => {
   it("keeps money defaults as whole kronor integers", () => {
     const result = validateSettingsInput({ ...valid, defaults: { passPrice: 1200.5 } });
     expect(!result.ok && result.errors).toHaveProperty("defaults.passPrice");
+  });
+
+  it("validates clubFeeFallSek and clubFeeSpringSek as whole kronor 0..100000", () => {
+    const ok = validateSettingsInput({ ...valid, clubFeeFallSek: 200, clubFeeSpringSek: 0 });
+    expect(ok.ok && ok.value.clubFeeFallSek).toBe(200);
+    expect(ok.ok && ok.value.clubFeeSpringSek).toBe(0);
+
+    const bad = validateSettingsInput({ ...valid, clubFeeFallSek: -1, clubFeeSpringSek: 85.5 });
+    expect(!bad.ok && Object.keys(bad.errors).sort()).toEqual([
+      "clubFeeFallSek",
+      "clubFeeSpringSek",
+    ]);
   });
 });
 

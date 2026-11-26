@@ -1,3 +1,4 @@
+import type { LedgerReason } from "../../domain/ledger";
 import { ledgerEntry, member } from "../../../db/schema";
 import type { Db, Tx } from "../core/db/client";
 
@@ -32,8 +33,7 @@ export async function makeMember(db: Db | Tx, overrides: MemberOverrides = {}) {
 
 export interface LedgerOverrides {
   amountSek: number;
-  reason?:
-    "pass" | "adhoc" | "guest" | "manual" | "payment" | "waiver" | "revocation" | "opening_balance";
+  reason?: LedgerReason;
   kind?: "charge" | "payment" | "reversal" | "adjustment";
   idempotencyKey?: string;
 }

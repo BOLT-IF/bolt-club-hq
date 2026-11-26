@@ -11,6 +11,7 @@ import {
   seriesDiscountEligible,
   term,
 } from "../../../db/schema";
+import { resolveTermMembershipPeriod } from "../../domain/club-fee";
 import { audit } from "../core/audit";
 import { contextMiddleware } from "../core/context";
 import type { Db, Tx } from "../core/db/client";
@@ -132,6 +133,8 @@ export default new Hono<AppEnv>()
         name: term.name,
         startsOn: term.startsOn,
         endsOn: term.endsOn,
+        season: term.season,
+        clubYear: term.clubYear,
         status: term.status,
         clonedFromTermId: term.clonedFromTermId,
         // Hand-qualified: drizzle drops table prefixes in single-table selects, which would make
@@ -149,10 +152,15 @@ export default new Hono<AppEnv>()
     const { db, clock } = c.var;
     const actor = actorOf(c);
     const id = crypto.randomUUID();
+    const period = resolveTermMembershipPeriod({
+      startsOn: parsed.value.startsOn,
+      season: parsed.value.season ?? null,
+      clubYear: parsed.value.clubYear ?? null,
+    });
     const row = await db.transaction(async (tx) => {
       const [created] = await tx
         .insert(term)
-        .values({ id, ...parsed.value })
+        .values({ id, ...parsed.value, season: period.season, clubYear: period.clubYear })
         .returning();
       await audit(
         tx,
@@ -265,6 +273,11 @@ export default new Hono<AppEnv>()
         const sourceSeries = await tx.select().from(series).where(eq(series.termId, sourceId));
 
         const newId = crypto.randomUUID();
+        const period = resolveTermMembershipPeriod({
+          startsOn: parsed.value.startsOn,
+          season: parsed.value.season ?? null,
+          clubYear: parsed.value.clubYear ?? null,
+        });
         const [created] = await tx
           .insert(term)
           .values({
@@ -272,6 +285,8 @@ export default new Hono<AppEnv>()
             name: parsed.value.name ?? `Copy of ${source.name}`,
             startsOn: parsed.value.startsOn,
             endsOn: parsed.value.endsOn,
+            season: period.season,
+            clubYear: period.clubYear,
             clonedFromTermId: sourceId,
           })
           .returning();

@@ -8,6 +8,7 @@ export const ledgerReason = pgEnum("ledger_reason", [
   "pass",
   "adhoc",
   "guest",
+  "club_fee",
   "manual",
   "payment",
   "waiver",
@@ -19,6 +20,8 @@ export const paymentClaimStatus = pgEnum("payment_claim_status", [
   "confirmed",
   "rejected",
 ]);
+export const clubFeeSeason = pgEnum("club_fee_season", ["fall", "spring"]);
+export const clubFeeKind = pgEnum("club_fee_kind", ["charged", "external_fall_paid", "exempt"]);
 
 /**
  * Append-only ledger. Amounts are whole kronor (signed). A Postgres trigger
@@ -59,4 +62,19 @@ export const paymentClaim = pgTable("payment_claim", {
   decidedBy: text("decided_by").references(() => member.id),
   decidedAt: timestamp("decided_at", { withTimezone: true }),
   rejectReason: text("reject_reason"),
+});
+
+export const clubFee = pgTable("club_fee", {
+  id: text("id").primaryKey(),
+  memberId: text("member_id")
+    .notNull()
+    .references(() => member.id),
+  clubYear: integer("club_year").notNull(),
+  season: clubFeeSeason("season").notNull(),
+  kind: clubFeeKind("kind").notNull(),
+  amountSek: integer("amount_sek").notNull(),
+  ledgerEntryId: text("ledger_entry_id").references(() => ledgerEntry.id),
+  note: text("note").notNull().default(""),
+  recordedBy: text("recorded_by").references(() => member.id),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });

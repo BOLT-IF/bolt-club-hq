@@ -31,6 +31,29 @@ export interface AdminPassRow {
   readonly revocable: boolean;
 }
 
+export interface AdminPassOffer {
+  readonly seriesId: string;
+  readonly seriesName: string;
+  readonly termId: string;
+  readonly termName: string;
+  readonly format: string;
+  readonly weekday: number;
+  readonly startTime: string;
+  readonly durationMin: number;
+  readonly location: string | null;
+  readonly passPrice: number;
+  readonly regularPassPrice: number;
+  readonly discounted: boolean;
+  readonly priceSek: number;
+  readonly remainingEvents: number;
+  readonly totalEvents: number;
+  readonly passCap: number;
+  readonly passesSold: number;
+  readonly seatsRemaining: number;
+  readonly alreadyOwned: boolean;
+  readonly termsNotice: string;
+}
+
 export interface LedgerItem {
   readonly id: string;
   readonly kind: "charge" | "payment" | "reversal" | "adjustment";
@@ -105,6 +128,8 @@ const MESSAGES: Record<string, string> = {
   invalid_amount: "Enter whole kronor above 0.",
   note_required: "A reason is required.",
   member_not_found: "That member no longer exists.",
+  invalid_member_id: "Choose a member first.",
+  member_not_active: "Only active members can be assigned a pass.",
   entry_not_found: "That entry no longer exists. Reload the page.",
   already_reversed: "That entry has already been reversed or waived.",
   cannot_reverse_reversal: "A reversal can't be reversed. Add a charge instead.",
@@ -113,9 +138,20 @@ const MESSAGES: Record<string, string> = {
   pass_already_revoked: "That pass has already been revoked.",
   pass_paid: "This pass has been paid and cannot be revoked.",
   revoke_too_early: "This pass cannot be revoked yet.",
+  series_not_found: "That series no longer exists.",
+  term_not_open: "Pass sales for this term are closed.",
+  already_has_pass: "This member already holds an active pass for that series.",
+  pass_cap_reached: "All pass seats for this series are taken.",
+  no_events_remaining: "No sessions remain in this series.",
   idempotency_key_in_progress: "Still saving the first attempt. Try again in a moment.",
   idempotency_conflict: "This was already saved with different details. Reload the page.",
 };
+
+/** A 4xx other than "still running": nothing was written, and the key now replays this answer. */
+export function isFinalRefusal(error: unknown): boolean {
+  if (!(error instanceof ApiError) || error.status < 400 || error.status >= 500) return false;
+  return (error.body as { error?: unknown } | null)?.error !== "idempotency_key_in_progress";
+}
 
 /** Plain-words message for a failed admin money call. */
 export function describeError(error: unknown): string {

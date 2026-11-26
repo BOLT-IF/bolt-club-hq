@@ -146,6 +146,13 @@ export default new Hono<AppEnv>()
     return c.json(await listAdminPasses(c.var.db, c.var.clock));
   })
 
+  .get("/admin/passes/offers", context, requireGuard("admin"), async (c) => {
+    const memberId = c.req.query("memberId")?.trim();
+    if (!memberId) return c.json({ error: "invalid_member_id" }, 400);
+    const data = await listOffersAndPasses(c.var.db, memberId, c.var.clock);
+    return c.json(data);
+  })
+
   .post("/admin/passes", context, requireGuard("admin"), idempotent, async (c) => {
     const parsed = parseAdminGrantBody(await jsonObject(c));
     if (!parsed.ok) return c.json({ error: parsed.error }, 400);

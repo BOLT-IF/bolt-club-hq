@@ -12,6 +12,7 @@ import {
 } from "../../../components/ui";
 import { useFeatureFlag } from "../../../lib/flags";
 import { navigate } from "../../../lib/navigate";
+import { AssignPassSheet } from "./AssignPassSheet";
 import {
   balanceTone,
   describeBalance,
@@ -85,6 +86,7 @@ export function AdminBalances() {
   const [pendingRevoke, setPendingRevoke] = useState<AdminPassRow | null>(null);
   const [revokeKey, setRevokeKey] = useState(newIdempotencyKey);
   const [revoking, setRevoking] = useState(false);
+  const [assignOpen, setAssignOpen] = useState(false);
 
   const load = useCallback((isCancelled: () => boolean = () => false) => {
     Promise.all([
@@ -171,7 +173,7 @@ export function AdminBalances() {
         Balances
       </h1>
       <p className="bcq-member__meta">Members owe {totalOwed} kr in total.</p>
-      <p>
+      <div className="bcq-member__actions bcq-money-actions">
         <a
           className="bcq-btn bcq-btn--secondary"
           href="/admin/money/claims"
@@ -183,7 +185,15 @@ export function AdminBalances() {
         >
           Payment claims
         </a>
-      </p>
+        <Button
+          variant="secondary"
+          onClick={() => {
+            setAssignOpen(true);
+          }}
+        >
+          Assign pass
+        </Button>
+      </div>
 
       <div className="bcq-field">
         <label className="bcq-field__label" htmlFor="balances-search">
@@ -311,6 +321,20 @@ export function AdminBalances() {
         }}
         onConfirm={handleConfirmRevoke}
       />
+
+      {assignOpen ? (
+        <AssignPassSheet
+          members={state.rows}
+          onClose={() => {
+            setAssignOpen(false);
+          }}
+          onAssigned={({ displayName }) => {
+            toast.show(`Assigned pass to ${displayName}.`, "success");
+            setAssignOpen(false);
+            load();
+          }}
+        />
+      ) : null}
     </section>
   );
 }

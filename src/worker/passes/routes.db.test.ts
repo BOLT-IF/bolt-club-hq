@@ -696,4 +696,88 @@ describe("passes routes (S5.3)", () => {
       expect((buyRegular.body as { pass: { priceCharged: number } }).pass.priceCharged).toBe(1000);
     });
   });
+
+  describe("admin pass offers", () => {
+    it("guards the endpoint for admins and validates memberId", async () => {
+      const member = await makeMember(t.db);
+
+      expect((await call(null, "GET", `/admin/passes/offers?memberId=${member.id}`)).status).toBe(
+        401,
+      );
+      expect((await call(member, "GET", `/admin/passes/offers?memberId=${member.id}`)).status).toBe(
+        403,
+      );
+
+      const missing = await call(admin, "GET", "/admin/passes/offers");
+      expect(missing.status).toBe(400);
+      expect(missing.body.error).toBe("invalid_member_id");
+
+      const blank = await call(admin, "GET", "/admin/passes/offers?memberId=%20%20");
+      expect(blank.status).toBe(400);
+      expect(blank.body.error).toBe("invalid_member_id");
+    });
+
+    it("returns member-specific offers with returning discount, alreadyOwned, and seatsRemaining", async () => {
+      const returning = await makeMember(t.db, { displayName: "Returning" });
+      const regular = await makeMember(t.db, { displayName: "Regular" });
+      await seedSeriesWithDates({
+        passPrice: 1200,
+        passCap: 2,
+        startsOn: "2027-03-04",
+        endsOn: "2027-03-11",
+        eventDates: [{ date: "2027-03-04" }, { date: "2027-03-11" }],
+      });
+      await t.db.update(series).set({ discountedPassPrice: 1000 }).where(eq(series.id, "ser_1"));
+      await t.db
+        .insert(seriesDiscountEligible)
+        .values({ seriesId: "ser_1", memberId: returning.id });
+
+      const retRes = await call(admin, "GET", `/admin/passes/offers?memberId=${returning.id}`);
+      expect(retRes.status).toBe(200);
+      expect(retRes.body.offers).toHaveLength(1);
+      expect(retRes.body.offers[0]).toMatchObject({
+        seriesId: "ser_1",
+        seriesName: "Thursday XD",
+        termName: "Spring 2027",
+        priceSek: 1000,
+        regularPassPrice: 1200,
+        discounted: true,
+        remainingEvents: 2,
+        totalEvents: 2,
+        seatsRemaining: 2,
+        alreadyOwned: false,
+      });
+
+      const regRes = await call(admin, "GET", `/admin/passes/offers?memberId=${regular.id}`);
+      expect(regRes.status).toBe(200);
+      expect(regRes.body.offers[0]).toMatchObject({
+        seriesId: "ser_1",
+        priceSek: 1200,
+        regularPassPrice: 1200,
+        discounted: false,
+        seatsRemaining: 2,
+        alreadyOwned: false,
+      });
+
+      const grant = await call(admin, "POST", "/admin/passes", {
+        body: { memberId: returning.id, seriesId: "ser_1" },
+      });
+      expect(grant.status).toBe(201);
+      expect(grant.body.pass.priceCharged).toBe(1000);
+
+      const retAfter = await call(admin, "GET", `/admin/passes/offers?memberId=${returning.id}`);
+      expect(retAfter.status).toBe(200);
+      expect(retAfter.body.offers[0]).toMatchObject({
+        alreadyOwned: true,
+        seatsRemaining: 1,
+      });
+
+      const regAfter = await call(admin, "GET", `/admin/passes/offers?memberId=${regular.id}`);
+      expect(regAfter.status).toBe(200);
+      expect(regAfter.body.offers[0]).toMatchObject({
+        alreadyOwned: false,
+        seatsRemaining: 1,
+      });
+    });
+  });
 });

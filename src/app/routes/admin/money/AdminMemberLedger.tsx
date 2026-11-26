@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState, type SyntheticEvent } from "react";
 
-import { ApiError, apiFetch, newIdempotencyKey } from "../../../api/client";
+import { apiFetch, newIdempotencyKey } from "../../../api/client";
 import {
   BottomSheet,
   Button,
@@ -12,12 +12,14 @@ import {
 } from "../../../components/ui";
 import { useFeatureFlag } from "../../../lib/flags";
 import { useRouteParams } from "../../registry";
+import { AssignPassSheet } from "./AssignPassSheet";
 import {
   REASON_LABEL,
   STATUS_LABEL,
   balanceTone,
   describeBalance,
   describeError,
+  isFinalRefusal,
   parseKronor,
   type LedgerItem,
   type MemberLedger,
@@ -131,12 +133,6 @@ function requestOf(
   }
 }
 
-/** A 4xx other than "still running": nothing was written, and the key now replays this answer. */
-function isFinalRefusal(error: unknown): boolean {
-  if (!(error instanceof ApiError) || error.status < 400 || error.status >= 500) return false;
-  return (error.body as { error?: unknown } | null)?.error !== "idempotency_key_in_progress";
-}
-
 type State =
   | { readonly kind: "loading" }
   | { readonly kind: "error" }
@@ -149,6 +145,7 @@ export function AdminMemberLedger() {
   const toast = useToast();
   const [state, setState] = useState<State>({ kind: "loading" });
   const [action, setAction] = useState<Action | null>(null);
+  const [assignOpen, setAssignOpen] = useState(false);
 
   const load = useCallback(
     (isCancelled: () => boolean = () => false) =>
@@ -208,6 +205,14 @@ export function AdminMemberLedger() {
         </Button>
         <Button variant="secondary" onClick={open({ kind: "writeoff" })}>
           Write off an amount
+        </Button>
+        <Button
+          variant="secondary"
+          onClick={() => {
+            setAssignOpen(true);
+          }}
+        >
+          Assign pass
         </Button>
       </div>
 
@@ -276,6 +281,20 @@ export function AdminMemberLedger() {
             await apiFetch(path, { method: "POST", body, idempotencyKey });
             toast.show(specOf(action, name).done, "success");
             setAction(null);
+            await load();
+          }}
+        />
+      ) : null}
+
+      {assignOpen ? (
+        <AssignPassSheet
+          member={{ id: ledger.member.id, displayName: name }}
+          onClose={() => {
+            setAssignOpen(false);
+          }}
+          onAssigned={async () => {
+            toast.show(`Assigned pass to ${name}.`, "success");
+            setAssignOpen(false);
             await load();
           }}
         />

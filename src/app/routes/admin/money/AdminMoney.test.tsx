@@ -6,6 +6,7 @@ import { ToastProvider } from "../../../components/ui/Toast";
 import { FeatureFlagsProvider } from "../../../lib/flags";
 import { registeredFrontendRoutes } from "../../registry";
 import { AdminBalances } from "./AdminBalances";
+import { AdminClubFees } from "./AdminClubFees";
 import { AdminMemberLedger } from "./AdminMemberLedger";
 
 const bo = {
@@ -130,6 +131,92 @@ interface Call {
   key: string | null;
 }
 
+const clubFeesData = {
+  clubYear: 2026,
+  label: "2026/2027",
+  fallFeeSek: 160,
+  springFeeSek: 85,
+  availableYears: [2026, 2025],
+  summary: {
+    totalMembers: 4,
+    paidFallCount: 2,
+    paidFallInAppCount: 1,
+    paidFallExternalCount: 1,
+    owesFallCount: 0,
+    springCount: 1,
+    paidSpringCount: 0,
+    owesSpringCount: 1,
+    exemptCount: 0,
+    notChargedCount: 1,
+  },
+  members: [
+    {
+      memberId: "m1",
+      displayName: "Ada Fall",
+      paymentRef: "BC-ADA",
+      memberStatus: "active",
+      status: "paid_fall",
+      season: "fall",
+      kind: "charged",
+      paidInFall: true,
+      ledgerEntryId: "led_cf1",
+      clubFeeId: "cf_1",
+      amountSek: 160,
+      oweAmountSek: 0,
+      note: "Club fee — Fall 2026/2027",
+      recordedAt: "2026-09-01T10:00:00.000Z",
+    },
+    {
+      memberId: "m2",
+      displayName: "Bo External",
+      paymentRef: "BC-BO",
+      memberStatus: "active",
+      status: "paid_fall_external",
+      season: "fall",
+      kind: "external_fall_paid",
+      paidInFall: true,
+      ledgerEntryId: null,
+      clubFeeId: "cf_2",
+      amountSek: 0,
+      oweAmountSek: 0,
+      note: "Paid Fall club fee outside app",
+      recordedAt: "2026-09-02T10:00:00.000Z",
+    },
+    {
+      memberId: "m3",
+      displayName: "Cy Spring",
+      paymentRef: "BC-CY",
+      memberStatus: "active",
+      status: "charged_spring_unpaid",
+      season: "spring",
+      kind: "charged",
+      paidInFall: false,
+      ledgerEntryId: "led_cf3",
+      clubFeeId: "cf_3",
+      amountSek: 85,
+      oweAmountSek: 85,
+      note: "Club fee — Spring 2026/2027",
+      recordedAt: "2027-01-10T10:00:00.000Z",
+    },
+    {
+      memberId: "m4",
+      displayName: "Di Uncharged",
+      paymentRef: "BC-DI",
+      memberStatus: "active",
+      status: "not_charged",
+      season: null,
+      kind: null,
+      paidInFall: false,
+      ledgerEntryId: null,
+      clubFeeId: null,
+      amountSek: 0,
+      oweAmountSek: 0,
+      note: "",
+      recordedAt: null,
+    },
+  ],
+};
+
 function stub(
   post: (path: string, body: unknown) => Response = () => json(201, {}),
   offersByMember: Record<string, unknown[]> = {
@@ -156,6 +243,8 @@ function stub(
         const memberId = url.searchParams.get("memberId") ?? "";
         return Promise.resolve(json(200, { offers: offersByMember[memberId] ?? [] }));
       }
+      if (method === "GET" && path.startsWith("/admin/club-fees"))
+        return Promise.resolve(json(200, clubFeesData));
       return Promise.resolve(post(path, body));
     }),
   });
@@ -179,9 +268,10 @@ afterEach(() => {
 });
 
 describe("admin money routes", () => {
-  it("registers the balances and member ledger pages", () => {
+  it("registers the balances, club fees, and member ledger pages", () => {
     const paths = registeredFrontendRoutes().map((r) => r.path);
     expect(paths).toContain("/admin/money");
+    expect(paths).toContain("/admin/money/club-fees");
     expect(paths).toContain("/admin/money/members/:id");
   });
 });
@@ -199,6 +289,9 @@ describe("balances page", () => {
     const list = await screen.findByRole("list", { name: /balances/i });
     expect(screen.getByRole("link", { name: "Payment claims" }).getAttribute("href")).toBe(
       "/admin/money/claims",
+    );
+    expect(screen.getByRole("link", { name: "Club fees" }).getAttribute("href")).toBe(
+      "/admin/money/club-fees",
     );
     expect(within(list).getByText("Bo Berg")).toBeTruthy();
     expect(within(list).getByText(/owes 240 kr/i)).toBeTruthy();
@@ -457,5 +550,74 @@ describe("member ledger page", () => {
     expect(first?.key).toBeTruthy();
     expect(second?.key).toBeTruthy();
     expect(second?.key).not.toBe(first?.key);
+  });
+});
+
+describe("club fees page", () => {
+  beforeEach(() => {
+    window.history.pushState({}, "", "/admin/money/club-fees");
+  });
+
+  it("filters Paid in Fall members and displays summary counts", async () => {
+    stub();
+    renderWith(<AdminClubFees />);
+    const list = await screen.findByRole("list", { name: /club fee members/i });
+    expect(within(list).getByText("Ada Fall")).toBeTruthy();
+    expect(within(list).getByText("Bo External")).toBeTruthy();
+    expect(within(list).getByText("Cy Spring")).toBeTruthy();
+    expect(within(list).getByText("Di Uncharged")).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("radio", { name: "Paid in Fall" }));
+    expect(within(list).getByText("Ada Fall")).toBeTruthy();
+    expect(within(list).getByText("Bo External")).toBeTruthy();
+    expect(within(list).queryByText("Cy Spring")).toBeNull();
+    expect(within(list).queryByText("Di Uncharged")).toBeNull();
+  });
+
+  it("batch charges Spring skipping Fall payers and marks selected members paid in Fall outside app", async () => {
+    const calls = stub((path) => {
+      if (path === "/admin/club-fees/charge") {
+        return json(200, { chargedCount: 1, skippedCount: 3, chargedMemberIds: ["m4"] });
+      }
+      if (path === "/admin/club-fees/mark-external-fall") {
+        return json(200, { markedCount: 1, skippedCount: 0 });
+      }
+      return json(200, {});
+    });
+    renderWith(<AdminClubFees />);
+    await screen.findByRole("list", { name: /club fee members/i });
+
+    // Select not charged -> selects Di Uncharged (m4), then mark paid in Fall (outside app).
+    fireEvent.click(screen.getByRole("button", { name: "Select not charged" }));
+    fireEvent.click(screen.getByRole("button", { name: "Mark paid in Fall (outside app)" }));
+
+    await waitFor(() => {
+      expect(calls.some((c) => c.path === "/admin/club-fees/mark-external-fall")).toBe(true);
+    });
+    expect(calls.find((c) => c.path === "/admin/club-fees/mark-external-fall")).toMatchObject({
+      method: "POST",
+      body: { clubYear: 2026, memberIds: ["m4"] },
+    });
+
+    // Clear selection implicitly happened on reload; batch charge Spring (85 kr) confirms and posts without memberIds.
+    await waitFor(() => {
+      expect(
+        screen.getByRole<HTMLButtonElement>("button", {
+          name: "Mark paid in Fall (outside app)",
+        }).disabled,
+      ).toBe(true);
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Charge Spring fee (85 kr)" }));
+    const dialog = await screen.findByRole("dialog");
+    expect(within(dialog).getByText(/skipped automatically/i)).toBeTruthy();
+    fireEvent.click(within(dialog).getByRole("button", { name: "Confirm charge" }));
+
+    await waitFor(() => {
+      expect(calls.some((c) => c.path === "/admin/club-fees/charge")).toBe(true);
+    });
+    expect(calls.find((c) => c.path === "/admin/club-fees/charge")).toMatchObject({
+      method: "POST",
+      body: { clubYear: 2026, season: "spring" },
+    });
   });
 });

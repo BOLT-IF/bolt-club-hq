@@ -105,6 +105,7 @@ export const REASON_LABEL: Record<string, string> = {
   pass: "Pass",
   adhoc: "Drop-in fee",
   guest: "Guest fee",
+  club_fee: "Club fee",
   manual: "Manual charge",
   payment: "Payment",
   waiver: "Waiver",

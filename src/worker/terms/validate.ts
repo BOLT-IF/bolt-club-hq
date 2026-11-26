@@ -1,3 +1,4 @@
+import type { TermSeason } from "../../domain/club-fee";
 import { TERM_STATUSES, type TermStatus } from "./rules";
 
 export type Parsed<T> = { ok: true; value: T } | { ok: false; error: string };
@@ -48,6 +49,8 @@ export type SeriesFormat = (typeof FORMATS)[number];
 const format: Field<SeriesFormat> = (v) => FORMATS.find((f) => f === v);
 
 const termStatus: Field<TermStatus> = (v) => TERM_STATUSES.find((s) => s === v);
+const termSeason: Field<TermSeason> = (v) => (v === "fall" || v === "spring" ? v : undefined);
+const clubYearField = wholeNumber(2000, 2100);
 
 /** Reads `specs` from `input`. Unknown keys are errors; `required` keys must be present. */
 function read(
@@ -81,14 +84,16 @@ export interface TermCreate {
   name: string;
   startsOn: string;
   endsOn: string;
+  season?: TermSeason;
+  clubYear?: number;
 }
 
 export function parseTermCreate(input: unknown): Parsed<TermCreate> {
-  const r = read(input, { name: text, startsOn: isoDate, endsOn: isoDate }, [
-    "name",
-    "startsOn",
-    "endsOn",
-  ]);
+  const r = read(
+    input,
+    { name: text, startsOn: isoDate, endsOn: isoDate, season: termSeason, clubYear: clubYearField },
+    ["name", "startsOn", "endsOn"],
+  );
   if (!r.ok) return r;
   const order = orderedDates(r.value);
   return order ? fail(order) : { ok: true, value: r.value as unknown as TermCreate };
@@ -99,10 +104,23 @@ export interface TermPatch {
   startsOn?: string;
   endsOn?: string;
   status?: TermStatus;
+  season?: TermSeason;
+  clubYear?: number;
 }
 
 export function parseTermPatch(input: unknown): Parsed<TermPatch> {
-  const r = read(input, { name: text, startsOn: isoDate, endsOn: isoDate, status: termStatus }, []);
+  const r = read(
+    input,
+    {
+      name: text,
+      startsOn: isoDate,
+      endsOn: isoDate,
+      status: termStatus,
+      season: termSeason,
+      clubYear: clubYearField,
+    },
+    [],
+  );
   if (!r.ok) return r;
   if (Object.keys(r.value).length === 0) return fail("nothing to change");
   const order = orderedDates(r.value);
@@ -113,10 +131,16 @@ export interface CloneInput {
   name?: string;
   startsOn: string;
   endsOn: string;
+  season?: TermSeason;
+  clubYear?: number;
 }
 
 export function parseClone(input: unknown): Parsed<CloneInput> {
-  const r = read(input, { name: text, startsOn: isoDate, endsOn: isoDate }, ["startsOn", "endsOn"]);
+  const r = read(
+    input,
+    { name: text, startsOn: isoDate, endsOn: isoDate, season: termSeason, clubYear: clubYearField },
+    ["startsOn", "endsOn"],
+  );
   if (!r.ok) return r;
   const order = orderedDates(r.value);
   return order ? fail(order) : { ok: true, value: r.value as unknown as CloneInput };

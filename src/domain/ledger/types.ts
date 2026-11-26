@@ -7,7 +7,15 @@
 export type LedgerKind = "charge" | "payment" | "reversal" | "adjustment";
 
 export type LedgerReason =
-  "pass" | "adhoc" | "guest" | "manual" | "payment" | "waiver" | "revocation" | "opening_balance";
+  | "pass"
+  | "adhoc"
+  | "guest"
+  | "club_fee"
+  | "manual"
+  | "payment"
+  | "waiver"
+  | "revocation"
+  | "opening_balance";
 
 /** The minimal shape the pure functions need. Callers may pass richer rows (see `itemize`). */
 export interface LedgerRow {

@@ -37,6 +37,7 @@ const REASON_LABEL: Record<string, string> = {
   pass: "Season pass",
   adhoc: "Event fee",
   guest: "Guest fee",
+  club_fee: "Club fee",
   manual: "Charge",
   payment: "Payment",
   waiver: "Waiver",

@@ -1,6 +1,11 @@
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 
 import { ApiError, apiFetch } from "../../../api/client";
+import {
+  formatClubYear,
+  resolveTermMembershipPeriod,
+  type TermSeason,
+} from "../../../../domain/club-fee";
 import { EmptyState, ErrorState, Skeleton } from "../../../components/ui";
 import { useFeatureFlag } from "../../../lib/flags";
 import { goBack } from "../../../lib/navigate";
@@ -12,9 +17,20 @@ export interface TermRow {
   name: string;
   startsOn: string;
   endsOn: string;
+  season?: TermSeason | null;
+  clubYear?: number | null;
   status: TermStatus;
   clonedFromTermId: string | null;
   seriesCount?: number;
+}
+
+export function formatTermPeriod(t: Pick<TermRow, "startsOn" | "season" | "clubYear">): string {
+  const { season, clubYear } = resolveTermMembershipPeriod({
+    startsOn: t.startsOn,
+    season: t.season ?? null,
+    clubYear: t.clubYear ?? null,
+  });
+  return `${season === "fall" ? "Fall" : "Spring"} · ${formatClubYear(clubYear)}`;
 }
 
 export interface SeriesRow {

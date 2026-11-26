@@ -20,6 +20,8 @@ interface Settings {
   quietHours: { start: string; end: string } | null;
   passUnpaidRevokeDays: number;
   autoPromoteCutoffMin: number;
+  clubFeeFallSek?: number;
+  clubFeeSpringSek?: number;
   defaults: Record<string, number>;
   accountCodes: Record<string, string>;
   rosterAppUrl: string | null;
@@ -56,6 +58,8 @@ function toForm(s: Settings): Form {
     quietEnd: s.quietHours?.end ?? "",
     passUnpaidRevokeDays: String(s.passUnpaidRevokeDays),
     autoPromoteCutoffMin: String(s.autoPromoteCutoffMin),
+    clubFeeFallSek: String(s.clubFeeFallSek ?? 160),
+    clubFeeSpringSek: String(s.clubFeeSpringSek ?? 85),
     rosterAppUrl: s.rosterAppUrl ?? "",
   };
   for (const [key] of DEFAULT_FIELDS) form[`default.${key}`] = String(s.defaults[key] ?? "");
@@ -94,6 +98,8 @@ function toBody(f: Form): unknown {
       blank(f.quietStart) && blank(f.quietEnd) ? null : { start: f.quietStart, end: f.quietEnd },
     passUnpaidRevokeDays: num(f.passUnpaidRevokeDays),
     autoPromoteCutoffMin: num(f.autoPromoteCutoffMin),
+    clubFeeFallSek: num(f.clubFeeFallSek),
+    clubFeeSpringSek: num(f.clubFeeSpringSek),
     defaults,
     accountCodes,
     rosterAppUrl: blank(f.rosterAppUrl) ? null : f.rosterAppUrl,
@@ -301,6 +307,18 @@ export default function SettingsPage() {
             hint: "Push messages wait until quiet hours end.",
           })}
           {field("quietEnd", "Quiet hours end", { type: "time" })}
+        </fieldset>
+
+        <fieldset>
+          <legend>Club fees</legend>
+          {field("clubFeeFallSek", "Fall club fee (kr)", {
+            inputMode: "numeric",
+            hint: "Charged once per membership year (Fall–Spring). Members who pay in Fall do not pay again in Spring.",
+          })}
+          {field("clubFeeSpringSek", "Spring joining fee (kr)", {
+            inputMode: "numeric",
+            hint: "Charged only to members joining in Spring who have not already paid the Fall fee.",
+          })}
         </fieldset>
 
         <fieldset>

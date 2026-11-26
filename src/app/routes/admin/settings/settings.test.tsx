@@ -19,6 +19,8 @@ const loaded = {
   quietHours: { start: "22:00", end: "08:00" },
   passUnpaidRevokeDays: 21,
   autoPromoteCutoffMin: 180,
+  clubFeeFallSek: 160,
+  clubFeeSpringSek: 85,
   defaults: {},
   accountCodes: {},
   rosterAppUrl: null,
@@ -87,12 +89,18 @@ describe("admin settings page", () => {
       "value",
       "21",
     );
+    expect(screen.getByLabelText("Fall club fee (kr)")).toHaveProperty("value", "160");
+    expect(screen.getByLabelText("Spring joining fee (kr)")).toHaveProperty("value", "85");
   });
 
   it("saves edits with PUT /admin/settings, including bank name and account number without IBAN or bankgiro", async () => {
     renderPage();
     const url = await screen.findByLabelText("Roster app URL");
     fireEvent.change(url, { target: { value: "https://roster.example.se" } });
+    fireEvent.change(screen.getByLabelText("Fall club fee (kr)"), { target: { value: "200" } });
+    fireEvent.change(screen.getByLabelText("Spring joining fee (kr)"), {
+      target: { value: "100" },
+    });
     fireEvent.change(screen.getByLabelText("Bank name"), { target: { value: "Handelsbanken" } });
     fireEvent.change(screen.getByLabelText("Account number"), {
       target: { value: "6101 123 456 789" },
@@ -113,6 +121,8 @@ describe("admin settings page", () => {
       },
       rosterAppUrl: "https://roster.example.se",
       passUnpaidRevokeDays: 21,
+      clubFeeFallSek: 200,
+      clubFeeSpringSek: 100,
     });
     expect((put.body as { bank: Record<string, unknown> }).bank).not.toHaveProperty("iban");
     expect((put.body as { bank: Record<string, unknown> }).bank).not.toHaveProperty("bankgiro");

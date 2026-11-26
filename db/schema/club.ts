@@ -13,6 +13,7 @@ import {
 import { member } from "./identity";
 
 export const termStatus = pgEnum("term_status", ["draft", "open_for_passes", "active", "closed"]);
+export const termSeason = pgEnum("term_season", ["fall", "spring"]);
 export const seriesFormat = pgEnum("series_format", ["MD", "WD", "XD", "mixed", "open"]);
 
 export const clubSettings = pgTable("club_settings", {
@@ -24,6 +25,8 @@ export const clubSettings = pgTable("club_settings", {
   quietHours: jsonb("quiet_hours"),
   passUnpaidRevokeDays: integer("pass_unpaid_revoke_days").notNull().default(21),
   autoPromoteCutoffMin: integer("auto_promote_cutoff_min").notNull().default(180),
+  clubFeeFallSek: integer("club_fee_fall_sek").notNull().default(160),
+  clubFeeSpringSek: integer("club_fee_spring_sek").notNull().default(85),
   defaults: jsonb("defaults"),
   accountingAccountCodes: jsonb("accounting_account_codes"),
   rosterAppUrl: text("roster_app_url"),
@@ -34,6 +37,8 @@ export const term = pgTable("term", {
   name: text("name").notNull(),
   startsOn: date("starts_on").notNull(),
   endsOn: date("ends_on").notNull(),
+  season: termSeason("season"),
+  clubYear: integer("club_year"),
   status: termStatus("status").notNull().default("draft"),
   clonedFromTermId: text("cloned_from_term_id"),
 });

@@ -105,7 +105,13 @@ export interface LedgerDeps {
   clock: Clock;
 }
 
-const CHARGE_REASONS: ReadonlySet<string> = new Set(["pass", "adhoc", "guest", "manual"]);
+const CHARGE_REASONS: ReadonlySet<string> = new Set([
+  "pass",
+  "adhoc",
+  "guest",
+  "club_fee",
+  "manual",
+]);
 const ADJUST_REASONS: ReadonlySet<string> = new Set(["waiver", "manual", "opening_balance"]);
 const REVERSAL_REASONS: ReadonlySet<string> = new Set(["waiver", "revocation", "manual"]);
 

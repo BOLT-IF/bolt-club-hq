@@ -31,6 +31,7 @@ const kr = (sek: number): string => `${sek < 0 ? "−" : ""}${String(Math.abs(se
 const REASON_LABEL: Record<string, string> = {
   adhoc: "Event fee",
   guest: "Guest fee",
+  club_fee: "Club fee",
   manual: "Charge",
   waiver: "Waiver",
   pass: "Season pass",

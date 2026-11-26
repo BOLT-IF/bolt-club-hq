@@ -193,6 +193,17 @@ export function AdminBalances() {
         >
           Assign pass
         </Button>
+        <a
+          className="bcq-btn bcq-btn--secondary"
+          href="/admin/money/club-fees"
+          onClick={(e) => {
+            if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
+            e.preventDefault();
+            navigate("/admin/money/club-fees");
+          }}
+        >
+          Club fees
+        </a>
       </div>
 
       <div className="bcq-field">

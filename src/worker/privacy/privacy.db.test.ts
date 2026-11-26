@@ -7,6 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import * as schema from "../../../db/schema";
 import {
   auditLog,
+  clubFee,
   event,
   eventEligibleMember,
   guest,
@@ -68,6 +69,7 @@ const EXPORT_TABLE_SPEC: Record<string, { exportKey: string; excludedColumns: re
     rsvp: { exportKey: "rsvps", excludedColumns: [] },
     guest: { exportKey: "guests", excludedColumns: [] },
     ledger_entry: { exportKey: "ledgerEntries", excludedColumns: ["createdBy"] },
+    club_fee: { exportKey: "clubFees", excludedColumns: ["recordedBy"] },
     payment_claim: { exportKey: "paymentClaims", excludedColumns: ["decidedBy"] },
     notification: { exportKey: "notifications", excludedColumns: [] },
     push_subscription: { exportKey: "pushSubscriptions", excludedColumns: ["keys"] },
@@ -269,6 +271,16 @@ describe("privacy: export, erasure, retention (S2.5)", () => {
       amountSek: 120,
       reason: "adhoc",
       idempotencyKey: `charge_${suffix}`,
+    });
+    await t.db.insert(clubFee).values({
+      id: `cf_${suffix}`,
+      memberId: m.id,
+      clubYear: 2026,
+      season: "fall",
+      kind: "external_fall_paid",
+      amountSek: 0,
+      note: `Club fee note ${suffix}`,
+      recordedBy: adminId,
     });
     await t.db.insert(paymentClaim).values({
       id: `claim_${suffix}`,

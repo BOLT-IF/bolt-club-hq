@@ -1,6 +1,8 @@
 /** Club settings as the API sees them (PLAN §5.1 ClubSettings). Money is whole kronor. */
 export interface BankDetails {
   accountHolder?: string;
+  bankName?: string;
+  accountNumber?: string;
   iban?: string;
   bankgiro?: string;
 }

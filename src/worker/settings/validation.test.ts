@@ -2,8 +2,10 @@ import { describe, expect, it } from "vitest";
 
 import { toPublicSettings, DEFAULT_SETTINGS } from "./model";
 import {
+  isValidAccountNumber,
   isValidBankgiro,
   isValidIban,
+  normalizeAccountNumber,
   normalizeBankgiro,
   normalizeIban,
   normalizeRosterAppUrl,
@@ -52,6 +54,23 @@ describe("bankgiro", () => {
   });
 });
 
+describe("bank account number", () => {
+  it("accepts clearing and account numbers with digits, spaces and hyphens and collapses spaces", () => {
+    expect(isValidAccountNumber("8327-9 123 456 789-0")).toBe(true);
+    expect(isValidAccountNumber("12345")).toBe(true);
+    expect(normalizeAccountNumber("  8327-9   123  456 789-0  ")).toBe("8327-9 123 456 789-0");
+  });
+
+  it("rejects too few or too many digits, invalid characters and leading/trailing hyphens", () => {
+    expect(isValidAccountNumber("1234")).toBe(false);
+    expect(isValidAccountNumber("1234567890123456789012345678901")).toBe(false);
+    expect(isValidAccountNumber("8327-9 abc")).toBe(false);
+    expect(isValidAccountNumber("-8327-9 12345")).toBe(false);
+    expect(isValidAccountNumber("8327-9 12345-")).toBe(false);
+    expect(isValidAccountNumber("   ")).toBe(false);
+  });
+});
+
 describe("roster app URL", () => {
   it("accepts https and drops a trailing slash", () => {
     expect(normalizeRosterAppUrl("https://roster.example.se/")).toEqual({
@@ -97,29 +116,62 @@ describe("validateSettingsInput", () => {
     });
   });
 
-  it("normalises bank details and requires at least one of IBAN or bankgiro", () => {
+  it("normalises bank details and accepts bank name + account number without IBAN or bankgiro", () => {
+    const accountOnly = validateSettingsInput({
+      ...valid,
+      bank: {
+        accountHolder: " BOLT IF ",
+        bankName: " Swedbank ",
+        accountNumber: "  8327-9   123 456 789-0 ",
+      },
+    });
+    expect(accountOnly).toMatchObject({
+      ok: true,
+      value: {
+        bank: {
+          accountHolder: "BOLT IF",
+          bankName: "Swedbank",
+          accountNumber: "8327-9 123 456 789-0",
+        },
+      },
+    });
+
     const ok = validateSettingsInput({
       ...valid,
       bank: {
         accountHolder: " BOLT IF ",
+        bankName: " Handelsbanken ",
+        accountNumber: "6101 123 456 789",
         iban: "se45 5000 0000 0583 9825 7466",
         bankgiro: "54029681",
       },
     });
     expect(ok.ok && ok.value.bank).toEqual({
       accountHolder: "BOLT IF",
+      bankName: "Handelsbanken",
+      accountNumber: "6101 123 456 789",
       iban: "SE4550000000058398257466",
       bankgiro: "5402-9681",
     });
 
-    const empty = validateSettingsInput({ ...valid, bank: { accountHolder: "BOLT IF" } });
-    expect(!empty.ok && empty.errors).toHaveProperty("bank");
+    const empty = validateSettingsInput({
+      ...valid,
+      bank: { accountHolder: "BOLT IF", bankName: "Swedbank" },
+    });
+    expect(!empty.ok && empty.errors).toEqual({
+      bank: "Enter a bank account number, bankgiro, or IBAN",
+    });
   });
 
   it("reports each invalid field by name", () => {
     const result = validateSettingsInput({
       clubName: " ",
-      bank: { iban: "SE4550000000058398257467", bankgiro: "1234567" },
+      bank: {
+        bankName: "x".repeat(81),
+        accountNumber: "not-an-account",
+        iban: "SE4550000000058398257467",
+        bankgiro: "1234567",
+      },
       quietHours: { start: "25:00", end: "08:00" },
       passUnpaidRevokeDays: 0,
       autoPromoteCutoffMin: -5,
@@ -133,6 +185,8 @@ describe("validateSettingsInput", () => {
       [
         "accountCodes",
         "autoPromoteCutoffMin",
+        "bank.accountNumber",
+        "bank.bankName",
         "bank.bankgiro",
         "bank.iban",
         "clubName",

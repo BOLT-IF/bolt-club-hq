@@ -150,7 +150,7 @@ type PayInfo = { settings: PaymentSettings | null; paymentRef: string | null };
 function HowToPay({ info }: { readonly info: PayInfo | null }) {
   const toast = useToast();
   const bank = info?.settings?.bank ?? null;
-  const hasBank = Boolean(bank && (bank.bankgiro || bank.iban));
+  const hasBank = Boolean(bank && (bank.accountNumber || bank.bankgiro || bank.iban));
   const ref = info?.paymentRef ?? null;
 
   const copy = (value: string) => {
@@ -180,6 +180,18 @@ function HowToPay({ info }: { readonly info: PayInfo | null }) {
                 <>
                   <dt>Recipient</dt>
                   <dd>{bank.accountHolder}</dd>
+                </>
+              ) : null}
+              {bank.bankName ? (
+                <>
+                  <dt>Bank</dt>
+                  <dd>{bank.bankName}</dd>
+                </>
+              ) : null}
+              {bank.accountNumber ? (
+                <>
+                  <dt>Account number</dt>
+                  <dd>{bank.accountNumber}</dd>
                 </>
               ) : null}
               {bank.bankgiro ? (

@@ -54,6 +54,18 @@ export function isValidBankgiro(raw: string): boolean {
   return /^\d{3,4}-?\d{4}$/.test(raw.trim()) && luhn(raw.replace(/[\s-]/g, ""));
 }
 
+export function normalizeAccountNumber(raw: string): string {
+  return raw.trim().replace(/\s+/g, " ");
+}
+
+/** Swedish clearing + account number: 5–30 digits with optional spaces or hyphens. */
+export function isValidAccountNumber(raw: string): boolean {
+  const normalized = normalizeAccountNumber(raw);
+  if (normalized.length > 40 || !/^[0-9][0-9 -]*[0-9]$/.test(normalized)) return false;
+  const digits = normalized.replace(/[^0-9]/g, "");
+  return digits.length >= 5 && digits.length <= 30;
+}
+
 /** https only, no credentials, query or fragment (the app appends `/planner#import=…`). */
 export function normalizeRosterAppUrl(raw: string): { ok: true; value: string } | { ok: false } {
   const text = raw.trim();
@@ -157,6 +169,16 @@ function validateBank(v: unknown, errors: FieldErrors): BankDetails | null {
   if (holder === undefined) errors["bank.accountHolder"] = "Use up to 80 characters";
   else if (holder) bank.accountHolder = holder;
 
+  const bankName = text(v.bankName, 80);
+  if (bankName === undefined) errors["bank.bankName"] = "Use up to 80 characters";
+  else if (bankName) bank.bankName = bankName;
+
+  if (!isBlank(v.accountNumber)) {
+    if (typeof v.accountNumber === "string" && isValidAccountNumber(v.accountNumber)) {
+      bank.accountNumber = normalizeAccountNumber(v.accountNumber);
+    } else errors["bank.accountNumber"] = "Enter a valid bank account number";
+  }
+
   if (!isBlank(v.iban)) {
     if (typeof v.iban === "string" && isValidIban(v.iban)) bank.iban = normalizeIban(v.iban);
     else errors["bank.iban"] = "Enter a valid IBAN";
@@ -166,8 +188,15 @@ function validateBank(v: unknown, errors: FieldErrors): BankDetails | null {
       bank.bankgiro = normalizeBankgiro(v.bankgiro);
     } else errors["bank.bankgiro"] = "Enter a valid bankgiro number, like 5402-9681";
   }
-  if (!bank.iban && !bank.bankgiro && !errors["bank.iban"] && !errors["bank.bankgiro"]) {
-    errors.bank = "Enter an IBAN or a bankgiro number";
+  if (
+    !bank.accountNumber &&
+    !bank.bankgiro &&
+    !bank.iban &&
+    !errors["bank.accountNumber"] &&
+    !errors["bank.bankgiro"] &&
+    !errors["bank.iban"]
+  ) {
+    errors.bank = "Enter a bank account number, bankgiro, or IBAN";
   }
   return bank;
 }

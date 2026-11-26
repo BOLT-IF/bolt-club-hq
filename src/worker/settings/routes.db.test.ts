@@ -15,7 +15,13 @@ const testEnv = { ENV: "test" } as unknown as Cloudflare.Env;
 const IBAN = "SE4550000000058398257466";
 const body = {
   clubName: "BOLT IF Badminton",
-  bank: { accountHolder: "BOLT IF", iban: IBAN, bankgiro: "5402-9681" },
+  bank: {
+    accountHolder: "BOLT IF",
+    bankName: "Swedbank",
+    accountNumber: "8327-9 123 456 789-0",
+    iban: IBAN,
+    bankgiro: "5402-9681",
+  },
   paymentInstructions: "Use your payment reference.",
   quietHours: { start: "21:30", end: "07:30" },
   passUnpaidRevokeDays: 14,
@@ -120,6 +126,12 @@ describe("club settings routes", () => {
   });
 
   it.each([
+    [
+      "bank name",
+      { bank: { bankName: "x".repeat(81), accountNumber: "8327-9 123 456" } },
+      "bank.bankName",
+    ],
+    ["account number", { bank: { accountNumber: "abc" } }, "bank.accountNumber"],
     ["IBAN", { bank: { iban: "SE4550000000058398257467" } }, "bank.iban"],
     ["bankgiro", { bank: { bankgiro: "5402-9682" } }, "bank.bankgiro"],
     ["roster URL", { rosterAppUrl: "javascript:alert(1)" }, "rosterAppUrl"],
@@ -150,6 +162,34 @@ describe("club settings routes", () => {
     expect(res.status).toBe(400);
   });
 
+  it("saves bank name and account number without IBAN or bankgiro and serves them publicly", async () => {
+    const admin = await makeMember(t.db, { role: "admin" });
+    const member = await makeMember(t.db, { role: "member" });
+    const res = await put(
+      {
+        ...body,
+        bank: {
+          accountHolder: "BOLT IF",
+          bankName: "Swedbank",
+          accountNumber: "8327-9   123 456 789-0",
+        },
+      },
+      admin.clerkUserId,
+    );
+    expect(res.status).toBe(200);
+
+    const pub = await (
+      await get("/settings/public", member.clerkUserId)
+    ).json<{
+      bank: Record<string, string>;
+    }>();
+    expect(pub.bank).toEqual({
+      accountHolder: "BOLT IF",
+      bankName: "Swedbank",
+      accountNumber: "8327-9 123 456 789-0",
+    });
+  });
+
   it("serves the public subset to active and inactive members, never pending or the private fields", async () => {
     const admin = await makeMember(t.db, { role: "admin" });
     const member = await makeMember(t.db, { role: "member" });
@@ -169,7 +209,12 @@ describe("club settings routes", () => {
     );
     expect(pub).toMatchObject({
       clubName: "BOLT IF Badminton",
-      bank: { iban: IBAN, bankgiro: "5402-9681" },
+      bank: {
+        bankName: "Swedbank",
+        accountNumber: "8327-9 123 456 789-0",
+        iban: IBAN,
+        bankgiro: "5402-9681",
+      },
       rosterAppUrl: "https://roster.example.se",
     });
     const text = JSON.stringify(pub);
@@ -191,7 +236,15 @@ describe("club settings routes", () => {
     const res = await configRoutes.request("/config", {}, testEnv);
     expect(res.status).toBe(200);
     const text = JSON.stringify(await res.json());
-    for (const secret of [IBAN, "5402-9681", "3010", "BOLT IF", "passUnpaidRevokeDays"]) {
+    for (const secret of [
+      IBAN,
+      "5402-9681",
+      "8327-9 123 456 789-0",
+      "Swedbank",
+      "3010",
+      "BOLT IF",
+      "passUnpaidRevokeDays",
+    ]) {
       expect(text).not.toContain(secret);
     }
   });

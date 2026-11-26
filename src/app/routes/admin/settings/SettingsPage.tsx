@@ -9,7 +9,13 @@ import "./settings.css";
 /** Shape of GET/PUT /api/v1/admin/settings (src/worker/settings/model.ts). */
 interface Settings {
   clubName: string;
-  bank: { accountHolder?: string; iban?: string; bankgiro?: string } | null;
+  bank: {
+    accountHolder?: string;
+    bankName?: string;
+    accountNumber?: string;
+    iban?: string;
+    bankgiro?: string;
+  } | null;
   paymentInstructions: string | null;
   quietHours: { start: string; end: string } | null;
   passUnpaidRevokeDays: number;
@@ -41,6 +47,8 @@ function toForm(s: Settings): Form {
   const form: Form = {
     clubName: s.clubName,
     accountHolder: s.bank?.accountHolder ?? "",
+    bankName: s.bank?.bankName ?? "",
+    accountNumber: s.bank?.accountNumber ?? "",
     iban: s.bank?.iban ?? "",
     bankgiro: s.bank?.bankgiro ?? "",
     paymentInstructions: s.paymentInstructions ?? "",
@@ -73,6 +81,8 @@ function toBody(f: Form): unknown {
   }
   const bank = {
     ...(blank(f.accountHolder) ? {} : { accountHolder: f.accountHolder }),
+    ...(blank(f.bankName) ? {} : { bankName: f.bankName }),
+    ...(blank(f.accountNumber) ? {} : { accountNumber: f.accountNumber }),
     ...(blank(f.iban) ? {} : { iban: f.iban }),
     ...(blank(f.bankgiro) ? {} : { bankgiro: f.bankgiro }),
   };
@@ -93,6 +103,8 @@ function toBody(f: Form): unknown {
 /** Maps API error paths ("bank.iban") to form keys. */
 const ERROR_KEY: Record<string, string> = {
   "bank.accountHolder": "accountHolder",
+  "bank.bankName": "bankName",
+  "bank.accountNumber": "accountNumber",
   "bank.iban": "iban",
   "bank.bankgiro": "bankgiro",
   "quietHours.start": "quietStart",
@@ -245,9 +257,18 @@ export default function SettingsPage() {
 
         <fieldset>
           <legend>Bank details</legend>
+          {errors.bank ? <p className="bcq-field__error">{errors.bank}</p> : null}
           {field("accountHolder", "Account holder")}
-          {field("iban", "IBAN", { placeholder: "SE45 5000 0000 0583 9825 7466" })}
-          {field("bankgiro", "Bankgiro", { inputMode: "numeric", placeholder: "5402-9681" })}
+          {field("bankName", "Bank name", { placeholder: "Swedbank" })}
+          {field("accountNumber", "Account number", {
+            placeholder: "8327-9 123 456 789-0",
+            hint: "Clearing and account number for direct bank transfers.",
+          })}
+          {field("bankgiro", "Bankgiro (optional)", {
+            inputMode: "numeric",
+            placeholder: "5402-9681",
+          })}
+          {field("iban", "IBAN (optional)", { placeholder: "SE45 5000 0000 0583 9825 7466" })}
           <div className="bcq-field">
             <label htmlFor="settings-paymentInstructions">Payment instructions</label>
             <textarea

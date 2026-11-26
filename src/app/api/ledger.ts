@@ -46,6 +46,8 @@ export function fetchMyLedger(signal?: AbortSignal): Promise<MyLedger> {
 
 export interface PublicBank {
   readonly accountHolder?: string;
+  readonly bankName?: string;
+  readonly accountNumber?: string;
   readonly iban?: string;
   readonly bankgiro?: string;
 }

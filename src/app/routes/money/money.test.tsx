@@ -59,7 +59,13 @@ const owing: MyLedger = {
 
 const settings = {
   clubName: "BOLT IF",
-  bank: { accountHolder: "BOLT IF", iban: "SE4550000000058398257466", bankgiro: "5050-1055" },
+  bank: {
+    accountHolder: "BOLT IF",
+    bankName: "Swedbank",
+    accountNumber: "8327-9 123 456 789-0",
+    iban: "SE4550000000058398257466",
+    bankgiro: "5050-1055",
+  },
   paymentInstructions: "Pay within 14 days.",
   quietHours: null,
   rosterAppUrl: null,
@@ -82,7 +88,7 @@ function json(body: unknown, status = 200): Response {
 
 function stubApi(
   ledger: MyLedger | number,
-  opts: { settings?: unknown; profile?: unknown } = {},
+  opts: { settings?: Record<string, unknown> | null; profile?: unknown } = {},
 ): ReturnType<typeof vi.fn> {
   const fetchMock = vi.fn((input: string) => {
     if (input === "/api/v1/me/ledger") {
@@ -91,9 +97,13 @@ function stubApi(
       );
     }
     if (input === "/api/v1/settings/public") {
-      return Promise.resolve(
-        opts.settings === undefined ? json(settings) : json(opts.settings, 403),
-      );
+      const response =
+        opts.settings === undefined
+          ? json(settings)
+          : opts.settings === null || Object.keys(opts.settings).length === 0
+            ? json(opts.settings, 403)
+            : json(opts.settings, 200);
+      return Promise.resolve(response);
     }
     if (input === "/api/v1/me/profile") {
       return Promise.resolve(opts.profile === undefined ? json(profile) : json({}, 403));
@@ -208,6 +218,8 @@ describe("member money screen", () => {
     renderMoney();
     const howTo = await screen.findByRole("region", { name: "How to pay" });
     await within(howTo).findByText("BOLT-ALEX");
+    expect(within(howTo).getByText("Swedbank")).toBeTruthy();
+    expect(within(howTo).getByText("8327-9 123 456 789-0")).toBeTruthy();
     expect(within(howTo).getByText("5050-1055")).toBeTruthy();
     expect(within(howTo).getByText("SE4550000000058398257466")).toBeTruthy();
     expect(within(howTo).getByText("BOLT IF")).toBeTruthy();
@@ -218,6 +230,29 @@ describe("member money screen", () => {
       expect(writeText).toHaveBeenCalledWith("BOLT-ALEX");
     });
     expect(await screen.findByText("Payment reference copied")).toBeTruthy();
+  });
+
+  it("shows bank name and account number without IBAN or bankgiro", async () => {
+    stubApi(owing, {
+      settings: {
+        clubName: "BOLT IF",
+        bank: {
+          accountHolder: "BOLT IF",
+          bankName: "Handelsbanken",
+          accountNumber: "6101 123 456 789",
+        },
+        paymentInstructions: null,
+      },
+    });
+    renderMoney();
+    const howTo = await screen.findByRole("region", { name: "How to pay" });
+    await within(howTo).findByText("BOLT-ALEX");
+    expect(within(howTo).getByText("BOLT IF")).toBeTruthy();
+    expect(within(howTo).getByText("Handelsbanken")).toBeTruthy();
+    expect(within(howTo).getByText("6101 123 456 789")).toBeTruthy();
+    expect(within(howTo).queryByText("Bankgiro")).toBeNull();
+    expect(within(howTo).queryByText("IBAN")).toBeNull();
+    expect(within(howTo).queryByText(/Ask the treasurer/)).toBeNull();
   });
 
   it("still shows the ledger when settings or profile cannot be read", async () => {

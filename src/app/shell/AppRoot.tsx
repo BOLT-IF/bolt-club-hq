@@ -17,20 +17,50 @@ interface ConfigResponse {
   readonly flags?: FeatureFlags;
 }
 
-/** Loads /api/v1/config. Fails closed: on error every flag reads as off. */
+const FLAGS_CACHE_KEY = "bcq:flags";
+
+function readCachedFlags(): { readonly flags: FeatureFlags; readonly cached: boolean } {
+  try {
+    const raw = window.localStorage.getItem(FLAGS_CACHE_KEY);
+    if (!raw) return { flags: {}, cached: false };
+    const parsed: unknown = JSON.parse(raw);
+    if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
+      return { flags: {}, cached: false };
+    }
+    const flags: Record<string, boolean> = {};
+    for (const [k, v] of Object.entries(parsed)) {
+      if (typeof v === "boolean") flags[k] = v;
+    }
+    return { flags, cached: true };
+  } catch {
+    return { flags: {}, cached: false };
+  }
+}
+
+function writeCachedFlags(flags: FeatureFlags): void {
+  try {
+    window.localStorage.setItem(FLAGS_CACHE_KEY, JSON.stringify(flags));
+  } catch {
+    // Ignore storage quota or private-mode errors.
+  }
+}
+
+/** Loads /api/v1/config, seeding from cached flags to prevent bottom-nav pop-in on reload. */
 function useFlags(): { readonly flags: FeatureFlags; readonly loaded: boolean } {
-  const [state, setState] = useState<{ flags: FeatureFlags; loaded: boolean }>({
-    flags: {},
-    loaded: false,
+  const [state, setState] = useState<{ flags: FeatureFlags; loaded: boolean }>(() => {
+    const { flags, cached } = readCachedFlags();
+    return { flags, loaded: cached };
   });
   useEffect(() => {
     let cancelled = false;
     apiFetch<ConfigResponse>("/config", { skipAuth: true })
       .then((config) => {
-        if (!cancelled) setState({ flags: config.flags ?? {}, loaded: true });
+        const nextFlags = config.flags ?? {};
+        writeCachedFlags(nextFlags);
+        if (!cancelled) setState({ flags: nextFlags, loaded: true });
       })
       .catch(() => {
-        if (!cancelled) setState({ flags: {}, loaded: true });
+        if (!cancelled) setState((prev) => ({ flags: prev.flags, loaded: true }));
       });
     return () => {
       cancelled = true;
@@ -41,7 +71,7 @@ function useFlags(): { readonly flags: FeatureFlags; readonly loaded: boolean } 
 
 export function AppRoot() {
   const path = useCurrentPath();
-  const { flags } = useFlags();
+  const { flags, loaded: flagsLoaded } = useFlags();
   const [inboxUnread, setInboxUnread] = useState(0);
   const [viewer, setViewer] = useState<{
     isAdmin: boolean;
@@ -101,7 +131,7 @@ export function AppRoot() {
   const badges = flags.inbox === true && inboxUnread > 0 ? { inbox: inboxUnread } : {};
 
   return (
-    <FeatureFlagsProvider flags={flags}>
+    <FeatureFlagsProvider flags={flags} loaded={flagsLoaded}>
       <ToastProvider>
         <AppShell
           path={path}

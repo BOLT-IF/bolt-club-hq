@@ -11,7 +11,7 @@ import {
   StatusChip,
   useToast,
 } from "../../../components/ui";
-import { useFeatureFlag } from "../../../lib/flags";
+import { useFeatureFlag, useFeatureFlagsLoaded } from "../../../lib/flags";
 import { navigate } from "../../../lib/navigate";
 import { AssignPassSheet } from "./AssignPassSheet";
 import {
@@ -79,6 +79,7 @@ type State =
 
 /** Admin balances (PLAN §9): search by name or payment reference, filter, open a member. */
 export function AdminBalances() {
+  const flagsLoaded = useFeatureFlagsLoaded();
   const moneyOn = useFeatureFlag("money");
   const toast = useToast();
   const [state, setState] = useState<State>({ kind: "loading" });
@@ -114,6 +115,9 @@ export function AdminBalances() {
     };
   }, [moneyOn, load]);
 
+  if (!flagsLoaded) {
+    return <Skeleton label="Loading balances" />;
+  }
   if (!moneyOn) {
     return <EmptyState title="Money">Money is not switched on yet.</EmptyState>;
   }

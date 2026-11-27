@@ -389,22 +389,11 @@ function Inbox() {
 
   const load = useCallback((signal?: AbortSignal) => {
     fetchNotifications(signal)
-      .then((page: InboxPage) => {
+      .then(async (page: InboxPage) => {
         const dedupedItems = deduplicateNewEvents(page.items);
         const unreadCount = dedupedItems.filter((i) => i.readAt === null).length;
-        setState({ status: "ready", items: dedupedItems, unreadCount });
 
-        if (dedupedItems.some(isJoinRequestNotification)) {
-          apiFetch<{ requests: PendingJoinRequest[] }>("/admin/join-requests", {
-            ...(signal ? { signal } : {}),
-            redirectOnUnauthorized: false,
-          })
-            .then((res) => {
-              if (!signal?.aborted) setJoinRequests(res.requests);
-            })
-            .catch(() => undefined);
-        }
-
+        const hasJoinRequests = dedupedItems.some(isJoinRequestNotification);
         const uniqueSlugs = Array.from(
           new Set(
             dedupedItems
@@ -413,41 +402,55 @@ function Inbox() {
               .filter((s): s is string => s !== null),
           ),
         );
-        if (uniqueSlugs.length > 0) {
-          void Promise.allSettled(
-            uniqueSlugs.map(async (slug) => {
-              const detail = await getEventBySlug(slug);
-              const ev = detail.event;
-              const now = Date.now();
-              const startsMs = ev.startsAt ? Date.parse(ev.startsAt) : Number.NaN;
-              const closeMs = ev.rsvpCloseAt ? Date.parse(ev.rsvpCloseAt) : Number.NaN;
-              const isPast =
-                ev.readOnly ||
-                ev.status === "completed" ||
-                ev.status === "cancelled" ||
-                (!Number.isNaN(startsMs) && startsMs <= now) ||
-                (!Number.isNaN(closeMs) && closeMs <= now);
-              if (isPast) {
-                return [slug, { state: "passed" } satisfies EventActionMeta] as const;
-              }
-              const rsvp = await getMyRsvp(ev.id).catch(() => null);
-              if (rsvp && rsvp.status !== "cancelled" && rsvp.status !== "late_cancelled") {
-                const label = QUICK_STATUS_LABEL[rsvp.status] ?? "Responded";
-                return [slug, { state: "responded", label } satisfies EventActionMeta] as const;
-              }
-              return [slug, { state: "open" } satisfies EventActionMeta] as const;
-            }),
-          ).then((results) => {
-            if (signal?.aborted) return;
-            const next: Record<string, EventActionMeta> = {};
-            for (const res of results) {
-              if (res.status === "fulfilled") {
-                next[res.value[0]] = res.value[1];
-              }
+
+        const [joinRes, slugResults] = await Promise.all([
+          hasJoinRequests
+            ? apiFetch<{ requests: PendingJoinRequest[] }>("/admin/join-requests", {
+                ...(signal ? { signal } : {}),
+                redirectOnUnauthorized: false,
+              }).catch(() => null)
+            : Promise.resolve(null),
+          uniqueSlugs.length > 0
+            ? Promise.allSettled(
+                uniqueSlugs.map(async (slug) => {
+                  const detail = await getEventBySlug(slug);
+                  const ev = detail.event;
+                  const now = Date.now();
+                  const startsMs = ev.startsAt ? Date.parse(ev.startsAt) : Number.NaN;
+                  const closeMs = ev.rsvpCloseAt ? Date.parse(ev.rsvpCloseAt) : Number.NaN;
+                  const isPast =
+                    ev.readOnly ||
+                    ev.status === "completed" ||
+                    ev.status === "cancelled" ||
+                    (!Number.isNaN(startsMs) && startsMs <= now) ||
+                    (!Number.isNaN(closeMs) && closeMs <= now);
+                  if (isPast) {
+                    return [slug, { state: "passed" } satisfies EventActionMeta] as const;
+                  }
+                  const rsvp = await getMyRsvp(ev.id).catch(() => null);
+                  if (rsvp && rsvp.status !== "cancelled" && rsvp.status !== "late_cancelled") {
+                    const label = QUICK_STATUS_LABEL[rsvp.status] ?? "Responded";
+                    return [slug, { state: "responded", label } satisfies EventActionMeta] as const;
+                  }
+                  return [slug, { state: "open" } satisfies EventActionMeta] as const;
+                }),
+              )
+            : Promise.resolve([]),
+        ]);
+
+        if (signal?.aborted) return;
+
+        if (joinRes) setJoinRequests(joinRes.requests);
+        if (slugResults.length > 0) {
+          const next: Record<string, EventActionMeta> = {};
+          for (const res of slugResults) {
+            if (res.status === "fulfilled") {
+              next[res.value[0]] = res.value[1];
             }
-            setEventMetaBySlug(next);
-          });
+          }
+          setEventMetaBySlug(next);
         }
+        setState({ status: "ready", items: dedupedItems, unreadCount });
       })
       .catch(() => {
         if (!signal?.aborted) setState({ status: "error" });

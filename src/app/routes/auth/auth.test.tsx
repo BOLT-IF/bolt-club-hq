@@ -1,11 +1,16 @@
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+const authState = vi.hoisted(() => ({
+  isLoaded: true,
+  isSignedIn: false,
+  getToken: vi.fn<() => Promise<string | null>>(() => Promise.resolve(null)),
+}));
 const captured = vi.hoisted(() => ({ signIn: null as null | Record<string, unknown> }));
 vi.mock("@clerk/react", () => ({
   ClerkProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
-  getToken: () => Promise.resolve(null),
-  useAuth: () => ({ isLoaded: true, isSignedIn: false }),
+  getToken: () => authState.getToken(),
+  useAuth: () => authState,
   SignIn: (props: Record<string, unknown>) => {
     captured.signIn = props;
     return <div data-testid="clerk-sign-in" />;
@@ -32,6 +37,11 @@ function setClient({ ios, standalone }: { ios: boolean; standalone: boolean }) {
 
 beforeEach(() => {
   captured.signIn = null;
+  authState.isLoaded = true;
+  authState.isSignedIn = false;
+  authState.getToken.mockReset();
+  authState.getToken.mockResolvedValue(null);
+  window.sessionStorage.clear();
   window.history.pushState({}, "", "/sign-in");
   setClient({ ios: false, standalone: false });
 });
@@ -101,5 +111,47 @@ describe("SignInPage", () => {
     const elements = elementsOf(captured.signIn);
     expect(elements.socialButtonsRoot).toBeUndefined();
     expect(elements.dividerRow).toBeUndefined();
+  });
+
+  it("does not redirect back to return_to when Clerk reports signed in but getToken returns null", async () => {
+    authState.isSignedIn = true;
+    authState.getToken.mockResolvedValue(null);
+    window.history.pushState({}, "", "/sign-in?return_to=%2F");
+
+    render(
+      <AuthProvider publishableKey="pk_test_abc">
+        <SignInPage />
+      </AuthProvider>,
+    );
+
+    expect(await screen.findByRole("alert")).toBeTruthy();
+    expect(window.location.pathname).toBe("/sign-in");
+  });
+
+  it("redirects to return_to when signed in with a valid token, but stops if it bounces back immediately", async () => {
+    authState.isSignedIn = true;
+    authState.getToken.mockResolvedValue("tok_valid");
+    window.history.pushState({}, "", "/sign-in?return_to=%2F");
+
+    const first = render(
+      <AuthProvider publishableKey="pk_test_abc">
+        <SignInPage />
+      </AuthProvider>,
+    );
+    await vi.waitFor(() => {
+      expect(window.location.pathname).toBe("/");
+    });
+    first.unmount();
+
+    // Simulate / immediately bouncing back to /sign-in on 401.
+    window.history.pushState({}, "", "/sign-in?return_to=%2F");
+    render(
+      <AuthProvider publishableKey="pk_test_abc">
+        <SignInPage />
+      </AuthProvider>,
+    );
+
+    expect(await screen.findByRole("alert")).toBeTruthy();
+    expect(window.location.pathname).toBe("/sign-in");
   });
 });

@@ -182,17 +182,23 @@ export function HomePage() {
             : Promise.resolve({ rsvps: [] as EventWithRsvp[], unanswered: [] as EventDetail[] }),
           moneyOn ? fetchMyLedger() : Promise.resolve(null),
           moneyOn
-            ? apiFetch<{ claims: PaymentClaimSummary[] }>("/me/payment-claims")
+            ? apiFetch<{ claims: PaymentClaimSummary[] }>("/me/payment-claims", {
+                redirectOnUnauthorized: false,
+              })
             : Promise.resolve({ claims: [] as PaymentClaimSummary[] }),
           moneyOn && isActive
             ? fetchPassOffers()
             : Promise.resolve({ offers: [], passes: [] as MemberPass[] }),
           pollsOn && isActive ? listPolls() : Promise.resolve([] as Poll[]),
           actor.role === "admin" && isActive
-            ? apiFetch<{ requests: unknown[] }>("/admin/join-requests")
+            ? apiFetch<{ requests: unknown[] }>("/admin/join-requests", {
+                redirectOnUnauthorized: false,
+              })
             : Promise.resolve(null),
           actor.role === "admin" && isActive && moneyOn
-            ? apiFetch<{ claims: unknown[] }>("/admin/payment-claims")
+            ? apiFetch<{ claims: unknown[] }>("/admin/payment-claims", {
+                redirectOnUnauthorized: false,
+              })
             : Promise.resolve(null),
         ]);
 

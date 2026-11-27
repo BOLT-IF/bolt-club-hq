@@ -1,22 +1,40 @@
-import { useState, type SyntheticEvent } from "react";
+import { useRef, useState } from "react";
 
 import { ApiError, apiFetch } from "../../../../api/client";
-import { BottomSheet, Button, EmptyState, StatusChip, useToast } from "../../../../components/ui";
-import { useRouteParams } from "../../../registry";
 import {
-  AreaGate,
-  BackLink,
-  Loaded,
-  TextField,
-  WEEKDAYS,
-  errorMessage,
-  toWhole,
-  useLoad,
-} from "../shared";
+  BottomSheet,
+  Button,
+  ConfirmDialog,
+  EmptyState,
+  StatusChip,
+  useToast,
+} from "../../../../components/ui";
+import { useBackTarget } from "../../../../shell/AppShell";
+import { useRouteParams } from "../../../registry";
+import { AreaGate, Loaded, TextField, WEEKDAYS, errorMessage, toWhole, useLoad } from "../shared";
 import "../terms.css";
 
 /** Club time zone (PLAN A1). Display only; the server does all date maths. */
 const ZONE = "Europe/Stockholm";
+
+function LockIcon() {
+  return (
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <rect width="18" height="11" x="3" y="11" rx="2" ry="2" />
+      <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+    </svg>
+  );
+}
 
 interface OccurrenceEvent {
   id: string;
@@ -96,6 +114,11 @@ function Schedule() {
   );
 }
 
+function setsEqual(a: ReadonlySet<string>, b: readonly string[]): boolean {
+  if (a.size !== b.length) return false;
+  return b.every((item) => a.has(item));
+}
+
 function ScheduleBody({
   base,
   data,
@@ -111,6 +134,10 @@ function ScheduleBody({
   const [lockBlocked, setLockBlocked] = useState(false);
   const [busy, setBusy] = useState(false);
   const [editing, setEditing] = useState<OccurrenceEvent | null>(null);
+
+  useBackTarget({ label: series.name, fallback: `/admin/terms/series/${series.id}` });
+
+  const hasSkipChanges = !setsEqual(skip, series.skipDates);
 
   async function generate() {
     setBusy(true);
@@ -153,33 +180,42 @@ function ScheduleBody({
 
   return (
     <>
-      <BackLink to={`/admin/terms/series/${series.id}`}>Series</BackLink>
-      <h1 className="bcq-page__title">{series.name}: schedule</h1>
-      <p className="bcq-card__meta">
-        {`Every ${WEEKDAYS[series.weekday - 1] ?? ""} at ${series.startTime} (Stockholm time)`}
-      </p>
-      <Button disabled={busy} onClick={() => void generate()}>
-        Generate events
-      </Button>
-      <p className="bcq-card__meta">
-        Creates the missing nights only. Edited and cancelled nights are left as they are.
-      </p>
+      <div>
+        <h1 className="bcq-page__title">{series.name} Schedule</h1>
+        <p className="bcq-card__meta" style={{ marginTop: "0.3rem" }}>
+          {`Every ${WEEKDAYS[series.weekday - 1] ?? ""} at ${series.startTime} (Stockholm time)`}
+        </p>
+      </div>
+
+      <div>
+        <Button block disabled={busy} onClick={() => void generate()}>
+          Generate Events
+        </Button>
+        <p className="bcq-card__meta" style={{ marginTop: "0.45rem" }}>
+          Creates missing nights only. Edited and cancelled nights stay unchanged.
+        </p>
+      </div>
 
       {series.skipDatesLocked ? (
-        <p className="bcq-notice">
-          Skip-dates are locked because passes are on sale. Changing them needs an override.
+        <p className="bcq-terms-info-banner">
+          <span className="bcq-terms-info-banner__icon" aria-hidden="true">
+            <LockIcon />
+          </span>
+          <span>
+            Skip-dates are locked because passes are on sale. Changing them requires an override.
+          </span>
         </p>
       ) : null}
 
-      <h2 className="bcq-section-title">Occurrences</h2>
+      <h2 className="bcq-terms-sec-label">Occurrences ({occurrences.length})</h2>
       {occurrences.length === 0 ? (
-        <EmptyState title="No dates">This term has no dates for this weekday.</EmptyState>
+        <EmptyState title="No Dates">This term has no dates for this weekday</EmptyState>
       ) : (
         <ul className="bcq-list">
           {occurrences.map((o) => (
             <li key={o.date} className="bcq-card">
               <div className="bcq-card__row">
-                <span className="bcq-card__title">
+                <span className="bcq-card__title bcq-terms-input--tabular">
                   {dayLabel(o.date)}
                   {o.event ? ` · ${localTime(o.event.startsAt)}` : ""}
                 </span>
@@ -190,7 +226,7 @@ function ScheduleBody({
                 ) : o.skipped ? (
                   <StatusChip tone="warning">Skipped</StatusChip>
                 ) : (
-                  <StatusChip>Not generated</StatusChip>
+                  <StatusChip>Not Generated</StatusChip>
                 )}
               </div>
               {o.event ? (
@@ -200,7 +236,8 @@ function ScheduleBody({
                   </span>
                   {o.event.status === "scheduled" ? (
                     <Button
-                      variant="secondary"
+                      variant="tonal"
+                      className="bcq-btn--compact bcq-occ-edit-btn"
                       aria-label={`Edit ${dayLabel(o.date)}`}
                       onClick={() => {
                         setEditing(o.event);
@@ -211,9 +248,12 @@ function ScheduleBody({
                   ) : null}
                 </div>
               ) : (
-                <label className="bcq-check">
+                <div className="bcq-occ-switch-row">
+                  <span className="bcq-occ-switch-row__label">Skip this date</span>
                   <input
                     type="checkbox"
+                    role="switch"
+                    className="bcq-switch"
                     checked={skip.has(o.date)}
                     aria-label={`Skip ${dayLabel(o.date)}`}
                     onChange={(e) => {
@@ -225,28 +265,34 @@ function ScheduleBody({
                       });
                     }}
                   />
-                  <span>Skip this date</span>
-                </label>
+                </div>
               )}
             </li>
           ))}
         </ul>
       )}
 
-      {lockBlocked ? (
-        <div role="alert" className="bcq-notice">
-          <p>
-            Passes are already on sale for this series. Buyers were told how many nights they get,
-            so change skip-dates only if you must.
-          </p>
-          <Button variant="danger" disabled={busy} onClick={() => void saveSkips(true)}>
-            Save anyway
-          </Button>
-        </div>
+      {!series.skipDatesLocked || hasSkipChanges ? (
+        <Button
+          variant="tonal"
+          disabled={busy || !hasSkipChanges}
+          onClick={() => void saveSkips(false)}
+        >
+          Save Skip-Dates
+        </Button>
       ) : null}
-      <Button variant="secondary" disabled={busy} onClick={() => void saveSkips(false)}>
-        Save skip-dates
-      </Button>
+
+      <ConfirmDialog
+        open={lockBlocked}
+        title="Override Locked Skip-Dates?"
+        description="Passes are already on sale for this series. Buyers were told how many nights they get, so change skip-dates only if you must."
+        confirmLabel={busy ? "Saving…" : "Save Anyway"}
+        destructive
+        onConfirm={() => void saveSkips(true)}
+        onCancel={() => {
+          if (!busy) setLockBlocked(false);
+        }}
+      />
 
       <EditSheet
         base={base}
@@ -275,23 +321,24 @@ function EditSheet({
   readonly onClose: () => void;
   readonly onSaved: () => void;
 }) {
-  return (
-    <BottomSheet open={event !== null} title="Edit occurrence" onClose={onClose}>
-      {event ? <EditForm key={event.id} base={base} event={event} onSaved={onSaved} /> : null}
-    </BottomSheet>
-  );
+  return event ? (
+    <EditForm key={event.id} base={base} event={event} onClose={onClose} onSaved={onSaved} />
+  ) : null;
 }
 
 function EditForm({
   base,
   event,
+  onClose,
   onSaved,
 }: {
   readonly base: string;
   readonly event: OccurrenceEvent;
+  readonly onClose: () => void;
   readonly onSaved: () => void;
 }) {
   const toast = useToast();
+  const formRef = useRef<HTMLFormElement>(null);
   const initial = {
     location: event.location ?? "",
     capacity: String(event.capacity),
@@ -329,6 +376,7 @@ function EditForm({
         method: "PATCH",
         body,
       });
+      setBlocked(null);
       onSaved();
     } catch (error) {
       const err = codeOf(error);
@@ -346,8 +394,8 @@ function EditForm({
     }
   }
 
-  function submit(e: SyntheticEvent) {
-    e.preventDefault();
+  function runSubmit() {
+    if (formRef.current?.reportValidity() === false) return;
     const body = changes();
     if (body === null) {
       toast.show("Capacity and guests must be whole numbers.", "danger");
@@ -363,39 +411,83 @@ function EditForm({
   };
 
   return (
-    <form className="bcq-form" onSubmit={submit}>
-      <TextField label="Location" value={form.location} onChange={set("location")} />
-      <TextField
-        label="Start time"
-        type="time"
-        value={form.startTime}
-        onChange={set("startTime")}
-        hint="Stockholm time. The RSVP close time moves with it."
+    <>
+      <BottomSheet
+        open
+        title="Edit Occurrence"
+        onClose={() => {
+          if (!busy) onClose();
+        }}
+        footer={
+          <div className="bcq-terms-sheet-footer">
+            <Button type="button" disabled={busy} onClick={runSubmit}>
+              {busy ? "Saving…" : "Save"}
+            </Button>
+            <Button
+              type="button"
+              variant="tonal"
+              disabled={busy}
+              onClick={() => {
+                if (!busy) onClose();
+              }}
+            >
+              Cancel
+            </Button>
+          </div>
+        }
+      >
+        <form
+          ref={formRef}
+          className="bcq-form"
+          onSubmit={(e) => {
+            e.preventDefault();
+            runSubmit();
+          }}
+        >
+          <TextField label="Location" value={form.location} onChange={set("location")} />
+          <TextField
+            label="Start Time"
+            type="time"
+            value={form.startTime}
+            onChange={set("startTime")}
+            hint="Stockholm time. The RSVP close time moves with it."
+          />
+          <div className="bcq-terms-grid-2">
+            <TextField
+              label="Capacity"
+              type="number"
+              value={form.capacity}
+              onChange={set("capacity")}
+            />
+            <TextField
+              label="Guests Per Member"
+              type="number"
+              value={form.guests}
+              onChange={set("guests")}
+            />
+          </div>
+        </form>
+      </BottomSheet>
+
+      <ConfirmDialog
+        open={blocked !== null}
+        title="Override Pass Cap?"
+        description={
+          blocked
+            ? `That puts the pass cap at ${String(blocked.passCap)}, below the ${String(blocked.passesSold)} passes already sold.`
+            : ""
+        }
+        confirmLabel={busy ? "Saving…" : "Save Anyway"}
+        destructive
+        onConfirm={() => {
+          if (blocked && !busy) {
+            void save({ ...blocked.changes, overrideCapBelowSold: true });
+          }
+        }}
+        onCancel={() => {
+          if (!busy) setBlocked(null);
+        }}
       />
-      <TextField label="Capacity" type="number" value={form.capacity} onChange={set("capacity")} />
-      <TextField
-        label="Guests per member"
-        type="number"
-        value={form.guests}
-        onChange={set("guests")}
-      />
-      {blocked ? (
-        <div role="alert" className="bcq-notice">
-          <p>
-            {`That would put the pass cap at ${String(blocked.passCap)}, below the ${String(blocked.passesSold)} passes already sold.`}
-          </p>
-          <Button
-            variant="danger"
-            disabled={busy}
-            onClick={() => void save({ ...blocked.changes, overrideCapBelowSold: true })}
-          >
-            Save anyway
-          </Button>
-        </div>
-      ) : null}
-      <Button type="submit" disabled={busy}>
-        Save
-      </Button>
-    </form>
+    </>
   );
 }

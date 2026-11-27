@@ -247,9 +247,10 @@ describe("TermPage", () => {
     stub({ "GET /terms/t1": { term: term(), series: [seriesRow()] } });
     renderPage(<TermPage />);
     expect(await screen.findByRole("heading", { name: "Spring 2027" })).toBeTruthy();
+    expect(screen.getByText("Jan 11 – Jun 24, 2027 · Spring · 2026/2027")).toBeTruthy();
     const link = screen.getByRole("link", { name: /Thursday XD/ });
     expect(link.getAttribute("href")).toBe("/admin/terms/series/s1");
-    expect(screen.getByRole("heading", { name: "Add a Series" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Add Series" })).toBeTruthy();
   });
 
   it("offers only the next status, and warns that opening locks skip-dates", async () => {
@@ -259,11 +260,11 @@ describe("TermPage", () => {
       "PATCH /terms/t1": { term: term({ status: "open_for_passes" }) },
     });
     renderPage(<TermPage />);
-    await user.click(await screen.findByRole("button", { name: "Move to Open for passes" }));
+    await user.click(await screen.findByRole("button", { name: "Move to Open for Passes" }));
 
     const dialog = screen.getByRole("dialog");
     expect(within(dialog).getByText(/skip-dates/i)).toBeTruthy();
-    await user.click(within(dialog).getByRole("button", { name: "Open for passes" }));
+    await user.click(within(dialog).getByRole("button", { name: "Open for Passes" }));
 
     await waitFor(() => {
       expect(calls.some((c) => c.method === "PATCH")).toBe(true);
@@ -278,24 +279,25 @@ describe("TermPage", () => {
     expect(screen.queryByRole("button", { name: /^Move to/ })).toBeNull();
   });
 
-  it("adds a series with whole-kronor prices", async () => {
+  it("adds a series with whole-kronor prices via bottom sheet", async () => {
     const user = userEvent.setup();
     stub({
       "GET /terms/t1": { term: term(), series: [] },
       "POST /series": { series: seriesRow() },
     });
     renderPage(<TermPage />);
-    await screen.findByRole("heading", { name: "Add a Series" });
+    await user.click(await screen.findByRole("button", { name: "Add Series" }));
+    const dialog = await screen.findByRole("dialog", { name: "Add Series" });
 
-    await user.type(screen.getByLabelText("Name"), "Thursday XD");
-    await user.selectOptions(screen.getByLabelText("Format"), "XD");
-    await user.selectOptions(screen.getByLabelText("Weekday"), "4");
-    await user.type(screen.getByLabelText("Start time"), "19:00");
-    await user.type(screen.getByLabelText("Duration (minutes)"), "90");
-    await user.type(screen.getByLabelText("Capacity"), "16");
-    await user.type(screen.getByLabelText("Pass price (kr)"), "1800");
-    await user.type(screen.getByLabelText("Drop-in fee (kr)"), "120");
-    await user.click(screen.getByRole("button", { name: "Add Series" }));
+    await user.type(within(dialog).getByLabelText("Name"), "Thursday XD");
+    await user.selectOptions(within(dialog).getByLabelText("Format"), "XD");
+    await user.selectOptions(within(dialog).getByLabelText("Weekday"), "4");
+    await user.type(within(dialog).getByLabelText("Start Time"), "19:00");
+    await user.type(within(dialog).getByLabelText("Duration (Minutes)"), "90");
+    await user.type(within(dialog).getByLabelText("Capacity"), "16");
+    await user.type(within(dialog).getByLabelText("Pass Price (kr)"), "1800");
+    await user.type(within(dialog).getByLabelText("Drop-In Fee (kr)"), "120");
+    await user.click(within(dialog).getByRole("button", { name: "Add Series" }));
 
     await waitFor(() => {
       expect(calls.some((c) => c.method === "POST" && c.path === "/series")).toBe(true);
@@ -331,21 +333,25 @@ describe("SeriesPage", () => {
     },
   };
 
-  it("shows the pass cap and the current captains", async () => {
+  it("shows the pass cap, schedule link and current captains summary", async () => {
+    const user = userEvent.setup();
     stub(base);
     renderPage(<SeriesPage />);
     expect(await screen.findByRole("heading", { name: "Thursday XD" })).toBeTruthy();
-    expect(screen.getByText(/pass cap/i).textContent).toContain("16");
+    expect(screen.getByText(/Pass Cap 16/)).toBeTruthy();
+    expect(screen.getByRole("link", { name: /Schedule & Occurrences/ }).getAttribute("href")).toBe(
+      "/admin/terms/series/s1/schedule",
+    );
+    expect(screen.getByText("Ada Captain")).toBeTruthy();
+
+    await user.click(await screen.findByRole("button", { name: "Manage Captains" }));
+    const dialog = await screen.findByRole("dialog", { name: "Manage Captains" });
     expect(
-      screen.getByRole("link", { name: "Schedule and occurrences" }).getAttribute("href"),
-    ).toBe("/admin/terms/series/s1/schedule");
-    // The candidate list loads separately from the series, so wait for it.
-    const captains = await screen.findByRole("group", { name: "Captains" });
-    const ada = within(captains).getByRole<HTMLInputElement>("checkbox", { name: "Ada Captain" });
-    expect(ada.checked).toBe(true);
+      within(dialog).getByRole("checkbox", { name: "Ada Captain" }).getAttribute("aria-checked"),
+    ).toBe("true");
     expect(
-      within(captains).getByRole<HTMLInputElement>("checkbox", { name: "Bo Player" }).checked,
-    ).toBe(false);
+      within(dialog).getByRole("checkbox", { name: "Bo Player" }).getAttribute("aria-checked"),
+    ).toBe("false");
   });
 
   it("saves the chosen captains as a full replacement", async () => {
@@ -355,9 +361,10 @@ describe("SeriesPage", () => {
       "PUT /series/s1/captains": { series: seriesRow() },
     });
     renderPage(<SeriesPage />);
-    const captains = await screen.findByRole("group", { name: "Captains" });
-    await user.click(within(captains).getByRole("checkbox", { name: "Bo Player" }));
-    await user.click(screen.getByRole("button", { name: "Save captains" }));
+    await user.click(await screen.findByRole("button", { name: "Manage Captains" }));
+    const dialog = await screen.findByRole("dialog", { name: "Manage Captains" });
+    await user.click(within(dialog).getByRole("checkbox", { name: "Bo Player" }));
+    await user.click(within(dialog).getByRole("button", { name: "Save" }));
 
     await waitFor(() => {
       expect(calls.some((c) => c.method === "PUT")).toBe(true);
@@ -365,7 +372,7 @@ describe("SeriesPage", () => {
     expect(calls.find((c) => c.method === "PUT")!.body).toEqual({ memberIds: ["m1", "m2"] });
   });
 
-  it("explains a blocked capacity change and lets an admin override it", async () => {
+  it("explains a blocked capacity change in a confirmation sheet and lets an admin override it", async () => {
     const user = userEvent.setup();
     let attempt = 0;
     stub(base);
@@ -387,7 +394,10 @@ describe("SeriesPage", () => {
             }),
           );
         if (method === "GET" && path === "/series/s1") return json(200, base["GET /series/s1"]);
-        if (method === "GET") return json(200, base["GET /series/captain-candidates"]);
+        if (method === "GET" && path === "/series/captain-candidates") {
+          return json(200, base["GET /series/captain-candidates"]);
+        }
+        if (method === "GET") return json(404, {});
         attempt += 1;
         return attempt === 1
           ? json(409, { error: "cap_below_passes_sold", passCap: 8, passesSold: 12 })
@@ -395,14 +405,16 @@ describe("SeriesPage", () => {
       },
     });
     renderPage(<SeriesPage />);
-    const capacity = await screen.findByLabelText("Capacity");
+    await user.click(await screen.findByRole("button", { name: "Edit Details" }));
+    const editDialog = await screen.findByRole("dialog", { name: "Edit Series Details" });
+    const capacity = within(editDialog).getByLabelText("Capacity");
     await user.clear(capacity);
     await user.type(capacity, "8");
-    await user.click(screen.getByRole("button", { name: "Save changes" }));
+    await user.click(within(editDialog).getByRole("button", { name: "Save Changes" }));
 
-    const alert = await screen.findByRole("alert");
-    expect(alert.textContent).toMatch(/12 passes/);
-    await user.click(screen.getByRole("button", { name: "Save anyway" }));
+    const confirm = await screen.findByRole("dialog", { name: "Override Pass Cap?" });
+    expect(confirm.textContent).toMatch(/12 passes/);
+    await user.click(within(confirm).getByRole("button", { name: "Save Anyway" }));
 
     await waitFor(() => {
       expect(calls.filter((c) => c.method === "PATCH")).toHaveLength(2);
@@ -428,18 +440,22 @@ describe("SeriesPage", () => {
     });
     renderPage(<TermPage />);
     await screen.findByText("Thursday XD");
-
-    await user.type(screen.getByLabelText("Name"), "Sunday Open");
-    await user.type(screen.getByLabelText("Start time"), "18:00");
-    await user.type(screen.getByLabelText("Duration (minutes)"), "120");
-    await user.type(screen.getByLabelText("Capacity"), "16");
-    await user.type(screen.getByLabelText("Pass price (kr)"), "1000");
-    await user.type(screen.getByLabelText("Discounted pass price (kr, optional)"), "750");
-    await user.type(screen.getByLabelText("Drop-in fee (kr)"), "100");
-
-    const eligibleGroup = screen.getByRole("group", { name: "Eligible for discounted rate" });
-    await user.click(within(eligibleGroup).getByLabelText("Ada Lovelace"));
     await user.click(screen.getByRole("button", { name: "Add Series" }));
+    const dialog = await screen.findByRole("dialog", { name: "Add Series" });
+
+    await user.type(within(dialog).getByLabelText("Name"), "Sunday Open");
+    await user.type(within(dialog).getByLabelText("Start Time"), "18:00");
+    await user.type(within(dialog).getByLabelText("Duration (Minutes)"), "120");
+    await user.type(within(dialog).getByLabelText("Capacity"), "16");
+    await user.type(within(dialog).getByLabelText("Pass Price (kr)"), "1000");
+    await user.type(within(dialog).getByLabelText("Discounted Price (kr, Optional)"), "750");
+    await user.type(within(dialog).getByLabelText("Drop-In Fee (kr)"), "100");
+
+    const eligibleGroup = within(dialog).getByRole("group", {
+      name: "Eligible for Discounted Rate (Optional)",
+    });
+    await user.click(within(eligibleGroup).getByRole("button", { name: "Ada Lovelace" }));
+    await user.click(within(dialog).getByRole("button", { name: "Add Series" }));
 
     await waitFor(() => {
       const post = calls.find((c) => c.method === "POST" && c.path === "/series");

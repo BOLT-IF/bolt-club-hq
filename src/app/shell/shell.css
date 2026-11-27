@@ -78,6 +78,7 @@ body {
   align-items: center;
   gap: 0.5rem;
   margin-left: auto;
+  flex-shrink: 0;
   font: 600 0.9375rem/1 var(--bcq-font);
   letter-spacing: 0.02em;
   color: #fff;
@@ -94,6 +95,7 @@ body {
   display: inline-flex;
   align-items: center;
   gap: 0.25rem;
+  min-width: 0;
   min-height: var(--bcq-touch);
   padding: 0 0.75rem 0 0.5rem;
   border: none;
@@ -103,6 +105,11 @@ body {
   font: 500 1rem/1 var(--bcq-font);
   cursor: pointer;
   transition: background-color 140ms var(--bcq-ease);
+}
+.bcq-back__label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .bcq-back:hover {
   background: rgb(255 255 255 / 0.12);

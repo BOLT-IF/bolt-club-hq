@@ -7,8 +7,23 @@ import {
   type TermSeason,
 } from "../../../../domain/club-fee";
 import { EmptyState, ErrorState, Skeleton } from "../../../components/ui";
+import { cx } from "../../../lib/cx";
 import { useFeatureFlag } from "../../../lib/flags";
-import { goBack } from "../../../lib/navigate";
+
+const MONTHS = [
+  "Jan",
+  "Feb",
+  "Mar",
+  "Apr",
+  "May",
+  "Jun",
+  "Jul",
+  "Aug",
+  "Sep",
+  "Oct",
+  "Nov",
+  "Dec",
+] as const;
 
 export type TermStatus = "draft" | "open_for_passes" | "active" | "closed";
 
@@ -24,6 +39,30 @@ export interface TermRow {
   seriesCount?: number;
 }
 
+function parseIsoDate(iso: string): { year: number; month: number; day: number } | null {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
+  if (!match) return null;
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  if (month < 1 || month > 12 || day < 1 || day > 31) return null;
+  return { year, month, day };
+}
+
+/** Human-readable date range (e.g., "Jan 17 – May 16, 2027"). Omits first year when same year. */
+export function formatDateRange(startsOn: string, endsOn: string): string {
+  const s = parseIsoDate(startsOn);
+  const e = parseIsoDate(endsOn);
+  if (!s || !e) return `${startsOn} – ${endsOn}`;
+  const sMonth = MONTHS[s.month - 1];
+  const eMonth = MONTHS[e.month - 1];
+  if (!sMonth || !eMonth) return `${startsOn} – ${endsOn}`;
+  if (s.year === e.year) {
+    return `${sMonth} ${String(s.day)} – ${eMonth} ${String(e.day)}, ${String(e.year)}`;
+  }
+  return `${sMonth} ${String(s.day)}, ${String(s.year)} – ${eMonth} ${String(e.day)}, ${String(e.year)}`;
+}
+
 export function formatTermPeriod(t: Pick<TermRow, "startsOn" | "season" | "clubYear">): string {
   const { season, clubYear } = resolveTermMembershipPeriod({
     startsOn: t.startsOn,
@@ -31,6 +70,46 @@ export function formatTermPeriod(t: Pick<TermRow, "startsOn" | "season" | "clubY
     clubYear: t.clubYear ?? null,
   });
   return `${season === "fall" ? "Fall" : "Spring"} · ${formatClubYear(clubYear)}`;
+}
+
+export function PlusIcon({ size = 16 }: { readonly size?: number }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.25"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <line x1="12" y1="5" x2="12" y2="19" />
+      <line x1="5" y1="12" x2="19" y2="12" />
+    </svg>
+  );
+}
+
+export function CalendarIcon({ size = 16 }: { readonly size?: number }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <rect x="3" y="4" width="18" height="18" rx="2" />
+      <line x1="16" y1="2" x2="16" y2="6" />
+      <line x1="8" y1="2" x2="8" y2="6" />
+      <line x1="3" y1="10" x2="21" y2="10" />
+    </svg>
+  );
 }
 
 export interface SeriesRow {
@@ -59,7 +138,7 @@ export interface SeriesRow {
 
 export const STATUS_LABEL: Record<TermStatus, string> = {
   draft: "Draft",
-  open_for_passes: "Open for passes",
+  open_for_passes: "Open for Passes",
   active: "Active",
   closed: "Closed",
 };
@@ -82,6 +161,14 @@ export const WEEKDAYS = [
 ] as const;
 
 export const FORMATS = ["MD", "WD", "XD", "mixed", "open"] as const;
+
+export const FORMAT_LABEL: Record<string, string> = {
+  MD: "MD",
+  WD: "WD",
+  XD: "XD",
+  mixed: "Mixed",
+  open: "Open",
+};
 
 const MESSAGES: Record<string, string> = {
   invalid_transition: "That status change isn't allowed from here.",
@@ -143,12 +230,12 @@ export function useLoad<T>(path: string): LoadState<T> {
 /** Keeps the whole area dark until the events flag is on. */
 export function AreaGate({ children }: { readonly children: ReactNode }) {
   if (!useFeatureFlag("events")) {
-    return <EmptyState title="Terms & series">This area is not available yet.</EmptyState>;
+    return <EmptyState title="Terms & Series">This area is not available yet.</EmptyState>;
   }
   return <>{children}</>;
 }
 
-/** Page frame: gate, title, explicit back control target, loading and error states. */
+/** Page frame: gate, loading and error states. */
 export function Loaded<T>({
   load,
   children,
@@ -163,26 +250,12 @@ export function Loaded<T>({
   return load.data ? <>{children(load.data)}</> : null;
 }
 
-export function BackLink({ to, children }: { readonly to: string; readonly children: ReactNode }) {
-  return (
-    <a
-      href={to}
-      className="bcq-link"
-      onClick={(event) => {
-        event.preventDefault();
-        goBack(to);
-      }}
-    >
-      {children}
-    </a>
-  );
-}
-
 export function TextField({
   label,
   value,
   onChange,
   type = "text",
+  placeholder,
   hint,
   required = false,
 }: {
@@ -190,16 +263,21 @@ export function TextField({
   readonly value: string;
   readonly onChange: (value: string) => void;
   readonly type?: "text" | "date" | "time" | "number";
+  readonly placeholder?: string;
   readonly hint?: string;
   readonly required?: boolean;
 }) {
   return (
-    <label className="bcq-field">
-      <span className="bcq-field__label">{label}</span>
+    <label className="bcq-terms-field">
+      <span className="bcq-terms-field__label">{label}</span>
       <input
-        className="bcq-input"
+        className={cx(
+          "bcq-terms-input",
+          (type === "number" || type === "time" || type === "date") && "bcq-terms-input--tabular",
+        )}
         type={type}
         value={value}
+        placeholder={placeholder}
         required={required}
         inputMode={type === "number" ? "numeric" : undefined}
         min={type === "number" ? 0 : undefined}
@@ -207,7 +285,7 @@ export function TextField({
           onChange(event.target.value);
         }}
       />
-      {hint ? <span className="bcq-field__hint">{hint}</span> : null}
+      {hint ? <span className="bcq-terms-field__hint">{hint}</span> : null}
     </label>
   );
 }
@@ -224,10 +302,10 @@ export function SelectField({
   readonly options: ReadonlyArray<{ value: string; label: string }>;
 }) {
   return (
-    <label className="bcq-field">
-      <span className="bcq-field__label">{label}</span>
+    <label className="bcq-terms-field">
+      <span className="bcq-terms-field__label">{label}</span>
       <select
-        className="bcq-input"
+        className="bcq-terms-input"
         value={value}
         onChange={(event) => {
           onChange(event.target.value);

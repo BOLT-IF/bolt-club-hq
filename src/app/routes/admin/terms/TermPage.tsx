@@ -1,25 +1,42 @@
 import { useState } from "react";
 
 import { apiFetch } from "../../../api/client";
-import { ConfirmDialog, StatusChip, useToast } from "../../../components/ui";
-import { Button } from "../../../components/ui";
+import {
+  Button,
+  ChevronRightIcon,
+  CompactEmptyState,
+  ConfirmDialog,
+  StatusChip,
+  useToast,
+  type StatusTone,
+} from "../../../components/ui";
 import { navigate } from "../../../lib/navigate";
 import { useRouteParams } from "../../registry";
-import { SeriesForm } from "./SeriesForm";
+import { SeriesFormSheet } from "./SeriesForm";
 import {
   AreaGate,
-  BackLink,
+  CalendarIcon,
+  FORMAT_LABEL,
   Loaded,
   NEXT_STATUS,
+  PlusIcon,
   STATUS_LABEL,
   WEEKDAYS,
   errorMessage,
+  formatDateRange,
   formatTermPeriod,
   useLoad,
   type SeriesRow,
   type TermRow,
+  type TermStatus,
 } from "./shared";
 import "./terms.css";
+
+function termStatusTone(status: TermStatus): StatusTone {
+  if (status === "active") return "success";
+  if (status === "open_for_passes") return "sky";
+  return "neutral";
+}
 
 export function TermPage() {
   return (
@@ -37,6 +54,7 @@ function TermDetail() {
   );
   const toast = useToast();
   const [confirming, setConfirming] = useState(false);
+  const [addOpen, setAddOpen] = useState(false);
 
   async function advance(to: string) {
     setConfirming(false);
@@ -51,23 +69,27 @@ function TermDetail() {
 
   return (
     <section className="bcq-page bcq-stack">
-      <BackLink to="/admin/terms">Terms &amp; Series</BackLink>
       <Loaded load={load}>
         {({ term, series }) => {
           const next = NEXT_STATUS[term.status];
           const nextLabel = next ? STATUS_LABEL[next] : "";
           return (
             <>
-              <div className="bcq-card__row">
-                <h1 className="bcq-page__title">{term.name}</h1>
-                <StatusChip>{STATUS_LABEL[term.status]}</StatusChip>
+              <div>
+                <div className="bcq-card__row">
+                  <h1 className="bcq-page__title">{term.name}</h1>
+                  <StatusChip tone={termStatusTone(term.status)}>
+                    {STATUS_LABEL[term.status]}
+                  </StatusChip>
+                </div>
+                <p className="bcq-card__meta" style={{ marginTop: "0.35rem" }}>
+                  {formatDateRange(term.startsOn, term.endsOn)} · {formatTermPeriod(term)}
+                </p>
               </div>
-              <p className="bcq-card__meta">
-                {term.startsOn} to {term.endsOn} · {formatTermPeriod(term)}
-              </p>
+
               {next ? (
                 <Button
-                  variant="secondary"
+                  variant="tonal"
                   onClick={() => {
                     setConfirming(true);
                   }}
@@ -75,6 +97,7 @@ function TermDetail() {
                   {`Move to ${nextLabel}`}
                 </Button>
               ) : null}
+
               <ConfirmDialog
                 open={confirming}
                 title={`Move to ${nextLabel}?`}
@@ -92,53 +115,78 @@ function TermDetail() {
                 }}
               />
 
-              <h2 className="bcq-section-title">Series</h2>
+              <div className="bcq-terms-sec-head">
+                <h2 className="bcq-terms-sec-label">Series</h2>
+                {term.status === "closed" ? null : (
+                  <Button
+                    variant="primary"
+                    className="bcq-btn--compact"
+                    onClick={() => {
+                      setAddOpen(true);
+                    }}
+                  >
+                    <PlusIcon />
+                    <span>Add Series</span>
+                  </Button>
+                )}
+              </div>
+
               {series.length === 0 ? (
-                <p className="bcq-card__meta">No series yet.</p>
+                <CompactEmptyState title="No Series Yet" icon={<CalendarIcon size={18} />}>
+                  Add a series to schedule weekly sessions and passes
+                </CompactEmptyState>
               ) : (
                 <ul className="bcq-list">
                   {series.map((s) => (
-                    <li key={s.id} className="bcq-card">
+                    <li key={s.id}>
                       <a
-                        className="bcq-link bcq-card__title"
+                        className="bcq-series-row"
                         href={`/admin/terms/series/${s.id}`}
                         onClick={(e) => {
-                          if (e.metaKey || e.ctrlKey || e.shiftKey) return;
+                          if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
                           e.preventDefault();
                           navigate(`/admin/terms/series/${s.id}`);
                         }}
                       >
-                        {s.name}
+                        <span className="bcq-series-row__body">
+                          <span className="bcq-series-row__title">{s.name}</span>
+                          <span className="bcq-card__meta">
+                            {FORMAT_LABEL[s.format] ?? s.format} · {WEEKDAYS[s.weekday - 1]}{" "}
+                            {s.startTime} · {s.capacity} places
+                          </span>
+                        </span>
+                        <span className="bcq-series-row__chevron" aria-hidden="true">
+                          <ChevronRightIcon />
+                        </span>
                       </a>
-                      <p className="bcq-card__meta">
-                        {s.format} · {WEEKDAYS[s.weekday - 1]} {s.startTime} · {s.capacity} places
-                      </p>
                     </li>
                   ))}
                 </ul>
               )}
 
               {term.status === "closed" ? null : (
-                <div className="bcq-card">
-                  <h2 className="bcq-section-title">Add a Series</h2>
-                  <SeriesForm
-                    submitLabel="Add Series"
-                    eligibleCandidates={candidates.data?.members ?? []}
-                    onSubmit={async (changes) => {
-                      try {
-                        await apiFetch("/series", {
-                          method: "POST",
-                          body: { termId: term.id, ...changes },
-                        });
-                        toast.show("Series added", "success");
-                        load.reload();
-                      } catch (error) {
-                        toast.show(errorMessage(error), "danger");
-                        throw error;
-                      }
-                    }}
-                  />
-                </div>
+                <SeriesFormSheet
+                  open={addOpen}
+                  title="Add Series"
+                  submitLabel="Add Series"
+                  eligibleCandidates={candidates.data?.members ?? []}
+                  onClose={() => {
+                    setAddOpen(false);
+                  }}
+                  onSubmit={async (changes) => {
+                    try {
+                      await apiFetch("/series", {
+                        method: "POST",
+                        body: { termId: term.id, ...changes },
+                      });
+                      toast.show("Series added", "success");
+                      load.reload();
+                    } catch (error) {
+                      toast.show(errorMessage(error), "danger");
+                      throw error;
+                    }
+                  }}
+                />
               )}
             </>
           );

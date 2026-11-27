@@ -1,62 +1,338 @@
+/* Member Money screen (PWA_UI_Rules.md). */
+
 .bcq-money {
   display: grid;
   gap: 1rem;
 }
-.bcq-money__balance,
-.bcq-money__card {
+
+.bcq-money .bcq-page__title {
+  margin: 0;
+}
+
+/* Balance Summary Hero Card */
+.bcq-money-balance {
+  display: grid;
+  gap: 0.625rem;
   padding: 1rem;
   background: var(--bcq-card);
   border: 1px solid var(--bcq-line);
   border-radius: var(--bcq-radius);
   box-shadow: var(--bcq-card-shadow);
 }
-.bcq-money__balance--owe {
-  background: var(--bcq-warning-bg);
-  color: var(--bcq-warning-ink);
-}
-.bcq-money__balance--credit,
-.bcq-money__balance--even {
-  background: var(--bcq-success-bg);
-  color: var(--bcq-success-ink);
-}
-.bcq-money__amount {
-  margin: 0;
-  font: 600 1.75rem/1.2 var(--bcq-font);
-  font-variant-numeric: tabular-nums;
-}
-.bcq-money__heading {
-  margin: 0 0 0.5rem;
-  font: 600 1.125rem/1.3 var(--bcq-font);
-}
-.bcq-money__hint,
-.bcq-money__instructions {
-  margin: 0.5rem 0 0;
-  color: inherit;
-}
-.bcq-money__instructions {
-  white-space: pre-line;
-}
-.bcq-money__bank {
-  display: grid;
-  grid-template-columns: max-content 1fr;
-  gap: 0.25rem 1rem;
-  align-items: center;
-  margin: 0;
-}
-.bcq-money__bank dt {
-  color: var(--bcq-muted);
-}
-.bcq-money__bank dd {
-  margin: 0;
-  overflow-wrap: anywhere;
-  font-variant-numeric: tabular-nums;
-}
-.bcq-money__ref {
+
+.bcq-money-balance__top {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.75rem;
 }
+
+.bcq-money-balance__left {
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+  min-width: 0;
+}
+
+.bcq-money-balance__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--bcq-radius-sm);
+  flex-shrink: 0;
+}
+
+.bcq-money-balance__icon--emerald {
+  background: var(--bcq-success-bg);
+  color: #059669;
+}
+
+.bcq-money-balance__icon--amber {
+  background: var(--bcq-brand-soft);
+  color: var(--bcq-brand-deep);
+}
+
+.bcq-money-balance__copy {
+  display: grid;
+  gap: 0.125rem;
+  min-width: 0;
+}
+
+.bcq-money-balance__figure {
+  margin: 0;
+  font: 700 1.5rem/1.15 var(--bcq-font);
+  letter-spacing: -0.02em;
+  color: var(--bcq-ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.bcq-money-balance__sub {
+  margin: 0;
+  font: 500 0.75rem/1.3 var(--bcq-font);
+  color: var(--bcq-muted);
+}
+
+.bcq-money-balance__credit-note {
+  margin: 0;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--bcq-divider);
+  font: 400 0.8125rem/1.4 var(--bcq-font);
+  color: var(--bcq-muted);
+}
+
+/* Equal-Width Navigation Cards (Payment Claims & Passes) */
+.bcq-money-nav {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.625rem;
+}
+
+.bcq-money-nav__card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.375rem;
+  min-height: 48px;
+  padding: 0.625rem 0.75rem;
+  background: var(--bcq-card);
+  border: 1px solid var(--bcq-line);
+  border-radius: var(--bcq-radius-sm);
+  box-shadow: var(--bcq-card-shadow);
+  color: var(--bcq-ink);
+  text-decoration: none;
+  box-sizing: border-box;
+  min-width: 0;
+  transition:
+    background-color 140ms var(--bcq-ease),
+    transform 120ms var(--bcq-ease);
+}
+
+.bcq-money-nav__card:hover {
+  background: #f8fafc;
+}
+
+.bcq-money-nav__card:active {
+  background: var(--bcq-divider);
+  transform: scale(0.98);
+}
+
+.bcq-money-nav__left {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4375rem;
+  min-width: 0;
+  flex: 1;
+}
+
+.bcq-money-nav__icon {
+  display: inline-flex;
+  color: var(--bcq-neutral-ink);
+  flex-shrink: 0;
+}
+
+.bcq-money-nav__label {
+  font: 600 0.875rem/1.2 var(--bcq-font);
+  color: var(--bcq-ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.bcq-money-nav__chevron {
+  display: inline-flex;
+  color: #94a3b8;
+  flex-shrink: 0;
+}
+
+@media (max-width: 390px) {
+  .bcq-money-nav__card {
+    padding: 0.625rem 0.5rem;
+    gap: 0.125rem;
+  }
+  .bcq-money-nav__left {
+    gap: 0.25rem;
+  }
+  .bcq-money-nav__label {
+    font-size: 0.78125rem;
+    letter-spacing: -0.01em;
+  }
+}
+
+@media (max-width: 339px) {
+  .bcq-money-nav {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* How to Pay Collapsible Card + Copyable Stacked Rows */
+.bcq-pay-card {
+  background: var(--bcq-card);
+  border: 1px solid var(--bcq-line);
+  border-radius: var(--bcq-radius);
+  box-shadow: var(--bcq-card-shadow);
+  overflow: hidden;
+}
+
+.bcq-pay-card__heading {
+  margin: 0;
+}
+
+.bcq-pay-card__trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  width: 100%;
+  min-height: 54px;
+  padding: 0.75rem 1rem;
+  border: none;
+  background: transparent;
+  color: var(--bcq-ink);
+  text-align: left;
+  cursor: pointer;
+  box-sizing: border-box;
+  transition: background-color 140ms var(--bcq-ease);
+}
+
+.bcq-pay-card__trigger:hover {
+  background: #f8fafc;
+}
+
+.bcq-pay-card__trigger:active {
+  background: var(--bcq-divider);
+}
+
+.bcq-pay-card__trigger-left {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.bcq-pay-card__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--bcq-radius-xs);
+  background: var(--bcq-tonal-bg);
+  color: var(--bcq-ink-soft);
+  flex-shrink: 0;
+}
+
+.bcq-pay-card__title {
+  font: 600 0.9375rem/1.3 var(--bcq-font);
+  color: var(--bcq-ink);
+}
+
+.bcq-pay-card__chevron {
+  color: #94a3b8;
+  flex-shrink: 0;
+  transition: transform 180ms var(--bcq-ease);
+}
+
+.bcq-pay-card__chevron.is-open {
+  transform: rotate(180deg);
+}
+
+.bcq-pay-card__panel {
+  padding: 0 1rem 1rem;
+  border-top: 1px solid var(--bcq-divider);
+}
+
+.bcq-pay-rows {
+  margin: 0;
+  padding: 0;
+}
+
+.bcq-pay-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.625rem 0;
+}
+
+.bcq-pay-row:first-child {
+  padding-top: 0.5rem;
+}
+
+.bcq-pay-row + .bcq-pay-row {
+  border-top: 1px solid var(--bcq-divider);
+}
+
+.bcq-pay-row__text {
+  display: grid;
+  gap: 0.125rem;
+  min-width: 0;
+  flex: 1;
+}
+
+.bcq-pay-row__label {
+  font: 500 0.75rem/1.3 var(--bcq-font);
+  color: var(--bcq-muted);
+}
+
+.bcq-pay-row__value {
+  margin: 0;
+  font: 500 0.9375rem/1.35 var(--bcq-font);
+  color: var(--bcq-ink);
+  overflow-wrap: anywhere;
+}
+
+.bcq-pay-row__value--mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.bcq-pay-row__copy {
+  padding: 0 0.75rem;
+  font-size: 0.75rem;
+  gap: 0.375rem;
+  flex-shrink: 0;
+}
+
+.bcq-pay-card__fallback {
+  margin: 0.75rem 0 0;
+  font: 400 0.875rem/1.45 var(--bcq-font);
+  color: var(--bcq-muted);
+}
+
+.bcq-pay-callout {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+  padding: 0.625rem 0.75rem;
+  border-radius: var(--bcq-radius-sm);
+  background: var(--bcq-input-bg);
+  color: var(--bcq-neutral-ink);
+}
+
+.bcq-pay-callout__icon {
+  color: var(--bcq-muted);
+  margin-top: 0.125rem;
+  flex-shrink: 0;
+}
+
+.bcq-pay-callout__text {
+  margin: 0;
+  font: 400 0.75rem/1.5 var(--bcq-font);
+  color: var(--bcq-neutral-ink);
+  white-space: pre-line;
+}
+
+/* Activity Section & Ledger Entries */
+.bcq-money-activity {
+  display: grid;
+  gap: 0.25rem;
+  margin-top: 0.25rem;
+}
+
 .bcq-money__list {
   list-style: none;
   margin: 0;
@@ -64,6 +340,7 @@
   display: grid;
   gap: 0.75rem;
 }
+
 .bcq-money__item {
   display: grid;
   gap: 0.5rem;
@@ -73,16 +350,19 @@
   border-radius: var(--bcq-radius);
   box-shadow: var(--bcq-card-shadow);
 }
+
 .bcq-money__row {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 0.5rem;
 }
+
 .bcq-money__sum {
   font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
+
 .bcq-money__detail {
   display: flex;
   flex-wrap: wrap;
@@ -90,21 +370,12 @@
   gap: 0.25rem 0.75rem;
   color: var(--bcq-ink-soft);
 }
+
+.bcq-money__event-link {
+  margin: -0.5rem 0;
+}
+
 .bcq-money__when {
   color: var(--bcq-muted);
   font-size: 0.8125rem;
-}
-.bcq-money__nav {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-}
-.bcq-money__link {
-  display: inline-flex;
-  align-items: center;
-  min-height: var(--bcq-touch);
-  color: var(--bcq-brand-deep);
-  font-weight: 600;
-  text-decoration: underline;
-  text-underline-offset: 3px;
 }

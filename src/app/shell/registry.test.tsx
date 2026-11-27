@@ -27,4 +27,27 @@ describe("route registration with the shell", () => {
     expect(screen.getByRole("heading", { name: /install/i })).toBeTruthy();
     expect(screen.getByRole("button", { name: "Back" })).toBeTruthy();
   });
+
+  it("hides the top-bar back button on root bottom-nav tabs and shows parent label on sub-routes", () => {
+    for (const rootPath of ["/", "/events", "/money", "/inbox"]) {
+      const { unmount } = render(
+        <FeatureFlagsProvider flags={{ events: true, money: true, inbox: true }}>
+          <AppShell path={rootPath}>
+            <div>Root</div>
+          </AppShell>
+        </FeatureFlagsProvider>,
+      );
+      expect(screen.queryByRole("button", { name: /Back|Money|Admin/ })).toBeNull();
+      unmount();
+    }
+
+    render(
+      <FeatureFlagsProvider flags={{ events: true, money: true, inbox: true }}>
+        <AppShell path="/money/claims">
+          <div>Claims</div>
+        </AppShell>
+      </FeatureFlagsProvider>,
+    );
+    expect(screen.getByRole("button", { name: "Money" })).toBeTruthy();
+  });
 });

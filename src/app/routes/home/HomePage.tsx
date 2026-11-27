@@ -65,7 +65,7 @@ const RSVP_CHIP: Record<
   confirmed: { tone: "success", label: "Confirmed" },
   requested: { tone: "info", label: "Requested" },
   waitlisted: { tone: "warning", label: "Waitlisted" },
-  offered: { tone: "warning", label: "Spot offered" },
+  offered: { tone: "warning", label: "Spot Offered" },
 };
 
 function AppLink({
@@ -274,8 +274,8 @@ export function HomePage() {
           <p className="bcq-home__muted">
             Sign in to see upcoming events, your balance, passes, and open polls.
           </p>
-          <AppLink href="/sign-in" className="bcq-home__link">
-            Sign in
+          <AppLink href="/sign-in" className="bcq-btn bcq-btn--primary">
+            Sign In
           </AppLink>
         </div>
       </section>
@@ -302,13 +302,13 @@ export function HomePage() {
           Home
         </h1>
         <div className="bcq-home__card">
-          <h2 className="bcq-home__card-title">Membership pending</h2>
+          <h2 className="bcq-home__card-title">Membership Pending</h2>
           <p className="bcq-home__muted">
             Your account is waiting for an admin to approve it. An admin can approve you directly,
             or you can open an invite link they send you.
           </p>
-          <AppLink href="/join" className="bcq-home__link">
-            Check join status
+          <AppLink href="/join" className="bcq-btn bcq-btn--tonal">
+            Check Join Status
           </AppLink>
         </div>
       </section>
@@ -329,7 +329,7 @@ export function HomePage() {
           <section className="bcq-home__card" aria-labelledby="home-admin-title">
             <div className="bcq-home__card-head">
               <h2 id="home-admin-title" className="bcq-home__card-title">
-                Admin tasks
+                Admin Tasks
               </h2>
               <AppLink href="/admin" className="bcq-home__link">
                 Admin
@@ -374,7 +374,7 @@ export function HomePage() {
                 Next RSVPs
               </h2>
               <AppLink href="/events" className="bcq-home__link">
-                All events
+                All Events
               </AppLink>
             </div>
             {data.rsvps.length === 0 ? (
@@ -412,7 +412,7 @@ export function HomePage() {
         {eventsOn && isActive && data.unanswered.length > 0 ? (
           <section className="bcq-home__card" aria-labelledby="home-unanswered-title">
             <h2 id="home-unanswered-title" className="bcq-home__card-title">
-              Unanswered events
+              Unanswered Events
             </h2>
             {quickError ? (
               <p role="alert" className="bcq-home__muted">
@@ -458,7 +458,7 @@ export function HomePage() {
                           {formatWhen(event.startsAt, event.endsAt)}
                         </span>
                       </span>
-                      <StatusChip tone="info">RSVP open</StatusChip>
+                      <StatusChip tone="info">RSVP Open</StatusChip>
                     </AppLink>
                     <div className="bcq-home__quick-actions">
                       <Button
@@ -471,7 +471,7 @@ export function HomePage() {
                         RSVP
                       </Button>
                       <Button
-                        variant="secondary"
+                        variant="tonal"
                         disabled={isBusy}
                         aria-label={`Not Going to ${event.title}`}
                         onClick={() => {
@@ -492,7 +492,7 @@ export function HomePage() {
           <section className="bcq-home__card" aria-labelledby="home-money-title">
             <div className="bcq-home__card-head">
               <h2 id="home-money-title" className="bcq-home__card-title">
-                Money &amp; passes
+                Money &amp; Passes
               </h2>
               {data.ledger ? (
                 <StatusChip tone={balanceSummary(data.ledger).tone}>
@@ -507,7 +507,7 @@ export function HomePage() {
                   {data.pendingClaims.length} pending{" "}
                   {data.pendingClaims.length === 1 ? "claim" : "claims"} ({pendingClaimTotal} kr)
                 </span>
-                <StatusChip tone="info">Pending review</StatusChip>
+                <StatusChip tone="info">Pending Review</StatusChip>
               </AppLink>
             ) : null}
 
@@ -521,7 +521,7 @@ export function HomePage() {
                           <span className="bcq-home__row-title">{pass.seriesName}</span>
                           <span className="bcq-home__row-meta">{pass.termName}</span>
                         </span>
-                        <StatusChip tone="success">Active pass</StatusChip>
+                        <StatusChip tone="success">Active Pass</StatusChip>
                       </AppLink>
                     </li>
                   ))}
@@ -532,12 +532,12 @@ export function HomePage() {
             ) : null}
 
             <div className="bcq-home__actions">
-              <AppLink href="/money" className="bcq-home__link">
-                View balance &amp; pay
+              <AppLink href="/money" className="bcq-btn bcq-btn--tonal">
+                View Balance &amp; Pay
               </AppLink>
               {isActive && (data.activePasses.length === 0 || data.offerCount > 0) ? (
-                <AppLink href="/money/passes" className="bcq-home__link">
-                  View pass offers
+                <AppLink href="/money/passes" className="bcq-btn bcq-btn--tonal">
+                  View Pass Offers
                 </AppLink>
               ) : null}
             </div>
@@ -548,10 +548,10 @@ export function HomePage() {
           <section className="bcq-home__card" aria-labelledby="home-polls-title">
             <div className="bcq-home__card-head">
               <h2 id="home-polls-title" className="bcq-home__card-title">
-                Open polls
+                Open Polls
               </h2>
               <AppLink href="/polls" className="bcq-home__link">
-                All polls
+                All Polls
               </AppLink>
             </div>
             {data.openPolls.length === 0 ? (
@@ -563,7 +563,7 @@ export function HomePage() {
                     <AppLink href={`/polls/${poll.id}`} className="bcq-home__row">
                       <span className="bcq-home__row-title">{poll.question}</span>
                       <StatusChip tone={poll.myVote.length === 0 ? "info" : "success"}>
-                        {poll.myVote.length === 0 ? "Needs your vote" : "Voted"}
+                        {poll.myVote.length === 0 ? "Needs Your Vote" : "Voted"}
                       </StatusChip>
                     </AppLink>
                   </li>

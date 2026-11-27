@@ -6,6 +6,7 @@ import { ApiError, apiFetch, newIdempotencyKey } from "../../../../api/client";
 import {
   BottomSheet,
   Button,
+  DisclosureSection,
   EmptyState,
   ErrorState,
   Skeleton,
@@ -160,12 +161,12 @@ export function AdminClaimsPage() {
   }
 
   return (
-    <section className="bcq-page" aria-labelledby="admin-claims-title">
+    <section className="bcq-page bcq-money-page" aria-labelledby="admin-claims-title">
       <h1 id="admin-claims-title" className="bcq-page__title">
-        Payment claims
+        Payment Claims
       </h1>
       {state.claims.length === 0 ? (
-        <EmptyState title="No pending claims">New member claims appear here for review.</EmptyState>
+        <EmptyState title="No Pending Claims">New member claims appear here for review.</EmptyState>
       ) : (
         <ul className="bcq-members" aria-label="Pending payment claims">
           {state.claims.map((claim) => (
@@ -197,7 +198,7 @@ export function AdminClaimsPage() {
                   Confirm
                 </Button>
                 <Button
-                  variant="secondary"
+                  variant="destructive-tonal"
                   aria-label={`Reject ${claim.displayName} ${String(claim.amountSek)} kr`}
                   disabled={claim.isOwn || busyId === claim.id}
                   onClick={() => {
@@ -213,10 +214,7 @@ export function AdminClaimsPage() {
       )}
 
       {state.history.length > 0 ? (
-        <section aria-labelledby="admin-claims-history-title">
-          <h2 id="admin-claims-history-title" className="bcq-page__title">
-            History
-          </h2>
+        <DisclosureSection label={`Past Claims (${String(state.history.length)})`}>
           <ul className="bcq-members" aria-label="Decided payment claims">
             {state.history.map((claim) => (
               <li key={claim.id} className="bcq-member">
@@ -241,7 +239,7 @@ export function AdminClaimsPage() {
               </li>
             ))}
           </ul>
-        </section>
+        </DisclosureSection>
       ) : null}
 
       {rejecting ? (
@@ -324,8 +322,8 @@ function RejectClaimSheet({
             {error}
           </p>
         ) : null}
-        <Button type="submit" variant="danger" disabled={busy}>
-          Reject claim
+        <Button type="submit" variant="destructive-solid" block disabled={busy}>
+          Reject Claim
         </Button>
       </form>
     </BottomSheet>

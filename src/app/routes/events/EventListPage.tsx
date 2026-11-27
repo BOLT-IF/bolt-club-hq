@@ -1,7 +1,13 @@
 import { useCallback, useEffect, useState } from "react";
 
 import { listEvents, type EventDetail } from "../../api/events";
-import { EmptyState, ErrorState, Skeleton, StatusChip } from "../../components/ui";
+import {
+  ChevronRightIcon,
+  EmptyState,
+  ErrorState,
+  Skeleton,
+  StatusChip,
+} from "../../components/ui";
 import { navigate } from "../../lib/navigate";
 import { formatWhen } from "./format";
 import "./events.css";
@@ -41,7 +47,7 @@ export function EventListPage() {
           Events
         </h1>
         <a
-          className="bcq-events__new"
+          className="bcq-btn bcq-btn--tonal"
           href="/events/new"
           onClick={(click) => {
             if (click.metaKey || click.ctrlKey || click.shiftKey || click.button !== 0) return;
@@ -49,7 +55,7 @@ export function EventListPage() {
             navigate("/events/new");
           }}
         >
-          New event
+          New Event
         </a>
       </div>
       {state.kind === "loading" ? <Skeleton label="Loading events" /> : null}
@@ -57,7 +63,7 @@ export function EventListPage() {
         <ErrorState onRetry={retry}>We couldn&apos;t load the events.</ErrorState>
       ) : null}
       {state.kind === "ready" && state.events.length === 0 ? (
-        <EmptyState title="No upcoming events">New sessions will show up here.</EmptyState>
+        <EmptyState title="No Upcoming Events">New sessions will show up here.</EmptyState>
       ) : null}
       {state.kind === "ready" && state.events.length > 0 ? (
         <ul className="bcq-events">
@@ -73,12 +79,21 @@ export function EventListPage() {
                   navigate(`/events/${e.slug}`);
                 }}
               >
-                <span className="bcq-events__title">{e.title}</span>
-                <span className="bcq-events__meta">
-                  {formatWhen(e.startsAt, e.endsAt)}
-                  {e.location ? ` · ${e.location}` : ""}
+                <span className="bcq-events__main">
+                  <span className="bcq-events__title">{e.title}</span>
+                  <span className="bcq-events__meta">
+                    {formatWhen(e.startsAt, e.endsAt)}
+                    {e.location ? ` · ${e.location}` : ""}
+                  </span>
+                  {e.status === "cancelled" ? (
+                    <span className="bcq-events__badge">
+                      <StatusChip tone="danger">Cancelled</StatusChip>
+                    </span>
+                  ) : null}
                 </span>
-                {e.status === "cancelled" ? <StatusChip tone="danger">Cancelled</StatusChip> : null}
+                <span className="bcq-events__chevron" aria-hidden="true">
+                  <ChevronRightIcon />
+                </span>
               </a>
             </li>
           ))}

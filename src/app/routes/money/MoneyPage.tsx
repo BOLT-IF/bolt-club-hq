@@ -11,12 +11,11 @@ import {
   type PaymentSettings,
 } from "../../api/ledger";
 import {
-  Button,
+  CopyButton,
   EmptyState,
   ErrorState,
   Skeleton,
   StatusChip,
-  useToast,
   type StatusTone,
 } from "../../components/ui";
 import { navigate } from "../../lib/navigate";
@@ -34,15 +33,15 @@ const entryDay = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "shor
 const kr = (sek: number): string => `${sek < 0 ? "−" : ""}${String(Math.abs(sek))} kr`;
 
 const REASON_LABEL: Record<string, string> = {
-  pass: "Season pass",
-  adhoc: "Event fee",
-  guest: "Guest fee",
-  club_fee: "Club fee",
+  pass: "Season Pass",
+  adhoc: "Event Fee",
+  guest: "Guest Fee",
+  club_fee: "Club Fee",
   manual: "Charge",
   payment: "Payment",
   waiver: "Waiver",
-  revocation: "Pass revoked",
-  opening_balance: "Opening balance",
+  revocation: "Pass Revoked",
+  opening_balance: "Opening Balance",
 };
 
 function itemTitle(item: LedgerItem): string {
@@ -94,10 +93,18 @@ function Balance({ ledger }: { readonly ledger: MyLedger }) {
   );
 }
 
-function NavLink({ href, children }: { readonly href: string; readonly children: string }) {
+function NavLink({
+  href,
+  className = "bcq-money__link",
+  children,
+}: {
+  readonly href: string;
+  readonly className?: string;
+  readonly children: string;
+}) {
   return (
     <a
-      className="bcq-money__link"
+      className={className}
       href={href}
       onClick={(e) => {
         if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
@@ -149,28 +156,14 @@ function Item({ item }: { readonly item: LedgerItem }) {
 type PayInfo = { settings: PaymentSettings | null; paymentRef: string | null };
 
 function HowToPay({ info }: { readonly info: PayInfo | null }) {
-  const toast = useToast();
   const bank = info?.settings?.bank ?? null;
   const hasBank = Boolean(bank && (bank.accountNumber || bank.bankgiro || bank.iban));
   const ref = info?.paymentRef ?? null;
 
-  const copy = (value: string) => {
-    // `clipboard` is missing on insecure origins and some older browsers.
-    const clipboard = navigator.clipboard as Clipboard | undefined;
-    (clipboard ? clipboard.writeText(value) : Promise.reject(new Error("no clipboard"))).then(
-      () => {
-        toast.show("Payment reference copied", "success");
-      },
-      () => {
-        toast.show("Couldn't copy. Select the reference and copy it by hand.", "danger");
-      },
-    );
-  };
-
   return (
     <section aria-labelledby="money-how" className="bcq-money__card">
       <h2 id="money-how" className="bcq-money__heading">
-        How to pay
+        How to Pay
       </h2>
       {info === null ? <Skeleton lines={2} label="Loading payment details" /> : null}
       {info !== null ? (
@@ -191,7 +184,7 @@ function HowToPay({ info }: { readonly info: PayInfo | null }) {
               ) : null}
               {bank.accountNumber ? (
                 <>
-                  <dt>Account number</dt>
+                  <dt>Account Number</dt>
                   <dd>{bank.accountNumber}</dd>
                 </>
               ) : null}
@@ -209,18 +202,15 @@ function HowToPay({ info }: { readonly info: PayInfo | null }) {
               ) : null}
               {ref ? (
                 <>
-                  <dt>Payment reference</dt>
+                  <dt>Payment Reference</dt>
                   <dd className="bcq-money__ref">
                     <strong>{ref}</strong>
-                    <Button
-                      variant="ghost"
-                      aria-label="Copy payment reference"
-                      onClick={() => {
-                        copy(ref);
-                      }}
-                    >
-                      Copy
-                    </Button>
+                    <CopyButton
+                      value={ref}
+                      label="Copy"
+                      ariaLabel="Copy payment reference"
+                      toastMessage="Payment reference copied"
+                    />
                   </dd>
                 </>
               ) : null}
@@ -287,8 +277,12 @@ export function MoneyPage() {
         Money
       </h1>
       <nav aria-label="Money actions" className="bcq-money__nav">
-        <NavLink href="/money/claims">Payment Claims</NavLink>
-        <NavLink href="/money/passes">Passes</NavLink>
+        <NavLink href="/money/claims" className="bcq-btn bcq-btn--tonal">
+          Payment Claims
+        </NavLink>
+        <NavLink href="/money/passes" className="bcq-btn bcq-btn--tonal">
+          Passes
+        </NavLink>
       </nav>
       {state.status === "loading" ? <Skeleton label="Loading your balance" /> : null}
       {state.status === "error" ? (

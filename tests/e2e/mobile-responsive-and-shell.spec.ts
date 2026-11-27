@@ -111,8 +111,8 @@ test("Notifications settings includes device push section and mute switches", as
   await mockSignedInAdmin(page);
   await page.goto("/settings/notifications");
   await expect(page.getByRole("heading", { name: "Notifications" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Push on this device" })).toBeVisible();
-  await expect(page.getByText("Mute all notifications")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Push on This Device" })).toBeVisible();
+  await expect(page.getByText("Mute All Notifications")).toBeVisible();
 });
 
 test("core mobile routes have zero horizontal overflow (including /events/new)", async ({
@@ -125,7 +125,7 @@ test("core mobile routes have zero horizontal overflow (including /events/new)",
     await expect(page.locator("#main")).toBeVisible();
     // Wait for async page content (e.g. NewEventPage form options) to render before measuring.
     if (route === "/events/new") {
-      await expect(page.getByRole("heading", { name: "New event" })).toBeVisible();
+      await expect(page.getByRole("heading", { name: "New Event" })).toBeVisible();
     }
     const overflow = await page.evaluate<number>(
       "document.documentElement.scrollWidth - window.innerWidth",

@@ -84,11 +84,11 @@ describe("admin audit page", () => {
     await screen.findByRole("option", { name: "Bo Berg" });
     fireEvent.change(screen.getByLabelText("Actor"), { target: { value: "m2" } });
     fireEvent.change(screen.getByLabelText("Entity"), { target: { value: "event" } });
-    fireEvent.change(screen.getByLabelText("Entity id"), { target: { value: "evt_1" } });
+    fireEvent.change(screen.getByLabelText("Entity ID"), { target: { value: "evt_1" } });
     fireEvent.change(screen.getByLabelText("Action"), { target: { value: "event.create" } });
     fireEvent.change(screen.getByLabelText("From"), { target: { value: "2027-02-01" } });
     fireEvent.change(screen.getByLabelText("To"), { target: { value: "2027-02-28" } });
-    fireEvent.click(screen.getByRole("button", { name: "Apply filters" }));
+    fireEvent.click(screen.getByRole("button", { name: "Apply Filters" }));
     await waitFor(() => {
       expect(auditCalls(paths)).toHaveLength(2);
     });

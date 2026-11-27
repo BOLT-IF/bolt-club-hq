@@ -75,38 +75,38 @@ describe("admin settings page", () => {
 
   it("loads the saved settings into labelled fields", async () => {
     renderPage();
-    expect(await screen.findByLabelText("Club name")).toHaveProperty("value", "BOLT IF");
-    expect(screen.getByLabelText("Account holder")).toHaveProperty("value", "BOLT IF");
-    expect(screen.getByLabelText("Bank name")).toHaveProperty("value", "Swedbank");
-    expect(screen.getByLabelText("Account number")).toHaveProperty("value", "8327-9 123 456 789-0");
-    expect(screen.getByLabelText("IBAN (optional)")).toHaveProperty(
+    expect(await screen.findByLabelText("Club Name")).toHaveProperty("value", "BOLT IF");
+    expect(screen.getByLabelText("Account Holder")).toHaveProperty("value", "BOLT IF");
+    expect(screen.getByLabelText("Bank Name")).toHaveProperty("value", "Swedbank");
+    expect(screen.getByLabelText("Account Number")).toHaveProperty("value", "8327-9 123 456 789-0");
+    expect(screen.getByLabelText("IBAN (Optional)")).toHaveProperty(
       "value",
       "SE4550000000058398257466",
     );
-    expect(screen.getByLabelText("Bankgiro (optional)")).toHaveProperty("value", "5402-9681");
-    expect(screen.getByLabelText("Roster app URL")).toHaveProperty("value", "");
-    expect(screen.getByLabelText("Days before an unpaid pass can be revoked")).toHaveProperty(
+    expect(screen.getByLabelText("Bankgiro (Optional)")).toHaveProperty("value", "5402-9681");
+    expect(screen.getByLabelText("Roster App URL")).toHaveProperty("value", "");
+    expect(screen.getByLabelText("Days Before Unpaid Pass Revocation")).toHaveProperty(
       "value",
       "21",
     );
-    expect(screen.getByLabelText("Fall club fee (kr)")).toHaveProperty("value", "160");
-    expect(screen.getByLabelText("Spring joining fee (kr)")).toHaveProperty("value", "85");
+    expect(screen.getByLabelText("Fall Club Fee (kr)")).toHaveProperty("value", "160");
+    expect(screen.getByLabelText("Spring Joining Fee (kr)")).toHaveProperty("value", "85");
   });
 
   it("saves edits with PUT /admin/settings, including bank name and account number without IBAN or bankgiro", async () => {
     renderPage();
-    const url = await screen.findByLabelText("Roster app URL");
+    const url = await screen.findByLabelText("Roster App URL");
     fireEvent.change(url, { target: { value: "https://roster.example.se" } });
-    fireEvent.change(screen.getByLabelText("Fall club fee (kr)"), { target: { value: "200" } });
-    fireEvent.change(screen.getByLabelText("Spring joining fee (kr)"), {
+    fireEvent.change(screen.getByLabelText("Fall Club Fee (kr)"), { target: { value: "200" } });
+    fireEvent.change(screen.getByLabelText("Spring Joining Fee (kr)"), {
       target: { value: "100" },
     });
-    fireEvent.change(screen.getByLabelText("Bank name"), { target: { value: "Handelsbanken" } });
-    fireEvent.change(screen.getByLabelText("Account number"), {
+    fireEvent.change(screen.getByLabelText("Bank Name"), { target: { value: "Handelsbanken" } });
+    fireEvent.change(screen.getByLabelText("Account Number"), {
       target: { value: "6101 123 456 789" },
     });
-    fireEvent.change(screen.getByLabelText("IBAN (optional)"), { target: { value: "" } });
-    fireEvent.change(screen.getByLabelText("Bankgiro (optional)"), { target: { value: "" } });
+    fireEvent.change(screen.getByLabelText("IBAN (Optional)"), { target: { value: "" } });
+    fireEvent.change(screen.getByLabelText("Bankgiro (Optional)"), { target: { value: "" } });
     fireEvent.click(screen.getByRole("button", { name: "Save Settings" }));
 
     expect(await screen.findByText("Settings saved")).toBeTruthy();
@@ -141,12 +141,12 @@ describe("admin settings page", () => {
           })
         : json(200, loaded);
     renderPage();
-    await screen.findByLabelText("IBAN (optional)");
+    await screen.findByLabelText("IBAN (Optional)");
     fireEvent.click(screen.getByRole("button", { name: "Save Settings" }));
 
-    const iban = await screen.findByLabelText("IBAN (optional)");
-    const accountNumber = screen.getByLabelText("Account number");
-    const bankName = screen.getByLabelText("Bank name");
+    const iban = await screen.findByLabelText("IBAN (Optional)");
+    const accountNumber = screen.getByLabelText("Account Number");
+    const bankName = screen.getByLabelText("Bank Name");
     await waitFor(() => {
       expect(iban.getAttribute("aria-invalid")).toBe("true");
       expect(accountNumber.getAttribute("aria-invalid")).toBe("true");

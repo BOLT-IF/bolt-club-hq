@@ -276,9 +276,13 @@ export function AdminApprovals() {
                   <StatusChip tone="warning">Pending</StatusChip>
                 </div>
                 <p className="bcq-member__meta">
-                  {VIA[r.via]}
-                  {r.source ? `: ${r.source}` : ""}
-                  {" · "}
+                  {VIA[r.via] ? (
+                    <>
+                      {VIA[r.via]}
+                      {r.source ? `: ${r.source}` : ""}
+                      {" · "}
+                    </>
+                  ) : null}
                   <time dateTime={r.createdAt}>{dateFormat.format(new Date(r.createdAt))}</time>
                   {r.email ? ` · ${r.email}` : ""}
                 </p>
@@ -292,10 +296,8 @@ export function AdminApprovals() {
                   >
                     Approve
                   </Button>
-                  <button
-                    type="button"
-                    className="bcq-approvals__btn bcq-approvals__btn--tonal"
-                    style={{ flex: "0 0 auto" }}
+                  <Button
+                    variant="destructive-tonal"
                     aria-label={`Reject ${r.displayName}`}
                     disabled={busy === r.id}
                     onClick={() => {
@@ -303,7 +305,7 @@ export function AdminApprovals() {
                     }}
                   >
                     Reject
-                  </button>
+                  </Button>
                 </div>
               </li>
             ))}

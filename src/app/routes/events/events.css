@@ -22,22 +22,41 @@
   gap: 0.75rem;
 }
 .bcq-events__item {
-  display: grid;
-  gap: 0.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
   min-height: var(--bcq-touch);
   padding: 1rem;
   background: var(--bcq-card);
   border: 1px solid var(--bcq-line);
   border-radius: var(--bcq-radius);
+  box-shadow: var(--bcq-card-shadow);
   color: var(--bcq-ink);
   text-decoration: none;
   transition:
     background-color 140ms var(--bcq-ease),
-    border-color 140ms var(--bcq-ease);
+    border-color 140ms var(--bcq-ease),
+    transform 120ms var(--bcq-ease);
 }
 .bcq-events__item:hover {
-  background: #fffdf9;
-  border-color: var(--bcq-input-border);
+  background: #f8fafc;
+}
+.bcq-events__item:active {
+  transform: scale(0.99);
+}
+.bcq-events__main {
+  display: grid;
+  gap: 0.25rem;
+  min-width: 0;
+}
+.bcq-events__badge {
+  margin-top: 0.25rem;
+}
+.bcq-events__chevron {
+  display: inline-flex;
+  color: #94a3b8;
+  flex-shrink: 0;
 }
 .bcq-events__item:focus-visible {
   outline: 3px solid var(--bcq-focus);

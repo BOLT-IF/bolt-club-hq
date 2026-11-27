@@ -588,8 +588,8 @@ describe("club fees page", () => {
     await screen.findByRole("list", { name: /club fee members/i });
 
     // Select not charged -> selects Di Uncharged (m4), then mark paid in Fall (outside app).
-    fireEvent.click(screen.getByRole("button", { name: "Select not charged" }));
-    fireEvent.click(screen.getByRole("button", { name: "Mark paid in Fall (outside app)" }));
+    fireEvent.click(screen.getByRole("button", { name: "Select Not Charged" }));
+    fireEvent.click(screen.getByRole("button", { name: "Mark Paid in Fall (Outside App)" }));
 
     await waitFor(() => {
       expect(calls.some((c) => c.path === "/admin/club-fees/mark-external-fall")).toBe(true);
@@ -603,11 +603,11 @@ describe("club fees page", () => {
     await waitFor(() => {
       expect(
         screen.getByRole<HTMLButtonElement>("button", {
-          name: "Mark paid in Fall (outside app)",
+          name: "Mark Paid in Fall (Outside App)",
         }).disabled,
       ).toBe(true);
     });
-    fireEvent.click(screen.getByRole("button", { name: "Charge Spring fee (85 kr)" }));
+    fireEvent.click(screen.getByRole("button", { name: "Charge Spring Fee (85 kr)" }));
     const dialog = await screen.findByRole("dialog");
     expect(within(dialog).getByText(/skipped automatically/i)).toBeTruthy();
     fireEvent.click(within(dialog).getByRole("button", { name: "Confirm charge" }));

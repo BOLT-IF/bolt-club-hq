@@ -63,8 +63,8 @@ export interface PreviewResponse {
 }
 
 export const KIND_LABEL: Record<RuleKind, string> = {
-  payment_due: "Payment due",
-  event_unrsvped: "Un-RSVPed event",
+  payment_due: "Payment Due",
+  event_unrsvped: "Un-RSVPed Event",
 };
 
 const BASE = "/admin/reminder-rules";

@@ -147,8 +147,8 @@ describe("HomePage", () => {
     );
     const pollLink = screen.getByRole("link", { name: /Court preference\?/ });
     expect(pollLink.getAttribute("href")).toBe("/polls/pol_1");
-    expect(screen.getByText("Needs your vote")).toBeTruthy();
-    expect(screen.queryByRole("heading", { name: "Admin tasks" })).toBeNull();
+    expect(screen.getByText("Needs Your Vote")).toBeTruthy();
+    expect(screen.queryByRole("heading", { name: "Admin Tasks" })).toBeNull();
   });
 
   it("renders dashboard for a prepaid member", async () => {
@@ -185,10 +185,10 @@ describe("HomePage", () => {
 
     const rsvpLink = await screen.findByRole("link", { name: /Thu Mixed Doubles.*Confirmed/ });
     expect(rsvpLink.getAttribute("href")).toBe("/events/k3f9xq2m");
-    const passLink = screen.getByRole("link", { name: /Thu Mixed Doubles.*Active pass/ });
+    const passLink = screen.getByRole("link", { name: /Thu Mixed Doubles.*Active Pass/ });
     expect(passLink.getAttribute("href")).toBe("/money/passes");
     expect(screen.getByText(/Autumn 2026/)).toBeTruthy();
-    expect(screen.queryByRole("heading", { name: "Unanswered events" })).toBeNull();
+    expect(screen.queryByRole("heading", { name: "Unanswered Events" })).toBeNull();
   });
 
   it("renders dashboard for a member who owes money with a pending claim", async () => {
@@ -250,7 +250,7 @@ describe("HomePage", () => {
 
     renderHome();
 
-    expect(await screen.findByRole("heading", { name: "Admin tasks" })).toBeTruthy();
+    expect(await screen.findByRole("heading", { name: "Admin Tasks" })).toBeTruthy();
     const joinLink = screen.getByRole("link", { name: /2 pending join requests/i });
     expect(joinLink.getAttribute("href")).toBe("/admin/approvals");
     const claimLink = screen.getByRole("link", { name: /1 pending payment claim/i });
@@ -266,13 +266,13 @@ describe("HomePage", () => {
     renderHome({});
 
     await waitFor(() => {
-      expect(screen.getByRole("heading", { name: "Admin tasks" })).toBeTruthy();
+      expect(screen.getByRole("heading", { name: "Admin Tasks" })).toBeTruthy();
     });
 
     expect(calls).toEqual(["/api/v1/me", "/api/v1/admin/join-requests"]);
     expect(screen.queryByRole("heading", { name: "Next RSVPs" })).toBeNull();
-    expect(screen.queryByRole("heading", { name: "Money & passes" })).toBeNull();
-    expect(screen.queryByRole("heading", { name: "Open polls" })).toBeNull();
+    expect(screen.queryByRole("heading", { name: "Money & Passes" })).toBeNull();
+    expect(screen.queryByRole("heading", { name: "Open Polls" })).toBeNull();
   });
 
   it("shows pending membership state and error retry state", async () => {
@@ -281,8 +281,8 @@ describe("HomePage", () => {
     });
 
     renderHome();
-    expect(await screen.findByText("Membership pending")).toBeTruthy();
-    expect(screen.getByRole("link", { name: /Check join status/i }).getAttribute("href")).toBe(
+    expect(await screen.findByText("Membership Pending")).toBeTruthy();
+    expect(screen.getByRole("link", { name: /Check Join Status/i }).getAttribute("href")).toBe(
       "/join",
     );
 
@@ -293,7 +293,7 @@ describe("HomePage", () => {
 
     renderHome();
     expect(await screen.findByRole("alert")).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Try again" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Try Again" })).toBeTruthy();
   });
 
   it("lets members RSVP or mark Not going directly from Unanswered events", async () => {

@@ -53,7 +53,7 @@ describe("admin broadcast screen", () => {
     stubApi();
     renderPage();
     expect(screen.getByRole("heading", { level: 1, name: "Broadcast" })).toBeTruthy();
-    const audience = screen.getByLabelText<HTMLSelectElement>("Send to");
+    const audience = screen.getByLabelText<HTMLSelectElement>("Send To");
     expect([...audience.options].map((o) => o.value)).toEqual([
       "all",
       "pass_holders",
@@ -65,7 +65,7 @@ describe("admin broadcast screen", () => {
   it("cannot send an empty message", () => {
     const fetchMock = stubApi();
     renderPage();
-    fireEvent.click(screen.getByRole("button", { name: "Review and send" }));
+    fireEvent.click(screen.getByRole("button", { name: "Review & Send" }));
     expect(screen.getByRole("alert").textContent).toMatch(/title/i);
     expect(fetchMock).not.toHaveBeenCalled();
   });
@@ -74,9 +74,9 @@ describe("admin broadcast screen", () => {
     const fetchMock = stubApi();
     renderPage();
     fill("Hall closed", "No play on Monday");
-    fireEvent.click(screen.getByRole("button", { name: "Review and send" }));
+    fireEvent.click(screen.getByRole("button", { name: "Review & Send" }));
     expect(fetchMock).not.toHaveBeenCalled();
-    fireEvent.click(await screen.findByRole("button", { name: "Send broadcast" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Send Broadcast" }));
     await waitFor(() => {
       expect(fetchMock).toHaveBeenCalledTimes(1);
     });
@@ -95,15 +95,15 @@ describe("admin broadcast screen", () => {
   it("an event audience asks for the event and sends it", async () => {
     const fetchMock = stubApi();
     renderPage();
-    fireEvent.change(screen.getByLabelText("Send to"), { target: { value: "event_rsvps" } });
+    fireEvent.change(screen.getByLabelText("Send To"), { target: { value: "event_rsvps" } });
     fill("Court change", "Court 3");
-    fireEvent.click(screen.getByRole("button", { name: "Review and send" }));
+    fireEvent.click(screen.getByRole("button", { name: "Review & Send" }));
     expect(screen.getByRole("alert").textContent).toMatch(/event/i);
-    fireEvent.change(screen.getByLabelText("Event ID or share slug"), {
+    fireEvent.change(screen.getByLabelText("Event ID or Share Slug"), {
       target: { value: "evt_1" },
     });
-    fireEvent.click(screen.getByRole("button", { name: "Review and send" }));
-    fireEvent.click(await screen.findByRole("button", { name: "Send broadcast" }));
+    fireEvent.click(screen.getByRole("button", { name: "Review & Send" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Send Broadcast" }));
     await waitFor(() => {
       expect(fetchMock).toHaveBeenCalledTimes(1);
     });
@@ -116,8 +116,8 @@ describe("admin broadcast screen", () => {
     stubApi(() => json({ error: "event_not_found" }, 404));
     renderPage();
     fill("Hi", "There");
-    fireEvent.click(screen.getByRole("button", { name: "Review and send" }));
-    fireEvent.click(await screen.findByRole("button", { name: "Send broadcast" }));
+    fireEvent.click(screen.getByRole("button", { name: "Review & Send" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Send Broadcast" }));
     expect(await screen.findByRole("alert")).toBeTruthy();
     expect(screen.getByLabelText<HTMLInputElement>("Title").value).toBe("Hi");
   });

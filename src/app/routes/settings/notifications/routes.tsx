@@ -3,19 +3,19 @@ import { useCallback, useEffect, useState } from "react";
 
 import { usePush } from "../../../components/install/hooks";
 import { browserPush } from "../../../components/install/pushPort";
-import { Button, ErrorState, Skeleton } from "../../../components/ui";
+import { Button, ErrorState, GroupedList, Skeleton } from "../../../components/ui";
 import type { AppRoute } from "../../registry";
 import { fetchPrefs, savePrefs, type NotificationPrefs, type PrefsUpdate } from "./prefsApi";
 
 const LABELS: Record<string, { title: string; hint: string }> = {
-  rsvp_status: { title: "RSVP updates", hint: "You're in, moved to the waitlist, spot offered" },
-  event_changes: { title: "Event changes", hint: "Time, place or cancellations" },
-  new_events: { title: "New events", hint: "When a session is opened for sign-up" },
-  payment_due: { title: "Payment due", hint: "Reminders about your balance" },
-  payment_status: { title: "Payment status", hint: "Payments received and passes" },
+  rsvp_status: { title: "RSVP Updates", hint: "You're in, moved to the waitlist, spot offered" },
+  event_changes: { title: "Event Changes", hint: "Time, place, or cancellations" },
+  new_events: { title: "New Events", hint: "When a session is opened for sign-up" },
+  payment_due: { title: "Payment Due", hint: "Reminders about your balance" },
+  payment_status: { title: "Payment Status", hint: "Payments received and passes" },
   polls: { title: "Polls", hint: "New polls and results" },
   announcements: { title: "Announcements", hint: "Messages from the club" },
-  admin_tasks: { title: "Admin tasks", hint: "Approvals and alerts for admins" },
+  admin_tasks: { title: "Admin Tasks", hint: "Approvals and alerts for admins" },
 };
 
 function Settings() {
@@ -65,13 +65,13 @@ function Settings() {
   };
 
   return (
-    <section aria-labelledby="prefs-title">
+    <section className="bcq-prefs-page" aria-labelledby="prefs-title">
       <h1 id="prefs-title" className="bcq-page__title">
         Notifications
       </h1>
-      <section className="bcq-prefs__device" aria-labelledby="prefs-device-title">
+      <section className="bcq-card bcq-prefs__device" aria-labelledby="prefs-device-title">
         <h2 id="prefs-device-title" className="bcq-prefs__device-title">
-          Push on this device
+          Push on This Device
         </h2>
         {permission === "granted" ? (
           <p className="bcq-prefs__hint" role="status">
@@ -89,11 +89,12 @@ function Settings() {
           </p>
         ) : (
           <Button
+            block
             onClick={() => {
               void enable();
             }}
           >
-            Turn on notifications
+            Turn On Notifications
           </Button>
         )}
       </section>
@@ -109,55 +110,56 @@ function Settings() {
         </ErrorState>
       ) : null}
       {state.status === "ready" ? (
-        <>
-          <p>
+        <div className="bcq-prefs-groups">
+          <p className="bcq-prefs__intro">
             Switch off what you do not want pushed to your phone. Everything still lands in your
             inbox.
           </p>
-          <ul className="bcq-prefs">
-            <li>
-              <label className="bcq-prefs__row">
-                <span className="bcq-prefs__text">
-                  <strong>Mute all notifications</strong>
-                  <span className="bcq-prefs__hint">Overrides the switches below</span>
-                </span>
+          <GroupedList.Section title="Global">
+            <GroupedList.Row
+              asLabel
+              label="Mute All Notifications"
+              subtitle="Overrides the switches below."
+              trailing={
                 <input
                   type="checkbox"
                   role="switch"
-                  className="bcq-prefs__switch"
+                  className="bcq-switch"
                   checked={state.prefs.globalMute}
                   onChange={(e) => {
                     change({ globalMute: e.currentTarget.checked });
                   }}
                 />
-              </label>
-            </li>
+              }
+            />
+          </GroupedList.Section>
+          <GroupedList.Section title="Categories">
             {state.prefs.categories.map(({ category, muted }) => (
-              <li key={category}>
-                <label className="bcq-prefs__row">
-                  <span className="bcq-prefs__text">
-                    <strong>{LABELS[category]?.title ?? category}</strong>
-                    <span className="bcq-prefs__hint">{LABELS[category]?.hint ?? ""}</span>
-                  </span>
+              <GroupedList.Row
+                key={category}
+                asLabel
+                label={LABELS[category]?.title ?? category}
+                subtitle={LABELS[category]?.hint ?? ""}
+                trailing={
                   <input
                     type="checkbox"
                     role="switch"
-                    className="bcq-prefs__switch"
+                    className="bcq-switch"
                     checked={!muted}
                     onChange={(e) => {
                       change({ categories: { [category]: !e.currentTarget.checked } });
                     }}
                   />
-                </label>
-              </li>
+                }
+              />
             ))}
-          </ul>
+          </GroupedList.Section>
           {saveError ? (
             <p role="alert" className="bcq-prefs__error">
               Could not save that change. Check your connection and try again.
             </p>
           ) : null}
-        </>
+        </div>
       ) : null}
     </section>
   );

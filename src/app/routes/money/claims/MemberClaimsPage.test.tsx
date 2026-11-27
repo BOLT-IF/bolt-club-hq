@@ -135,20 +135,23 @@ describe("member payment claims screen", () => {
     stubClaimsApi();
     renderMemberClaims();
 
-    const list = await screen.findByRole("list", { name: /payment claims/i });
-    const rows = within(list).getAllByRole("listitem");
-    expect(rows).toHaveLength(3);
+    const pendingList = await screen.findByRole("list", { name: /pending payment claims/i });
+    const pendingRows = within(pendingList).getAllByRole("listitem");
+    expect(pendingRows).toHaveLength(1);
+    expect(within(pendingRows[0]!).getByText("240 kr")).toBeTruthy();
+    expect(within(pendingRows[0]!).getByText("Pending")).toBeTruthy();
+    expect(within(pendingRows[0]!).getByText(/Swish/)).toBeTruthy();
 
-    expect(within(rows[0]!).getByText("240 kr")).toBeTruthy();
-    expect(within(rows[0]!).getByText("Pending")).toBeTruthy();
-    expect(within(rows[0]!).getByText(/Swish/)).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: /Past Claims \(2\)/i }));
+    const pastList = screen.getByRole("list", { name: /past payment claims/i });
+    const pastRows = within(pastList).getAllByRole("listitem");
+    expect(pastRows).toHaveLength(2);
+    expect(within(pastRows[0]!).getByText("120 kr")).toBeTruthy();
+    expect(within(pastRows[0]!).getByText("Rejected")).toBeTruthy();
+    expect(within(pastRows[0]!).getByText(/No transfer found with your reference/)).toBeTruthy();
 
-    expect(within(rows[1]!).getByText("120 kr")).toBeTruthy();
-    expect(within(rows[1]!).getByText("Rejected")).toBeTruthy();
-    expect(within(rows[1]!).getByText(/No transfer found with your reference/)).toBeTruthy();
-
-    expect(within(rows[2]!).getByText("500 kr")).toBeTruthy();
-    expect(within(rows[2]!).getByText("Confirmed")).toBeTruthy();
+    expect(within(pastRows[1]!).getByText("500 kr")).toBeTruthy();
+    expect(within(pastRows[1]!).getByText("Confirmed")).toBeTruthy();
   });
 
   it("submits an I've paid claim with Idempotency-Key, whole kronor > 0, paidOn and optional note", async () => {

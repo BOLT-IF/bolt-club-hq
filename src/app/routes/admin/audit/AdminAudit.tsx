@@ -172,12 +172,12 @@ export function AdminAudit() {
   });
 
   return (
-    <section className="bcq-page" aria-labelledby="admin-audit-title">
+    <section className="bcq-page bcq-audit-page" aria-labelledby="admin-audit-title">
       <h1 id="admin-audit-title" className="bcq-page__title">
-        Audit log
+        Audit Log
       </h1>
 
-      <form className="bcq-form bcq-audit__filters" onSubmit={submit} aria-label="Filters">
+      <form className="bcq-card bcq-form bcq-audit__filters" onSubmit={submit} aria-label="Filters">
         <div className="bcq-field">
           <label className="bcq-field__label" htmlFor="audit-actor">
             Actor
@@ -191,41 +191,45 @@ export function AdminAudit() {
             ))}
           </select>
         </div>
-        <div className="bcq-field">
-          <label className="bcq-field__label" htmlFor="audit-action">
-            Action
-          </label>
-          <input {...field("action")} placeholder="member.role_change" autoComplete="off" />
-        </div>
-        <div className="bcq-field">
-          <label className="bcq-field__label" htmlFor="audit-entity">
-            Entity
-          </label>
-          <input {...field("entity")} placeholder="member" autoComplete="off" />
+        <div className="bcq-form-grid-2">
+          <div className="bcq-field">
+            <label className="bcq-field__label" htmlFor="audit-action">
+              Action
+            </label>
+            <input {...field("action")} placeholder="member.role_change" autoComplete="off" />
+          </div>
+          <div className="bcq-field">
+            <label className="bcq-field__label" htmlFor="audit-entity">
+              Entity
+            </label>
+            <input {...field("entity")} placeholder="member" autoComplete="off" />
+          </div>
         </div>
         <div className="bcq-field">
           <label className="bcq-field__label" htmlFor="audit-entityId">
-            Entity id
+            Entity ID
           </label>
           <input {...field("entityId")} autoComplete="off" />
         </div>
-        <div className="bcq-field">
-          <label className="bcq-field__label" htmlFor="audit-from">
-            From
-          </label>
-          <input {...field("from")} type="date" />
-        </div>
-        <div className="bcq-field">
-          <label className="bcq-field__label" htmlFor="audit-to">
-            To
-          </label>
-          <input {...field("to")} type="date" min={draft.from || undefined} />
+        <div className="bcq-form-grid-2">
+          <div className="bcq-field">
+            <label className="bcq-field__label" htmlFor="audit-from">
+              From
+            </label>
+            <input {...field("from")} type="date" />
+          </div>
+          <div className="bcq-field">
+            <label className="bcq-field__label" htmlFor="audit-to">
+              To
+            </label>
+            <input {...field("to")} type="date" min={draft.from || undefined} />
+          </div>
         </div>
         <div className="bcq-audit__buttons">
-          <Button type="submit">Apply filters</Button>
+          <Button type="submit">Apply Filters</Button>
           <Button
             type="button"
-            variant="secondary"
+            variant="tonal"
             onClick={() => {
               setDraft(NO_FILTERS);
               reload(NO_FILTERS);
@@ -239,7 +243,7 @@ export function AdminAudit() {
       {state.kind === "loading" ? <Skeleton label="Loading audit log" /> : null}
       {state.kind === "error" ? (
         <ErrorState
-          title="Couldn't load the audit log"
+          title="Couldn't Load Audit Log"
           onRetry={() => {
             reload(applied);
           }}
@@ -248,7 +252,7 @@ export function AdminAudit() {
         </ErrorState>
       ) : null}
       {state.kind === "ready" && state.entries.length === 0 ? (
-        <EmptyState title="No audit entries">Nothing matches these filters.</EmptyState>
+        <EmptyState title="No Audit Entries">Nothing matches these filters.</EmptyState>
       ) : null}
       {state.kind === "ready" && state.entries.length > 0 ? (
         <>

@@ -29,14 +29,14 @@ const eventDate = new Intl.DateTimeFormat("en-GB", {
 const kr = (sek: number): string => `${sek < 0 ? "−" : ""}${String(Math.abs(sek))} kr`;
 
 const REASON_LABEL: Record<string, string> = {
-  adhoc: "Event fee",
-  guest: "Guest fee",
-  club_fee: "Club fee",
+  adhoc: "Event Fee",
+  guest: "Guest Fee",
+  club_fee: "Club Fee",
   manual: "Charge",
   waiver: "Waiver",
-  pass: "Season pass",
-  revocation: "Pass revoked",
-  opening_balance: "Opening balance",
+  pass: "Season Pass",
+  revocation: "Pass Revoked",
+  opening_balance: "Opening Balance",
 };
 
 function statusBadge(item: MemberAttendanceItem): { tone: StatusTone; text: string } {
@@ -190,9 +190,9 @@ export function AttendanceHistoryPage() {
     <section aria-labelledby="history-title" className="bcq-history">
       <div className="bcq-history__header">
         <h1 id="history-title" className="bcq-page__title">
-          Attendance history
+          Attendance History
         </h1>
-        <a className="bcq-history__back" href="/money" onClick={spaLink("/money")}>
+        <a className="bcq-btn bcq-btn--tonal" href="/money" onClick={spaLink("/money")}>
           Back to Money
         </a>
       </div>
@@ -201,7 +201,7 @@ export function AttendanceHistoryPage() {
 
       {state.status === "error" ? (
         <ErrorState
-          title="Couldn't load your attendance history"
+          title="Couldn't Load Attendance History"
           onRetry={() => {
             setState({ status: "loading" });
             load();
@@ -215,7 +215,7 @@ export function AttendanceHistoryPage() {
 
       {state.status === "ready" ? (
         state.history.items.length === 0 ? (
-          <EmptyState title="No attendance history yet">
+          <EmptyState title="No Attendance History Yet">
             Your past and upcoming event RSVPs, attendance, and charges will appear here.
           </EmptyState>
         ) : (

@@ -58,7 +58,7 @@ export function PrivacyPage() {
 
       <article className="bcq-privacy__card" aria-labelledby="privacy-data-heading">
         <h2 id="privacy-data-heading" className="bcq-privacy__heading">
-          What BOLT HQ stores
+          What BOLT HQ Stores
         </h2>
         <p className="bcq-privacy__text">
           BOLT IF stores only the data needed to run club sessions, attendance, and member payments:
@@ -85,7 +85,7 @@ export function PrivacyPage() {
 
       <article className="bcq-privacy__card" aria-labelledby="privacy-retention-heading">
         <h2 id="privacy-retention-heading" className="bcq-privacy__heading">
-          How long we keep data
+          How Long We Keep Data
         </h2>
         <ul className="bcq-privacy__list">
           <li>
@@ -108,7 +108,7 @@ export function PrivacyPage() {
 
       <article className="bcq-privacy__card" aria-labelledby="privacy-rights-heading">
         <h2 id="privacy-rights-heading" className="bcq-privacy__heading">
-          Your rights: export and erasure
+          Your Rights: Export &amp; Erasure
         </h2>
         <p className="bcq-privacy__text">
           You can download a copy of your personal data as JSON at any time, including after you
@@ -129,7 +129,7 @@ export function PrivacyPage() {
               void downloadExport();
             }}
           >
-            {busy ? "Preparing export…" : "Download my data (JSON)"}
+            {busy ? "Preparing Export…" : "Download My Data (JSON)"}
           </Button>
         </div>
         {done ? (

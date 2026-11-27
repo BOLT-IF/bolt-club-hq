@@ -21,12 +21,12 @@ export function InstallGuide({ context, push = browserPush }: InstallGuideProps)
   return (
     <section className="bcq-page" aria-labelledby="install-title">
       <h1 id="install-title" className="bcq-page__title">
-        Install the app
+        Install the App
       </h1>
 
       <section className="bcq-install" aria-labelledby="install-steps-title">
         <h2 id="install-steps-title" className="bcq-install__title">
-          This device
+          This Device
         </h2>
         {ctx.standalone || installEvent.installed ? (
           <p className="bcq-install__body">You&apos;re using the installed app. Nothing to do.</p>
@@ -78,7 +78,7 @@ export function InstallGuide({ context, push = browserPush }: InstallGuideProps)
               void enable();
             }}
           >
-            Turn on notifications
+            Turn On Notifications
           </Button>
         )}
       </section>

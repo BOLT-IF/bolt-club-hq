@@ -2,7 +2,14 @@ import type { ButtonHTMLAttributes, ReactNode } from "react";
 
 import { cx } from "../../lib/cx";
 
-export type ButtonVariant = "primary" | "secondary" | "ghost" | "danger";
+export type ButtonVariant =
+  | "primary"
+  | "tonal"
+  | "secondary"
+  | "destructive-tonal"
+  | "destructive-solid"
+  | "danger"
+  | "ghost";
 
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   readonly variant?: ButtonVariant;
@@ -10,7 +17,7 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   readonly children: ReactNode;
 }
 
-/** 48px minimum height for generous touch targets (mobile-first). */
+/** 4-tier tactile button following Apple HIG (min 44px touch target, press scale). */
 export function Button({
   variant = "primary",
   block = false,

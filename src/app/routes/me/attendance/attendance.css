@@ -5,17 +5,23 @@
 
 .bcq-history__header {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
   gap: 0.75rem;
   flex-wrap: wrap;
 }
+.bcq-history__header .bcq-page__title {
+  margin: 0;
+}
 
 .bcq-history__back {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--bcq-touch);
   color: var(--bcq-brand-deep);
   text-decoration: underline;
   text-underline-offset: 2px;
-  font-weight: 500;
+  font-weight: 600;
 }
 
 .bcq-history__list {
@@ -33,6 +39,7 @@
   background: var(--bcq-card);
   border: 1px solid var(--bcq-line);
   border-radius: var(--bcq-radius);
+  box-shadow: var(--bcq-card-shadow);
 }
 
 .bcq-history__item[data-highlighted="true"] {
@@ -50,6 +57,9 @@
 }
 
 .bcq-history__title {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--bcq-touch);
   font-weight: 600;
   color: inherit;
   text-decoration: underline;

@@ -247,7 +247,7 @@ describe("admin balances revocable filter and pass revocation", () => {
       },
     });
     renderWith(<PassesPage />);
-    expect(await screen.findByText("Returning member rate")).toBeTruthy();
+    expect(await screen.findByText("Returning Member Rate")).toBeTruthy();
     expect(screen.getByText("700 kr")).toBeTruthy();
   });
 });

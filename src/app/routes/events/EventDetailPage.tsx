@@ -98,9 +98,13 @@ export function EventDetailPage() {
       <p className="bcq-event__when">{formatWhen(event.startsAt, event.endsAt)}</p>
       {event.location ? <p className="bcq-event__where">{event.location}</p> : null}
       <p className="bcq-event__chips">
-        <StatusChip>{event.format}</StatusChip>{" "}
+        <StatusChip>
+          {event.format.length > 0
+            ? event.format.charAt(0).toUpperCase() + event.format.slice(1)
+            : event.format}
+        </StatusChip>{" "}
         {event.kind === "member_oneoff" ? (
-          <StatusChip tone="neutral">Member-organized</StatusChip>
+          <StatusChip tone="neutral">Member-Organized</StatusChip>
         ) : null}
         {event.audienceLabel ? (
           <>
@@ -110,7 +114,7 @@ export function EventDetailPage() {
         ) : null}
         {event.status === "cancelled" ? <StatusChip tone="danger">Cancelled</StatusChip> : null}
         {event.readOnly && event.status !== "cancelled" ? (
-          <StatusChip>Past event</StatusChip>
+          <StatusChip>Past Event</StatusChip>
         ) : null}
       </p>
       {event.adhocFee > 0 ? (

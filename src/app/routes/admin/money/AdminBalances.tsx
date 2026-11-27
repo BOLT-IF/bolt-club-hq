@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import { ApiError, apiFetch, newIdempotencyKey } from "../../../api/client";
 import {
   Button,
+  ChevronRightIcon,
   ConfirmDialog,
   EmptyState,
   ErrorState,
@@ -27,9 +28,9 @@ type Filter = "all" | "owes" | "credit" | "inactive" | "revocable";
 
 const FILTERS: ReadonlyArray<{ value: Filter; label: string }> = [
   { value: "all", label: "All" },
-  { value: "owes", label: "Owes money" },
-  { value: "credit", label: "In credit" },
-  { value: "inactive", label: "Inactive with balance" },
+  { value: "owes", label: "Owes Money" },
+  { value: "credit", label: "In Credit" },
+  { value: "inactive", label: "Inactive With Balance" },
   { value: "revocable", label: "Revocable" },
 ];
 
@@ -168,14 +169,16 @@ export function AdminBalances() {
   };
 
   return (
-    <section className="bcq-page" aria-labelledby="admin-balances-title">
-      <h1 id="admin-balances-title" className="bcq-page__title">
-        Balances
-      </h1>
-      <p className="bcq-member__meta">Members owe {totalOwed} kr in total.</p>
-      <div className="bcq-member__actions bcq-money-actions">
+    <section className="bcq-page bcq-money-page" aria-labelledby="admin-balances-title">
+      <div>
+        <h1 id="admin-balances-title" className="bcq-page__title">
+          Balances
+        </h1>
+        <p className="bcq-member__meta">Members owe {totalOwed} kr in total.</p>
+      </div>
+      <div className="bcq-member__actions">
         <a
-          className="bcq-btn bcq-btn--secondary"
+          className="bcq-btn bcq-btn--tonal"
           href="/admin/money/claims"
           onClick={(e) => {
             if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
@@ -186,7 +189,7 @@ export function AdminBalances() {
           Payment Claims
         </a>
         <Button
-          variant="secondary"
+          variant="tonal"
           onClick={() => {
             setAssignOpen(true);
           }}
@@ -194,7 +197,7 @@ export function AdminBalances() {
           Assign Pass
         </Button>
         <a
-          className="bcq-btn bcq-btn--secondary"
+          className="bcq-btn bcq-btn--tonal"
           href="/admin/money/club-fees"
           onClick={(e) => {
             if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
@@ -206,44 +209,46 @@ export function AdminBalances() {
         </a>
       </div>
 
-      <div className="bcq-field">
-        <label className="bcq-field__label" htmlFor="balances-search">
-          Search name or payment reference
-        </label>
-        <input
-          id="balances-search"
-          className="bcq-input"
-          type="search"
-          autoComplete="off"
-          value={query}
-          onChange={(e) => {
-            setQuery(e.target.value);
-          }}
-        />
-      </div>
-
-      <fieldset className="bcq-money-filters">
-        <legend className="bcq-field__label">Show</legend>
-        {FILTERS.map((f) => (
-          <label key={f.value} className="bcq-money-filter">
-            <input
-              type="radio"
-              name="balances-filter"
-              value={f.value}
-              checked={filter === f.value}
-              onChange={() => {
-                setFilter(f.value);
-              }}
-            />
-            {f.label}
+      <div className="bcq-card bcq-form">
+        <div className="bcq-field">
+          <label className="bcq-field__label" htmlFor="balances-search">
+            Search Name or Payment Reference
           </label>
-        ))}
-      </fieldset>
+          <input
+            id="balances-search"
+            className="bcq-input"
+            type="search"
+            autoComplete="off"
+            value={query}
+            onChange={(e) => {
+              setQuery(e.target.value);
+            }}
+          />
+        </div>
+
+        <fieldset className="bcq-filter-pills">
+          <legend>Show</legend>
+          {FILTERS.map((f) => (
+            <label key={f.value} className="bcq-filter-pill">
+              <input
+                type="radio"
+                name="balances-filter"
+                value={f.value}
+                checked={filter === f.value}
+                onChange={() => {
+                  setFilter(f.value);
+                }}
+              />
+              {f.label}
+            </label>
+          ))}
+        </fieldset>
+      </div>
 
       {isRevocableView ? (
         <>
           {revocablePasses.length === 0 ? (
-            <EmptyState title="No revocable passes">
+            <EmptyState title="No Revocable Passes">
               No unpaid passes are past the revocation window.
             </EmptyState>
           ) : null}
@@ -269,13 +274,13 @@ export function AdminBalances() {
                 </a>
                 <div>
                   <Button
-                    variant="danger"
+                    variant="destructive-tonal"
                     onClick={() => {
                       setRevokeKey(newIdempotencyKey());
                       setPendingRevoke(p);
                     }}
                   >
-                    Revoke pass
+                    Revoke Pass
                   </Button>
                 </div>
               </li>
@@ -285,31 +290,36 @@ export function AdminBalances() {
       ) : (
         <>
           {rows.length === 0 ? (
-            <EmptyState title="No members match">Try another search or filter.</EmptyState>
+            <EmptyState title="No Members Match">Try another search or filter.</EmptyState>
           ) : null}
           <ul className="bcq-members" aria-label="Balances">
             {rows.map((r) => (
               <li key={r.id} className="bcq-member">
                 <a
-                  className="bcq-money-row"
+                  className="bcq-money-row bcq-money-row--nav"
                   href={`/admin/money/members/${r.id}`}
                   onClick={(e) => {
                     e.preventDefault();
                     navigate(`/admin/money/members/${r.id}`);
                   }}
                 >
-                  <span className="bcq-member__head">
-                    <span className="bcq-member__name">{r.displayName}</span>
-                    <StatusChip tone={balanceTone(r.balanceSek)}>
-                      {describeBalance(r.balanceSek)}
-                    </StatusChip>
-                    {r.status !== "active" ? (
-                      <StatusChip tone="neutral">
-                        {r.status.charAt(0).toUpperCase() + r.status.slice(1)}
+                  <span className="bcq-money-row__main">
+                    <span className="bcq-member__head">
+                      <span className="bcq-member__name">{r.displayName}</span>
+                      <StatusChip tone={balanceTone(r.balanceSek)}>
+                        {describeBalance(r.balanceSek)}
                       </StatusChip>
-                    ) : null}
+                      {r.status !== "active" ? (
+                        <StatusChip tone="neutral">
+                          {r.status.charAt(0).toUpperCase() + r.status.slice(1)}
+                        </StatusChip>
+                      ) : null}
+                    </span>
+                    <span className="bcq-member__meta">Payment reference {r.paymentRef}</span>
                   </span>
-                  <span className="bcq-member__meta">Payment reference {r.paymentRef}</span>
+                  <span className="bcq-grouped-row__chevron" aria-hidden="true">
+                    <ChevronRightIcon />
+                  </span>
                 </a>
               </li>
             ))}

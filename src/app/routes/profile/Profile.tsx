@@ -1,7 +1,7 @@
 import { useEffect, useState, type SyntheticEvent } from "react";
 
 import { apiFetch } from "../../api/client";
-import { Button, ErrorState, Skeleton, useToast } from "../../components/ui";
+import { Button, CopyButton, ErrorState, Skeleton, useToast } from "../../components/ui";
 import type { MemberRow } from "../members/memberApi";
 import "../members/members.css";
 
@@ -29,7 +29,7 @@ export function Profile() {
       });
   }, []);
 
-  if (failed) return <ErrorState title="Couldn't load your profile" />;
+  if (failed) return <ErrorState title="Couldn't Load Your Profile" />;
   if (!me) return <Skeleton label="Loading profile" />;
 
   async function save(event: SyntheticEvent) {
@@ -59,10 +59,10 @@ export function Profile() {
       <h1 id="profile-title" className="bcq-page__title">
         Profile
       </h1>
-      <form className="bcq-form" onSubmit={(e) => void save(e)} noValidate>
+      <form className="bcq-card bcq-form" onSubmit={(e) => void save(e)} noValidate>
         <div className="bcq-field">
           <label className="bcq-field__label" htmlFor="display-name">
-            Display name
+            Display Name
           </label>
           <input
             id="display-name"
@@ -83,7 +83,7 @@ export function Profile() {
         </div>
         <div className="bcq-field">
           <label className="bcq-field__label" htmlFor="roster-name">
-            Roster name (optional)
+            Roster Name (Optional)
           </label>
           <input
             id="roster-name"
@@ -100,13 +100,21 @@ export function Profile() {
           </p>
         </div>
         <div className="bcq-field">
-          <span className="bcq-field__label">Payment reference</span>
-          <strong>{me.paymentRef}</strong>
+          <span className="bcq-field__label">Payment Reference</span>
+          <div className="bcq-member__head">
+            <strong>{me.paymentRef}</strong>
+            <CopyButton
+              value={me.paymentRef}
+              label="Copy"
+              ariaLabel="Copy payment reference"
+              toastMessage="Payment reference copied"
+            />
+          </div>
           <p className="bcq-field__hint">
             Write this on your bank transfers so we can match them to you.
           </p>
         </div>
-        <Button type="submit" disabled={busy}>
+        <Button type="submit" block disabled={busy}>
           Save
         </Button>
       </form>

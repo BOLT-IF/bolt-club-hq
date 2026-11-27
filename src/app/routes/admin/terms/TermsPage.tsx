@@ -7,7 +7,14 @@ import {
   inferTermSeason,
   type TermSeason,
 } from "../../../../domain/club-fee";
-import { BottomSheet, Button, EmptyState, StatusChip, useToast } from "../../../components/ui";
+import {
+  BottomSheet,
+  Button,
+  DisclosureSection,
+  EmptyState,
+  StatusChip,
+  useToast,
+} from "../../../components/ui";
 import { navigate } from "../../../lib/navigate";
 import {
   AreaGate,
@@ -51,28 +58,32 @@ function DateRangeFields({
   return (
     <>
       <TextField label="Name" value={name} onChange={onName} required />
-      <TextField label="Starts on" type="date" value={starts} onChange={onStarts} required />
-      <TextField label="Ends on" type="date" value={ends} onChange={onEnds} required />
-      <SelectField
-        label="Season"
-        value={season}
-        onChange={onSeason}
-        options={[
-          { value: "fall", label: "Fall" },
-          { value: "spring", label: "Spring" },
-        ]}
-      />
-      <TextField
-        label="Membership year"
-        type="number"
-        value={clubYear}
-        onChange={onClubYear}
-        hint={
-          parsedYear !== null
-            ? `Club year ${formatClubYear(parsedYear)} (Fall ${String(parsedYear)} + Spring ${String(parsedYear + 1)})`
-            : "Starting year of the Fall–Spring club year (e.g. 2026 for 2026/2027)"
-        }
-      />
+      <div className="bcq-form-grid-2">
+        <TextField label="Starts On" type="date" value={starts} onChange={onStarts} required />
+        <TextField label="Ends On" type="date" value={ends} onChange={onEnds} required />
+      </div>
+      <div className="bcq-form-grid-2">
+        <SelectField
+          label="Season"
+          value={season}
+          onChange={onSeason}
+          options={[
+            { value: "fall", label: "Fall" },
+            { value: "spring", label: "Spring" },
+          ]}
+        />
+        <TextField
+          label="Membership Year"
+          type="number"
+          value={clubYear}
+          onChange={onClubYear}
+          hint={
+            parsedYear !== null
+              ? `Club year ${formatClubYear(parsedYear)}`
+              : "Starting year (e.g. 2026)"
+          }
+        />
+      </div>
     </>
   );
 }
@@ -137,8 +148,8 @@ function NewTermForm({ onCreated }: { readonly onCreated: () => void }) {
   }
 
   return (
-    <form className="bcq-form" onSubmit={(e) => void submit(e)}>
-      <h2 className="bcq-section-title">New term</h2>
+    <form className="bcq-card bcq-form" onSubmit={(e) => void submit(e)}>
+      <h2 className="bcq-section-title">New Term</h2>
       <DateRangeFields
         name={name}
         starts={startsOn}
@@ -151,8 +162,8 @@ function NewTermForm({ onCreated }: { readonly onCreated: () => void }) {
         onSeason={setSeason}
         onClubYear={setClubYear}
       />
-      <Button type="submit" disabled={busy}>
-        Create term
+      <Button type="submit" block disabled={busy}>
+        Create Term
       </Button>
     </form>
   );
@@ -251,51 +262,63 @@ function TermsList() {
   const load = useLoad<{ terms: TermRow[] }>("/terms");
   const [cloning, setCloning] = useState<TermRow | null>(null);
 
+  const renderTermCard = (t: TermRow) => (
+    <li key={t.id} className="bcq-card">
+      <div className="bcq-card__row">
+        <a
+          className="bcq-link bcq-card__title"
+          href={`/admin/terms/${t.id}`}
+          onClick={(e) => {
+            if (e.metaKey || e.ctrlKey || e.shiftKey) return;
+            e.preventDefault();
+            navigate(`/admin/terms/${t.id}`);
+          }}
+        >
+          {t.name}
+        </a>
+        <StatusChip tone={tone(t.status)}>{STATUS_LABEL[t.status]}</StatusChip>
+      </div>
+      <p className="bcq-card__meta">
+        {t.startsOn} to {t.endsOn} · {formatTermPeriod(t)} · {t.seriesCount ?? 0} series
+      </p>
+      <Button
+        variant="tonal"
+        aria-label={`Clone ${t.name}`}
+        onClick={() => {
+          setCloning(t);
+        }}
+      >
+        Clone
+      </Button>
+    </li>
+  );
+
   return (
     <section className="bcq-page bcq-stack" aria-labelledby="terms-title">
       <BackLink to="/admin">Admin</BackLink>
       <h1 id="terms-title" className="bcq-page__title">
-        Terms &amp; series
+        Terms &amp; Series
       </h1>
       <Loaded load={load}>
-        {({ terms }) =>
-          terms.length === 0 ? (
-            <EmptyState title="No terms yet">Create your first term below.</EmptyState>
-          ) : (
-            <ul className="bcq-list">
-              {terms.map((t) => (
-                <li key={t.id} className="bcq-card">
-                  <div className="bcq-card__row">
-                    <a
-                      className="bcq-link bcq-card__title"
-                      href={`/admin/terms/${t.id}`}
-                      onClick={(e) => {
-                        if (e.metaKey || e.ctrlKey || e.shiftKey) return;
-                        e.preventDefault();
-                        navigate(`/admin/terms/${t.id}`);
-                      }}
-                    >
-                      {t.name}
-                    </a>
-                    <StatusChip tone={tone(t.status)}>{STATUS_LABEL[t.status]}</StatusChip>
-                  </div>
-                  <p className="bcq-card__meta">
-                    {t.startsOn} to {t.endsOn} · {formatTermPeriod(t)} · {t.seriesCount ?? 0} series
-                  </p>
-                  <Button
-                    variant="secondary"
-                    aria-label={`Clone ${t.name}`}
-                    onClick={() => {
-                      setCloning(t);
-                    }}
-                  >
-                    Clone
-                  </Button>
-                </li>
-              ))}
-            </ul>
-          )
-        }
+        {({ terms }) => {
+          if (terms.length === 0) {
+            return <EmptyState title="No Terms Yet">Create your first term below.</EmptyState>;
+          }
+          const activeTerms = terms.filter((t) => t.status !== "closed");
+          const closedTerms = terms.filter((t) => t.status === "closed");
+          return (
+            <div className="bcq-stack">
+              {activeTerms.length > 0 ? (
+                <ul className="bcq-list">{activeTerms.map(renderTermCard)}</ul>
+              ) : null}
+              {closedTerms.length > 0 ? (
+                <DisclosureSection label={`Past Terms (${String(closedTerms.length)})`}>
+                  <ul className="bcq-list">{closedTerms.map(renderTermCard)}</ul>
+                </DisclosureSection>
+              ) : null}
+            </div>
+          );
+        }}
       </Loaded>
       <NewTermForm onCreated={load.reload} />
       <CloneSheet

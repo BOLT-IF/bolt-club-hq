@@ -187,27 +187,29 @@ export function AdminMemberLedger() {
   };
 
   return (
-    <section className="bcq-page" aria-labelledby="admin-ledger-title">
-      <h1 id="admin-ledger-title" className="bcq-page__title">
-        {name}
-      </h1>
-      <div className="bcq-member__head">
-        <StatusChip tone={balanceTone(ledger.balanceSek)}>
-          {describeBalance(ledger.balanceSek)}
-        </StatusChip>
-        <span className="bcq-member__meta">Payment reference {ledger.member.paymentRef}</span>
+    <section className="bcq-page bcq-money-page" aria-labelledby="admin-ledger-title">
+      <div>
+        <h1 id="admin-ledger-title" className="bcq-page__title">
+          {name}
+        </h1>
+        <div className="bcq-member__head">
+          <StatusChip tone={balanceTone(ledger.balanceSek)}>
+            {describeBalance(ledger.balanceSek)}
+          </StatusChip>
+          <span className="bcq-member__meta">Payment reference {ledger.member.paymentRef}</span>
+        </div>
       </div>
 
       <div className="bcq-member__actions">
-        <Button onClick={open({ kind: "payment" })}>Record payment</Button>
-        <Button variant="secondary" onClick={open({ kind: "charge" })}>
-          Add charge
+        <Button onClick={open({ kind: "payment" })}>Record Payment</Button>
+        <Button variant="tonal" onClick={open({ kind: "charge" })}>
+          Add Charge
         </Button>
-        <Button variant="secondary" onClick={open({ kind: "writeoff" })}>
-          Write off an amount
+        <Button variant="tonal" onClick={open({ kind: "writeoff" })}>
+          Write Off
         </Button>
         <Button
-          variant="secondary"
+          variant="tonal"
           onClick={() => {
             setAssignOpen(true);
           }}
@@ -216,59 +218,61 @@ export function AdminMemberLedger() {
         </Button>
       </div>
 
-      <h2 className="bcq-member__name">Entries</h2>
-      {ledger.items.length === 0 ? (
-        <EmptyState title="No entries yet">Charges and payments appear here.</EmptyState>
-      ) : (
-        <ul className="bcq-members" aria-label="Ledger entries">
-          {ledger.items.map((item) => {
-            const status = STATUS_LABEL[item.status] ?? { label: item.status, tone: "neutral" };
-            return (
-              <li key={item.id} className="bcq-member">
-                <div className="bcq-member__head">
-                  <span className="bcq-member__name">
-                    {REASON_LABEL[item.reason] ?? item.reason}
-                  </span>
-                  <span className="bcq-money-amount">
-                    {item.amountSek > 0 ? "" : "−"}
-                    {Math.abs(item.amountSek)} kr
-                  </span>
-                  <StatusChip tone={status.tone}>{status.label}</StatusChip>
-                </div>
-                <p className="bcq-member__meta">
-                  {dateFmt.format(new Date(item.createdAt))}
-                  {item.eventTitle ? ` · ${item.eventTitle}` : ""}
-                  {item.guestName ? ` · guest ${item.guestName}` : ""}
-                  {item.outstandingSek > 0 ? ` · ${String(item.outstandingSek)} kr left` : ""}
-                  {item.note ? ` · ${item.note}` : ""}
-                </p>
-                {item.waivable || item.reversible ? (
-                  <div className="bcq-member__actions">
-                    {item.waivable ? (
-                      <Button
-                        variant="secondary"
-                        aria-label={`Waive ${itemLabel(item)}`}
-                        onClick={open({ kind: "waive", item })}
-                      >
-                        Waive
-                      </Button>
-                    ) : null}
-                    {item.reversible ? (
-                      <Button
-                        variant="ghost"
-                        aria-label={`Reverse ${itemLabel(item)}`}
-                        onClick={open({ kind: "reverse", item })}
-                      >
-                        Reverse
-                      </Button>
-                    ) : null}
+      <div className="bcq-money-section">
+        <h2 className="bcq-member__name">Entries</h2>
+        {ledger.items.length === 0 ? (
+          <EmptyState title="No Entries Yet">Charges and payments appear here.</EmptyState>
+        ) : (
+          <ul className="bcq-members" aria-label="Ledger entries">
+            {ledger.items.map((item) => {
+              const status = STATUS_LABEL[item.status] ?? { label: item.status, tone: "neutral" };
+              return (
+                <li key={item.id} className="bcq-member">
+                  <div className="bcq-member__head">
+                    <span className="bcq-member__name">
+                      {REASON_LABEL[item.reason] ?? item.reason}
+                    </span>
+                    <span className="bcq-money-amount">
+                      {item.amountSek > 0 ? "" : "−"}
+                      {Math.abs(item.amountSek)} kr
+                    </span>
+                    <StatusChip tone={status.tone}>{status.label}</StatusChip>
                   </div>
-                ) : null}
-              </li>
-            );
-          })}
-        </ul>
-      )}
+                  <p className="bcq-member__meta">
+                    {dateFmt.format(new Date(item.createdAt))}
+                    {item.eventTitle ? ` · ${item.eventTitle}` : ""}
+                    {item.guestName ? ` · guest ${item.guestName}` : ""}
+                    {item.outstandingSek > 0 ? ` · ${String(item.outstandingSek)} kr left` : ""}
+                    {item.note ? ` · ${item.note}` : ""}
+                  </p>
+                  {item.waivable || item.reversible ? (
+                    <div className="bcq-member__actions">
+                      {item.waivable ? (
+                        <Button
+                          variant="tonal"
+                          aria-label={`Waive ${itemLabel(item)}`}
+                          onClick={open({ kind: "waive", item })}
+                        >
+                          Waive
+                        </Button>
+                      ) : null}
+                      {item.reversible ? (
+                        <Button
+                          variant="destructive-tonal"
+                          aria-label={`Reverse ${itemLabel(item)}`}
+                          onClick={open({ kind: "reverse", item })}
+                        >
+                          Reverse
+                        </Button>
+                      ) : null}
+                    </div>
+                  ) : null}
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </div>
 
       {action ? (
         <EntrySheet

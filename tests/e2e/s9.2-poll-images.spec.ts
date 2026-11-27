@@ -189,7 +189,7 @@ test.describe("polls with images on mobile (S9.2)", () => {
     });
     await expect(page.getByRole("button", { name: /remove image for option 1/i })).toBeVisible();
 
-    await page.getByRole("button", { name: "Create poll" }).click();
+    await page.getByRole("button", { name: "Create Poll" }).click();
     await expect
       .poll(() => createdBody)
       .toEqual({

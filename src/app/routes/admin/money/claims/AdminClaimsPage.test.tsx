@@ -236,6 +236,7 @@ describe("admin payment claims queue", () => {
     renderAdminClaims();
 
     expect(await screen.findByText(/No pending claims/i)).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: /Past Claims \(1\)/i }));
     const history = screen.getByRole("list", { name: /decided payment claims/i });
     expect(within(history).getByText("Rejected")).toBeTruthy();
     expect(within(history).getByText(/Wrong amount/)).toBeTruthy();

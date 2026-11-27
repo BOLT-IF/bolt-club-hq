@@ -26,6 +26,7 @@
   background: var(--bcq-card);
   border: 1px solid var(--bcq-line);
   border-radius: var(--bcq-radius);
+  box-shadow: var(--bcq-card-shadow);
   animation: bcq-rise 220ms var(--bcq-ease) both;
 }
 

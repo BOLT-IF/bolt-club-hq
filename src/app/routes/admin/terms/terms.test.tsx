@@ -147,6 +147,7 @@ describe("TermsPage", () => {
     const link = await screen.findByRole("link", { name: "Spring 2027" });
     expect(link.getAttribute("href")).toBe("/admin/terms/t1");
     expect(screen.getByText("Draft")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: /Past Terms \(1\)/i }));
     expect(screen.getByText("Closed")).toBeTruthy();
     expect(screen.getByText(/3 series/)).toBeTruthy();
   });
@@ -160,7 +161,7 @@ describe("TermsPage", () => {
     configureApiClient({ fetch: () => Promise.resolve(new Response("{}", { status: 500 })) });
     renderPage(<TermsPage />);
     expect(await screen.findByRole("alert")).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Try again" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Try Again" })).toBeTruthy();
   });
 
   it("creates a term from the labelled form and reloads the list", async () => {
@@ -173,9 +174,9 @@ describe("TermsPage", () => {
     await screen.findByText(/no terms yet/i);
 
     await user.type(screen.getByLabelText("Name"), "Spring 2027");
-    await user.type(screen.getByLabelText("Starts on"), "2027-01-11");
-    await user.type(screen.getByLabelText("Ends on"), "2027-06-24");
-    await user.click(screen.getByRole("button", { name: "Create term" }));
+    await user.type(screen.getByLabelText("Starts On"), "2027-01-11");
+    await user.type(screen.getByLabelText("Ends On"), "2027-06-24");
+    await user.click(screen.getByRole("button", { name: "Create Term" }));
 
     await waitFor(() => {
       expect(calls.some((c) => c.method === "POST" && c.path === "/terms")).toBe(true);
@@ -206,8 +207,8 @@ describe("TermsPage", () => {
 
     const dialog = screen.getByRole("dialog");
     await user.type(within(dialog).getByLabelText("Name"), "Autumn 2027");
-    await user.type(within(dialog).getByLabelText("Starts on"), "2027-07-05");
-    await user.type(within(dialog).getByLabelText("Ends on"), "2027-12-20");
+    await user.type(within(dialog).getByLabelText("Starts On"), "2027-07-05");
+    await user.type(within(dialog).getByLabelText("Ends On"), "2027-12-20");
     await user.click(within(dialog).getByRole("button", { name: "Clone term" }));
 
     await waitFor(() => {
@@ -239,7 +240,7 @@ describe("TermPage", () => {
     expect(await screen.findByRole("heading", { name: "Spring 2027" })).toBeTruthy();
     const link = screen.getByRole("link", { name: /Thursday XD/ });
     expect(link.getAttribute("href")).toBe("/admin/terms/series/s1");
-    expect(screen.getByRole("heading", { name: "Add a series" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Add a Series" })).toBeTruthy();
   });
 
   it("offers only the next status, and warns that opening locks skip-dates", async () => {
@@ -275,7 +276,7 @@ describe("TermPage", () => {
       "POST /series": { series: seriesRow() },
     });
     renderPage(<TermPage />);
-    await screen.findByRole("heading", { name: "Add a series" });
+    await screen.findByRole("heading", { name: "Add a Series" });
 
     await user.type(screen.getByLabelText("Name"), "Thursday XD");
     await user.selectOptions(screen.getByLabelText("Format"), "XD");
@@ -285,7 +286,7 @@ describe("TermPage", () => {
     await user.type(screen.getByLabelText("Capacity"), "16");
     await user.type(screen.getByLabelText("Pass price (kr)"), "1800");
     await user.type(screen.getByLabelText("Drop-in fee (kr)"), "120");
-    await user.click(screen.getByRole("button", { name: "Add series" }));
+    await user.click(screen.getByRole("button", { name: "Add Series" }));
 
     await waitFor(() => {
       expect(calls.some((c) => c.method === "POST" && c.path === "/series")).toBe(true);
@@ -429,7 +430,7 @@ describe("SeriesPage", () => {
 
     const eligibleGroup = screen.getByRole("group", { name: "Eligible for discounted rate" });
     await user.click(within(eligibleGroup).getByLabelText("Ada Lovelace"));
-    await user.click(screen.getByRole("button", { name: "Add series" }));
+    await user.click(screen.getByRole("button", { name: "Add Series" }));
 
     await waitFor(() => {
       const post = calls.find((c) => c.method === "POST" && c.path === "/series");

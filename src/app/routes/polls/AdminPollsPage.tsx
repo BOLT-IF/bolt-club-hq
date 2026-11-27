@@ -4,7 +4,13 @@ import { useCallback, useEffect, useState, type SyntheticEvent } from "react";
 import { ApiError } from "../../api/client";
 import { useAuthEnabled } from "../../auth/AuthProvider";
 import { ImagePicker, type PickedImage } from "../../components/ImagePicker";
-import { Button, ConfirmDialog, ErrorState, Skeleton } from "../../components/ui";
+import {
+  Button,
+  ConfirmDialog,
+  DisclosureSection,
+  ErrorState,
+  Skeleton,
+} from "../../components/ui";
 import { navigate } from "../../lib/navigate";
 import {
   closePoll,
@@ -102,9 +108,9 @@ function CreateForm({ onCreated }: { readonly onCreated: (p: Poll) => void }) {
   };
 
   return (
-    <form onSubmit={submit} className="bcq-poll__form" aria-labelledby="new-poll-title">
-      <h2 id="new-poll-title" className="bcq-poll__subtitle">
-        New poll
+    <form onSubmit={submit} className="bcq-card bcq-poll__form" aria-labelledby="new-poll-title">
+      <h2 id="new-poll-title" className="bcq-poll__card-title">
+        New Poll
       </h2>
       <label className="bcq-field">
         <span>Question</span>
@@ -148,12 +154,12 @@ function CreateForm({ onCreated }: { readonly onCreated: (p: Poll) => void }) {
       ))}
       {options.length < MAX_OPTIONS ? (
         <Button
-          variant="secondary"
+          variant="tonal"
           onClick={() => {
             setOptions([...options, { label: "", image: null }]);
           }}
         >
-          Add option
+          Add Option
         </Button>
       ) : null}
       <label className="bcq-poll__option">
@@ -177,7 +183,7 @@ function CreateForm({ onCreated }: { readonly onCreated: (p: Poll) => void }) {
         <span>Anonymous (names are never shown, not even to admins; cannot be changed later)</span>
       </label>
       <label className="bcq-field">
-        <span>Who sees results</span>
+        <span>Who Sees Results</span>
         <select
           value={visibility}
           onChange={(e) => {
@@ -192,7 +198,7 @@ function CreateForm({ onCreated }: { readonly onCreated: (p: Poll) => void }) {
         </select>
       </label>
       <label className="bcq-field">
-        <span>Closes (optional)</span>
+        <span>Closes (Optional)</span>
         <input
           type="datetime-local"
           value={closesAt}
@@ -201,11 +207,13 @@ function CreateForm({ onCreated }: { readonly onCreated: (p: Poll) => void }) {
           }}
         />
       </label>
-      <p role="status" className="bcq-poll__error">
-        {error}
-      </p>
+      {error ? (
+        <p role="status" className="bcq-poll__error">
+          {error}
+        </p>
+      ) : null}
       <Button type="submit" block disabled={busy}>
-        Create poll
+        Create Poll
       </Button>
     </form>
   );
@@ -235,70 +243,82 @@ function AdminPolls() {
     (action === "close" ? closePoll(poll.id) : deletePoll(poll.id)).then(load).catch(load);
   };
 
+  const activePolls = state.kind === "ready" ? state.polls.filter((p) => !p.closed) : [];
+  const pastPolls = state.kind === "ready" ? state.polls.filter((p) => p.closed) : [];
+
+  const renderAdminPoll = (p: Poll) => (
+    <li key={p.id} className="bcq-polls__item">
+      <a
+        className="bcq-polls__question"
+        href={`/polls/${p.id}`}
+        onClick={(e) => {
+          e.preventDefault();
+          navigate(`/polls/${p.id}`);
+        }}
+      >
+        {p.question}
+      </a>
+      <span>
+        <PollStatus poll={p} />
+        {p.results ? ` · ${String(p.results.totalVoters)} voted` : null}
+      </span>
+      <span className="bcq-polls__actions">
+        {p.closed ? null : (
+          <Button
+            variant="tonal"
+            aria-label={`Close now: ${p.question}`}
+            onClick={() => {
+              setConfirm({ action: "close", poll: p });
+            }}
+          >
+            Close Now
+          </Button>
+        )}
+        <Button
+          variant="destructive-tonal"
+          aria-label={`Delete: ${p.question}`}
+          onClick={() => {
+            setConfirm({ action: "delete", poll: p });
+          }}
+        >
+          Delete
+        </Button>
+      </span>
+    </li>
+  );
+
   return (
-    <section aria-labelledby="admin-polls-title">
+    <section aria-labelledby="admin-polls-title" className="bcq-polls-page">
       <h1 id="admin-polls-title" className="bcq-page__title">
         Polls
       </h1>
       <CreateForm onCreated={load} />
-      <h2 className="bcq-poll__subtitle">All polls</h2>
+      <h2 className="bcq-poll__subtitle">Active Polls</h2>
       {state.kind === "loading" ? <Skeleton label="Loading polls" /> : null}
       {state.kind === "error" ? (
         <ErrorState onRetry={load}>Could not load polls.</ErrorState>
       ) : null}
       {state.kind === "ready" ? (
-        <ul className="bcq-polls">
-          {state.polls.map((p) => (
-            <li key={p.id} className="bcq-polls__item">
-              <a
-                className="bcq-polls__question"
-                href={`/polls/${p.id}`}
-                onClick={(e) => {
-                  e.preventDefault();
-                  navigate(`/polls/${p.id}`);
-                }}
-              >
-                {p.question}
-              </a>
-              <span>
-                <PollStatus poll={p} />
-                {p.results ? ` · ${String(p.results.totalVoters)} voted` : null}
-              </span>
-              <span className="bcq-polls__actions">
-                {p.closed ? null : (
-                  <Button
-                    variant="secondary"
-                    aria-label={`Close now: ${p.question}`}
-                    onClick={() => {
-                      setConfirm({ action: "close", poll: p });
-                    }}
-                  >
-                    Close now
-                  </Button>
-                )}
-                <Button
-                  variant="ghost"
-                  aria-label={`Delete: ${p.question}`}
-                  onClick={() => {
-                    setConfirm({ action: "delete", poll: p });
-                  }}
-                >
-                  Delete
-                </Button>
-              </span>
-            </li>
-          ))}
-        </ul>
+        <div className="bcq-polls-groups">
+          {activePolls.length > 0 ? (
+            <ul className="bcq-polls">{activePolls.map(renderAdminPoll)}</ul>
+          ) : null}
+          {pastPolls.length > 0 ? (
+            <DisclosureSection label={`Past Polls (${String(pastPolls.length)})`}>
+              <ul className="bcq-polls">{pastPolls.map(renderAdminPoll)}</ul>
+            </DisclosureSection>
+          ) : null}
+        </div>
       ) : null}
       <ConfirmDialog
         open={confirm !== null}
-        title={confirm?.action === "delete" ? "Delete poll?" : "Close poll?"}
+        title={confirm?.action === "delete" ? "Delete Poll?" : "Close Poll?"}
         description={
           confirm?.action === "delete"
             ? "The poll, its options and all votes are removed for good."
             : "Members can no longer vote. This can't be undone."
         }
-        confirmLabel={confirm?.action === "delete" ? "Delete poll" : "Close poll"}
+        confirmLabel={confirm?.action === "delete" ? "Delete Poll" : "Close Poll"}
         destructive={confirm?.action === "delete"}
         onConfirm={act}
         onCancel={() => {

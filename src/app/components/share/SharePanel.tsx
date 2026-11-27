@@ -44,8 +44,8 @@ export function SharePanel({ event }: SlotProps) {
 
   return (
     <div className="bcq-share-slot">
-      <Button variant="secondary" onClick={() => void onShare()}>
-        Share event
+      <Button variant="tonal" onClick={() => void onShare()}>
+        Share Event
       </Button>
     </div>
   );

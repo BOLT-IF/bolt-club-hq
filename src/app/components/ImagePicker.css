@@ -12,16 +12,21 @@
   min-height: var(--bcq-touch);
   padding: 0 1rem;
   border-radius: var(--bcq-radius-sm);
-  border: 1px solid var(--bcq-input-border);
-  background: var(--bcq-card);
+  border: none;
+  background: var(--bcq-tonal-bg);
   color: var(--bcq-ink);
-  font: 500 0.9375rem/1 var(--bcq-font);
+  font: 600 0.9375rem/1 var(--bcq-font);
   cursor: pointer;
-  transition: background-color 140ms var(--bcq-ease);
+  transition:
+    background-color 140ms var(--bcq-ease),
+    transform 120ms var(--bcq-ease);
 }
 
 .bcq-image-picker__trigger:hover:not(.bcq-image-picker__trigger--disabled) {
-  background: var(--bcq-paper);
+  background: var(--bcq-tonal-hover);
+}
+.bcq-image-picker__trigger:active:not(.bcq-image-picker__trigger--disabled) {
+  transform: scale(0.98);
 }
 
 .bcq-image-picker__trigger:focus-within {

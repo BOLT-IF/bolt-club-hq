@@ -73,7 +73,7 @@ describe("EventListPage", () => {
     const link = await screen.findByRole("link", { name: /Thu Mixed Doubles/ });
     expect(link.getAttribute("href")).toBe("/events/k3f9xq2m");
     expect(screen.getByRole("link", { name: /Sat Open/ })).toBeTruthy();
-    expect(screen.getByRole("link", { name: "New event" }).getAttribute("href")).toBe(
+    expect(screen.getByRole("link", { name: "New Event" }).getAttribute("href")).toBe(
       "/events/new",
     );
   });

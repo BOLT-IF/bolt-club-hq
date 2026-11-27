@@ -17,14 +17,18 @@
   background: var(--bcq-card);
   border: 1px solid var(--bcq-line);
   border-radius: var(--bcq-radius);
+  box-shadow: var(--bcq-card-shadow);
   cursor: pointer;
   transition:
     background-color 140ms var(--bcq-ease),
-    border-color 140ms var(--bcq-ease);
+    border-color 140ms var(--bcq-ease),
+    transform 120ms var(--bcq-ease);
 }
 .bcq-inbox__item:hover {
-  background: #fffdf9;
-  border-color: var(--bcq-input-border);
+  background: #f8fafc;
+}
+.bcq-inbox__item:active {
+  transform: scale(0.99);
 }
 .bcq-inbox__head {
   display: flex;

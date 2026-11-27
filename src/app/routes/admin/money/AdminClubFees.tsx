@@ -72,9 +72,9 @@ type Filter = "all" | "paid_fall" | "owes" | "spring" | "not_charged";
 const FILTERS: ReadonlyArray<{ value: Filter; label: string }> = [
   { value: "all", label: "All" },
   { value: "paid_fall", label: "Paid in Fall" },
-  { value: "owes", label: "Owes club fee" },
+  { value: "owes", label: "Owes Club Fee" },
   { value: "spring", label: "Spring" },
-  { value: "not_charged", label: "Not charged" },
+  { value: "not_charged", label: "Not Charged" },
 ];
 
 function matchesFilter(row: ClubFeeMemberRow, filter: Filter): boolean {
@@ -276,10 +276,10 @@ export function AdminClubFees() {
   }
 
   return (
-    <section className="bcq-page" aria-labelledby="admin-club-fees-title">
-      <p>
+    <section className="bcq-page bcq-money-page" aria-labelledby="admin-club-fees-title">
+      <div>
         <a
-          className="bcq-link"
+          className="bcq-btn bcq-btn--tonal"
           href="/admin/money"
           onClick={(e) => {
             if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
@@ -287,91 +287,93 @@ export function AdminClubFees() {
             goBack("/admin/money");
           }}
         >
-          Back to balances
+          Back to Balances
         </a>
-      </p>
+      </div>
       <h1 id="admin-club-fees-title" className="bcq-page__title">
-        Club fees ({data.label})
+        Club Fees ({data.label})
       </h1>
 
-      <div className="bcq-field">
-        <label className="bcq-field__label" htmlFor="club-fees-year">
-          Membership year
-        </label>
-        <select
-          id="club-fees-year"
-          className="bcq-input"
-          value={String(data.clubYear)}
-          onChange={(e) => {
-            const next = Number(e.target.value);
-            setSelectedYear(next);
-            setState({ kind: "loading" });
-          }}
-        >
-          {data.availableYears.map((y) => (
-            <option key={y} value={String(y)}>
-              {formatClubYear(y)}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      <dl className="bcq-club-fees__summary" aria-label="Club fee summary">
-        <div className="bcq-club-fees__stat">
-          <dt>Paid in Fall</dt>
-          <dd>{data.summary.paidFallCount}</dd>
-        </div>
-        <div className="bcq-club-fees__stat">
-          <dt>Owes Fall</dt>
-          <dd>{data.summary.owesFallCount}</dd>
-        </div>
-        <div className="bcq-club-fees__stat">
-          <dt>Spring</dt>
-          <dd>{data.summary.springCount}</dd>
-        </div>
-        <div className="bcq-club-fees__stat">
-          <dt>Not charged</dt>
-          <dd>{data.summary.notChargedCount}</dd>
-        </div>
-      </dl>
-
-      <div className="bcq-field">
-        <label className="bcq-field__label" htmlFor="club-fees-search">
-          Search name or payment reference
-        </label>
-        <input
-          id="club-fees-search"
-          className="bcq-input"
-          type="search"
-          autoComplete="off"
-          value={query}
-          onChange={(e) => {
-            setQuery(e.target.value);
-          }}
-        />
-      </div>
-
-      <fieldset className="bcq-money-filters">
-        <legend className="bcq-field__label">Show</legend>
-        {FILTERS.map((f) => (
-          <label key={f.value} className="bcq-money-filter">
-            <input
-              type="radio"
-              name="club-fees-filter"
-              value={f.value}
-              checked={filter === f.value}
-              onChange={() => {
-                setFilter(f.value);
-              }}
-            />
-            {f.label}
+      <div className="bcq-card bcq-form">
+        <div className="bcq-field">
+          <label className="bcq-field__label" htmlFor="club-fees-year">
+            Membership Year
           </label>
-        ))}
-      </fieldset>
+          <select
+            id="club-fees-year"
+            className="bcq-input"
+            value={String(data.clubYear)}
+            onChange={(e) => {
+              const next = Number(e.target.value);
+              setSelectedYear(next);
+              setState({ kind: "loading" });
+            }}
+          >
+            {data.availableYears.map((y) => (
+              <option key={y} value={String(y)}>
+                {formatClubYear(y)}
+              </option>
+            ))}
+          </select>
+        </div>
 
-      <div className="bcq-money-actions" role="group" aria-label="Batch club fee actions">
-        <Button type="button" variant="secondary" disabled={busy} onClick={selectNotCharged}>
-          Select not charged
+        <dl className="bcq-club-fees__summary" aria-label="Club fee summary">
+          <div className="bcq-club-fees__stat">
+            <dt>Paid in Fall</dt>
+            <dd>{data.summary.paidFallCount}</dd>
+          </div>
+          <div className="bcq-club-fees__stat">
+            <dt>Owes Fall</dt>
+            <dd>{data.summary.owesFallCount}</dd>
+          </div>
+          <div className="bcq-club-fees__stat">
+            <dt>Spring</dt>
+            <dd>{data.summary.springCount}</dd>
+          </div>
+          <div className="bcq-club-fees__stat">
+            <dt>Not Charged</dt>
+            <dd>{data.summary.notChargedCount}</dd>
+          </div>
+        </dl>
+
+        <div className="bcq-field">
+          <label className="bcq-field__label" htmlFor="club-fees-search">
+            Search Name or Payment Reference
+          </label>
+          <input
+            id="club-fees-search"
+            className="bcq-input"
+            type="search"
+            autoComplete="off"
+            value={query}
+            onChange={(e) => {
+              setQuery(e.target.value);
+            }}
+          />
+        </div>
+
+        <fieldset className="bcq-filter-pills">
+          <legend>Show</legend>
+          {FILTERS.map((f) => (
+            <label key={f.value} className="bcq-filter-pill">
+              <input
+                type="radio"
+                name="club-fees-filter"
+                value={f.value}
+                checked={filter === f.value}
+                onChange={() => {
+                  setFilter(f.value);
+                }}
+              />
+              {f.label}
+            </label>
+          ))}
+        </fieldset>
+      </div>
+
+      <div className="bcq-member__actions" role="group" aria-label="Batch club fee actions">
+        <Button type="button" variant="tonal" disabled={busy} onClick={selectNotCharged}>
+          Select Not Charged
         </Button>
         {selectedList.length > 0 ? (
           <Button
@@ -382,40 +384,40 @@ export function AdminClubFees() {
               setSelectedIds(new Set());
             }}
           >
-            Clear selection ({selectedList.length})
+            Clear Selection ({selectedList.length})
           </Button>
         ) : null}
         <Button
           type="button"
-          variant="secondary"
+          variant="tonal"
           disabled={busy}
           onClick={() => {
             if (selectedList.length > 0) void runCharge("fall", selectedList);
             else setConfirmBatchSeason("fall");
           }}
         >
-          {`Charge Fall fee (${String(data.fallFeeSek)} kr)`}
+          {`Charge Fall Fee (${String(data.fallFeeSek)} kr)`}
         </Button>
         <Button
           type="button"
-          variant="secondary"
+          variant="tonal"
           disabled={busy}
           onClick={() => {
             if (selectedList.length > 0) void runCharge("spring", selectedList);
             else setConfirmBatchSeason("spring");
           }}
         >
-          {`Charge Spring fee (${String(data.springFeeSek)} kr)`}
+          {`Charge Spring Fee (${String(data.springFeeSek)} kr)`}
         </Button>
         <Button
           type="button"
-          variant="secondary"
+          variant="tonal"
           disabled={busy || selectedList.length === 0}
           onClick={() => {
             void runMarkExternalFall(selectedList);
           }}
         >
-          Mark paid in Fall (outside app)
+          Mark Paid in Fall (Outside App)
         </Button>
       </div>
       <p className="bcq-member__meta">
@@ -464,22 +466,22 @@ export function AdminClubFees() {
                     </span>
                   </a>
                 </div>
-                <div className="bcq-money-actions">
+                <div className="bcq-member__actions">
                   {m.status === "not_charged" ? (
                     <>
                       <Button
                         type="button"
-                        variant="ghost"
+                        variant="tonal"
                         disabled={busy}
                         onClick={() => {
                           void runMarkExternalFall([m.memberId]);
                         }}
                       >
-                        Mark Fall paid
+                        Mark Fall Paid
                       </Button>
                       <Button
                         type="button"
-                        variant="ghost"
+                        variant="tonal"
                         disabled={busy}
                         onClick={() => {
                           void runCharge("fall", [m.memberId]);
@@ -489,7 +491,7 @@ export function AdminClubFees() {
                       </Button>
                       <Button
                         type="button"
-                        variant="ghost"
+                        variant="tonal"
                         disabled={busy}
                         onClick={() => {
                           void runCharge("spring", [m.memberId]);
@@ -502,13 +504,13 @@ export function AdminClubFees() {
                   {(m.status === "paid_fall_external" || m.status === "exempt") && m.clubFeeId ? (
                     <Button
                       type="button"
-                      variant="ghost"
+                      variant="destructive-tonal"
                       disabled={busy}
                       onClick={() => {
                         if (m.clubFeeId) void runClearExternal(m.clubFeeId, m.displayName);
                       }}
                     >
-                      Clear external mark
+                      Clear External Mark
                     </Button>
                   ) : null}
                 </div>

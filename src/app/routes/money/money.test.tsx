@@ -156,7 +156,7 @@ describe("member money screen", () => {
     expect(within(rows[0]!).getByText("−150 kr")).toBeTruthy();
 
     const guestRow = rows[1]!;
-    expect(within(guestRow).getByText("Guest fee")).toBeTruthy();
+    expect(within(guestRow).getByText("Guest Fee")).toBeTruthy();
     expect(within(guestRow).getByText(/Sam Guest/)).toBeTruthy();
     expect(within(guestRow).getByText(/Thursday XD/)).toBeTruthy();
     expect(within(guestRow).getByText(/Thu 14 Jan/)).toBeTruthy();
@@ -216,7 +216,7 @@ describe("member money screen", () => {
     const writeText = vi.fn(() => Promise.resolve());
     Object.defineProperty(navigator, "clipboard", { value: { writeText }, configurable: true });
     renderMoney();
-    const howTo = await screen.findByRole("region", { name: "How to pay" });
+    const howTo = await screen.findByRole("region", { name: "How to Pay" });
     await within(howTo).findByText("BOLT-ALEX");
     expect(within(howTo).getByText("Swedbank")).toBeTruthy();
     expect(within(howTo).getByText("8327-9 123 456 789-0")).toBeTruthy();
@@ -245,7 +245,7 @@ describe("member money screen", () => {
       },
     });
     renderMoney();
-    const howTo = await screen.findByRole("region", { name: "How to pay" });
+    const howTo = await screen.findByRole("region", { name: "How to Pay" });
     await within(howTo).findByText("BOLT-ALEX");
     expect(within(howTo).getByText("BOLT IF")).toBeTruthy();
     expect(within(howTo).getByText("Handelsbanken")).toBeTruthy();
@@ -259,7 +259,7 @@ describe("member money screen", () => {
     stubApi(owing, { settings: {}, profile: {} });
     renderMoney();
     expect(await screen.findByText("You owe 90 kr")).toBeTruthy();
-    const howTo = screen.getByRole("region", { name: "How to pay" });
+    const howTo = screen.getByRole("region", { name: "How to Pay" });
     expect(await within(howTo).findByText(/Ask the treasurer/)).toBeTruthy();
   });
 
@@ -268,7 +268,7 @@ describe("member money screen", () => {
     renderMoney();
     expect(await screen.findByRole("alert")).toBeTruthy();
     stubApi(owing);
-    fireEvent.click(screen.getByRole("button", { name: "Try again" }));
+    fireEvent.click(screen.getByRole("button", { name: "Try Again" }));
     expect(await screen.findByText("You owe 90 kr")).toBeTruthy();
     expect(fetchMock).toHaveBeenCalled();
   });

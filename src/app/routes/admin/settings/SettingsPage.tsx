@@ -30,18 +30,18 @@ interface Settings {
 type Form = Record<string, string>;
 
 const DEFAULT_FIELDS = [
-  ["capacity", "Default capacity (players)"],
-  ["durationMin", "Default session length (minutes)"],
-  ["passPrice", "Default pass price (kr)"],
-  ["adhocFee", "Default drop-in fee (kr)"],
-  ["maxGuestsDefault", "Default guests per member"],
-  ["rsvpCloseOffsetMin", "RSVP closes before start (minutes)"],
+  ["capacity", "Default Capacity (Players)"],
+  ["durationMin", "Default Session Length (Minutes)"],
+  ["passPrice", "Default Pass Price (kr)"],
+  ["adhocFee", "Default Drop-In Fee (kr)"],
+  ["maxGuestsDefault", "Default Guests Per Member"],
+  ["rsvpCloseOffsetMin", "RSVP Closes Before Start (Minutes)"],
 ] as const;
 
 const CODE_FIELDS = [
   ["pass", "Passes"],
-  ["adhoc", "Drop-in fees"],
-  ["guest", "Guest fees"],
+  ["adhoc", "Drop-In Fees"],
+  ["guest", "Guest Fees"],
   ["payment", "Payments"],
 ] as const;
 
@@ -247,13 +247,13 @@ export default function SettingsPage() {
   return (
     <section className="bcq-page" aria-labelledby="settings-title">
       <h1 id="settings-title" className="bcq-page__title">
-        Club settings
+        Club Settings
       </h1>
       <form className="bcq-settings" onSubmit={(e) => void onSubmit(e)} noValidate>
         <fieldset>
           <legend>Club</legend>
-          {field("clubName", "Club name")}
-          {field("rosterAppUrl", "Roster app URL", {
+          {field("clubName", "Club Name")}
+          {field("rosterAppUrl", "Roster App URL", {
             type: "url",
             inputMode: "url",
             placeholder: "https://",
@@ -262,21 +262,21 @@ export default function SettingsPage() {
         </fieldset>
 
         <fieldset>
-          <legend>Bank details</legend>
+          <legend>Bank Details</legend>
           {errors.bank ? <p className="bcq-field__error">{errors.bank}</p> : null}
-          {field("accountHolder", "Account holder")}
-          {field("bankName", "Bank name", { placeholder: "Swedbank" })}
-          {field("accountNumber", "Account number", {
+          {field("accountHolder", "Account Holder")}
+          {field("bankName", "Bank Name", { placeholder: "Swedbank" })}
+          {field("accountNumber", "Account Number", {
             placeholder: "8327-9 123 456 789-0",
             hint: "Clearing and account number for direct bank transfers.",
           })}
-          {field("bankgiro", "Bankgiro (optional)", {
+          {field("bankgiro", "Bankgiro (Optional)", {
             inputMode: "numeric",
             placeholder: "5402-9681",
           })}
-          {field("iban", "IBAN (optional)", { placeholder: "SE45 5000 0000 0583 9825 7466" })}
+          {field("iban", "IBAN (Optional)", { placeholder: "SE45 5000 0000 0583 9825 7466" })}
           <div className="bcq-field">
-            <label htmlFor="settings-paymentInstructions">Payment instructions</label>
+            <label htmlFor="settings-paymentInstructions">Payment Instructions</label>
             <textarea
               id="settings-paymentInstructions"
               rows={3}
@@ -294,43 +294,47 @@ export default function SettingsPage() {
 
         <fieldset>
           <legend>Rules</legend>
-          {field("passUnpaidRevokeDays", "Days before an unpaid pass can be revoked", {
+          {field("passUnpaidRevokeDays", "Days Before Unpaid Pass Revocation", {
             inputMode: "numeric",
           })}
-          {field(
-            "autoPromoteCutoffMin",
-            "Stop promoting from the waiting list (minutes before start)",
-            { inputMode: "numeric" },
-          )}
-          {field("quietStart", "Quiet hours start", {
-            type: "time",
-            hint: "Push messages wait until quiet hours end.",
+          {field("autoPromoteCutoffMin", "Stop Waitlist Auto-Promotion (Minutes Before Start)", {
+            inputMode: "numeric",
           })}
-          {field("quietEnd", "Quiet hours end", { type: "time" })}
+          <div className="bcq-form-grid-2">
+            {field("quietStart", "Quiet Hours Start", {
+              type: "time",
+              hint: "Push messages wait until quiet hours end.",
+            })}
+            {field("quietEnd", "Quiet Hours End", { type: "time" })}
+          </div>
         </fieldset>
 
         <fieldset>
-          <legend>Club fees</legend>
-          {field("clubFeeFallSek", "Fall club fee (kr)", {
-            inputMode: "numeric",
-            hint: "Charged once per membership year (Fall–Spring). Members who pay in Fall do not pay again in Spring.",
-          })}
-          {field("clubFeeSpringSek", "Spring joining fee (kr)", {
-            inputMode: "numeric",
-            hint: "Charged only to members joining in Spring who have not already paid the Fall fee.",
-          })}
+          <legend>Club Fees</legend>
+          <div className="bcq-form-grid-2">
+            {field("clubFeeFallSek", "Fall Club Fee (kr)", {
+              inputMode: "numeric",
+              hint: "Charged once per membership year (Fall–Spring).",
+            })}
+            {field("clubFeeSpringSek", "Spring Joining Fee (kr)", {
+              inputMode: "numeric",
+              hint: "Only for Spring joiners who did not pay in Fall.",
+            })}
+          </div>
         </fieldset>
 
         <fieldset>
-          <legend>Defaults for new series</legend>
+          <legend>Defaults For New Series</legend>
           {DEFAULT_FIELDS.map(([key, label]) =>
             field(`default.${key}`, label, { inputMode: "numeric" }),
           )}
         </fieldset>
 
         <fieldset>
-          <legend>Accounting codes</legend>
-          {CODE_FIELDS.map(([key, label]) => field(`code.${key}`, label))}
+          <legend>Accounting Codes</legend>
+          <div className="bcq-form-grid-2">
+            {CODE_FIELDS.map(([key, label]) => field(`code.${key}`, label))}
+          </div>
         </fieldset>
 
         <Button type="submit" block disabled={saving}>

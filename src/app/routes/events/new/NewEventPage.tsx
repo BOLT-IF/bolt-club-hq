@@ -140,175 +140,186 @@ export function NewEventPage() {
   }
 
   return (
-    <form className="bcq-form" aria-labelledby="new-event-title" onSubmit={(e) => void onSubmit(e)}>
+    <section aria-labelledby="new-event-title">
       <h1 id="new-event-title" className="bcq-page__title">
-        New event
+        New Event
       </h1>
-      {options.canSetFee ? (
-        <label className="bcq-form__field">
-          Event type
-          <select
-            name="eventScope"
-            value={eventScope}
-            onChange={(e) => {
-              setEventScope(e.target.value === "member" ? "member" : "club");
-            }}
-          >
-            <option value="club">Club event (billed via BOLT HQ)</option>
-            <option value="member">Member-organized (settled outside app)</option>
-          </select>
-        </label>
-      ) : (
-        <p className="bcq-form__hint">
-          Member-organized events confirm right away (first-come). Any cost is settled directly with
-          you, outside BOLT HQ.
-        </p>
-      )}
-
-      <label className="bcq-form__field">
-        Title
-        <input name="title" required maxLength={80} autoComplete="off" />
-      </label>
-      <label className="bcq-form__field">
-        Location (optional)
-        <input name="location" maxLength={120} autoComplete="off" />
-      </label>
-      <label className="bcq-form__field">
-        Format
-        <select name="format" defaultValue="open">
-          {FORMATS.map(([value, label]) => (
-            <option key={value} value={value}>
-              {label}
-            </option>
-          ))}
-        </select>
-      </label>
-      <label className="bcq-form__field">
-        Date
-        <input name="date" type="date" required />
-      </label>
-      <div className="bcq-form__row">
-        <label className="bcq-form__field">
-          Start
-          <input name="start" type="time" required />
-        </label>
-        <label className="bcq-form__field">
-          End
-          <input name="end" type="time" required />
-        </label>
-      </div>
-      <div className="bcq-form__row">
-        <label className="bcq-form__field">
-          Spots
-          <input name="capacity" type="number" inputMode="numeric" min={1} step={1} required />
-        </label>
-        <label className="bcq-form__field">
-          Guests per member
-          <input
-            name="guests"
-            type="number"
-            inputMode="numeric"
-            min={0}
-            step={1}
-            defaultValue={1}
-            required
-          />
-        </label>
-      </div>
-
-      {isClubEvent ? (
-        <>
+      <form className="bcq-card bcq-form" onSubmit={(e) => void onSubmit(e)}>
+        {options.canSetFee ? (
           <label className="bcq-form__field">
-            Club fee in kr (0 for free)
-            <input name="fee" type="number" inputMode="numeric" min={0} step={1} defaultValue={0} />
-          </label>
-          <label className="bcq-form__check">
-            <input name="tiered" type="checkbox" defaultChecked />
-            Tiered allocation: members first, then guests, when RSVP closes
-          </label>
-          <p className="bcq-form__hint">
-            Events starting within 24 hours confirm right away (first-come). Paid immediate events
-            charge on confirmation and follow late-cancel rules.
-          </p>
-        </>
-      ) : (
-        <label className="bcq-form__field">
-          Estimated cost in kr (optional, settled outside app)
-          <input name="fee" type="number" inputMode="numeric" min={0} step={1} defaultValue={0} />
-        </label>
-      )}
-
-      {seriesOptions.length > 0 || memberOptions.length > 0 ? (
-        <div className="bcq-form__group">
-          <label className="bcq-form__field">
-            Who can join &amp; get notified
+            Event Type
             <select
-              name="audienceKind"
-              value={audienceKind}
+              name="eventScope"
+              value={eventScope}
               onChange={(e) => {
-                setAudienceKind(e.target.value as AudienceKind);
+                setEventScope(e.target.value === "member" ? "member" : "club");
               }}
             >
-              <option value="all">Everyone (all active members)</option>
-              {seriesOptions.length > 0 ? (
-                <option value="series">Series pass holders</option>
-              ) : null}
-              {memberOptions.length > 0 ? <option value="members">Specific members</option> : null}
+              <option value="club">Club event (billed via BOLT HQ)</option>
+              <option value="member">Member-organized (settled outside app)</option>
             </select>
           </label>
+        ) : (
+          <p className="bcq-form__hint">
+            Member-organized events confirm right away (first-come). Any cost is settled directly
+            with you, outside BOLT HQ.
+          </p>
+        )}
 
-          {audienceKind === "series" && seriesOptions.length > 0 ? (
+        <label className="bcq-form__field">
+          Title
+          <input name="title" required maxLength={80} autoComplete="off" />
+        </label>
+        <label className="bcq-form__field">
+          Location (Optional)
+          <input name="location" maxLength={120} autoComplete="off" />
+        </label>
+        <label className="bcq-form__field">
+          Format
+          <select name="format" defaultValue="open">
+            {FORMATS.map(([value, label]) => (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="bcq-form__field">
+          Date
+          <input name="date" type="date" required />
+        </label>
+        <div className="bcq-form__row">
+          <label className="bcq-form__field">
+            Start
+            <input name="start" type="time" required />
+          </label>
+          <label className="bcq-form__field">
+            End
+            <input name="end" type="time" required />
+          </label>
+        </div>
+        <div className="bcq-form__row">
+          <label className="bcq-form__field">
+            Spots
+            <input name="capacity" type="number" inputMode="numeric" min={1} step={1} required />
+          </label>
+          <label className="bcq-form__field">
+            Guests Per Member
+            <input
+              name="guests"
+              type="number"
+              inputMode="numeric"
+              min={0}
+              step={1}
+              defaultValue={1}
+              required
+            />
+          </label>
+        </div>
+
+        {isClubEvent ? (
+          <>
             <label className="bcq-form__field">
-              Series group
+              Club Fee in kr (0 for Free)
+              <input
+                name="fee"
+                type="number"
+                inputMode="numeric"
+                min={0}
+                step={1}
+                defaultValue={0}
+              />
+            </label>
+            <label className="bcq-form__check">
+              <input name="tiered" type="checkbox" defaultChecked />
+              Tiered allocation: members first, then guests, when RSVP closes
+            </label>
+            <p className="bcq-form__hint">
+              Events starting within 24 hours confirm right away (first-come). Paid immediate events
+              charge on confirmation and follow late-cancel rules.
+            </p>
+          </>
+        ) : (
+          <label className="bcq-form__field">
+            Estimated Cost in kr (Optional, Settled Outside App)
+            <input name="fee" type="number" inputMode="numeric" min={0} step={1} defaultValue={0} />
+          </label>
+        )}
+
+        {seriesOptions.length > 0 || memberOptions.length > 0 ? (
+          <div className="bcq-form__group">
+            <label className="bcq-form__field">
+              Who Can Join &amp; Get Notified
               <select
-                name="audienceSeriesId"
-                value={audienceSeriesId}
+                name="audienceKind"
+                value={audienceKind}
                 onChange={(e) => {
-                  setAudienceSeriesId(e.target.value);
+                  setAudienceKind(e.target.value as AudienceKind);
                 }}
               >
-                {seriesOptions.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.termName ? `${s.name} (${s.termName})` : s.name}
-                  </option>
-                ))}
+                <option value="all">Everyone (all active members)</option>
+                {seriesOptions.length > 0 ? (
+                  <option value="series">Series pass holders</option>
+                ) : null}
+                {memberOptions.length > 0 ? (
+                  <option value="members">Specific members</option>
+                ) : null}
               </select>
             </label>
-          ) : null}
 
-          {audienceKind === "members" && memberOptions.length > 0 ? (
-            <fieldset className="bcq-form__checks">
-              <legend className="bcq-form__field">Eligible members</legend>
-              {memberOptions.map((m) => (
-                <label key={m.id} className="bcq-form__check">
-                  <input
-                    type="checkbox"
-                    checked={pickedMembers.has(m.id)}
-                    onChange={(e) => {
-                      setPickedMembers((current) => {
-                        const next = new Set(current);
-                        if (e.target.checked) next.add(m.id);
-                        else next.delete(m.id);
-                        return next;
-                      });
-                    }}
-                  />
-                  <span>{m.displayName}</span>
-                </label>
-              ))}
-            </fieldset>
-          ) : null}
-        </div>
-      ) : null}
+            {audienceKind === "series" && seriesOptions.length > 0 ? (
+              <label className="bcq-form__field">
+                Series Group
+                <select
+                  name="audienceSeriesId"
+                  value={audienceSeriesId}
+                  onChange={(e) => {
+                    setAudienceSeriesId(e.target.value);
+                  }}
+                >
+                  {seriesOptions.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.termName ? `${s.name} (${s.termName})` : s.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            ) : null}
 
-      {error ? (
-        <p className="bcq-form__error" role="alert">
-          {error}
-        </p>
-      ) : null}
-      <Button type="submit" block disabled={submitting}>
-        {submitting ? "Creating…" : "Create event"}
-      </Button>
-    </form>
+            {audienceKind === "members" && memberOptions.length > 0 ? (
+              <fieldset className="bcq-form__checks">
+                <legend className="bcq-form__field">Eligible Members</legend>
+                {memberOptions.map((m) => (
+                  <label key={m.id} className="bcq-form__check">
+                    <input
+                      type="checkbox"
+                      checked={pickedMembers.has(m.id)}
+                      onChange={(e) => {
+                        setPickedMembers((current) => {
+                          const next = new Set(current);
+                          if (e.target.checked) next.add(m.id);
+                          else next.delete(m.id);
+                          return next;
+                        });
+                      }}
+                    />
+                    <span>{m.displayName}</span>
+                  </label>
+                ))}
+              </fieldset>
+            ) : null}
+          </div>
+        ) : null}
+
+        {error ? (
+          <p className="bcq-form__error" role="alert">
+            {error}
+          </p>
+        ) : null}
+        <Button type="submit" block disabled={submitting}>
+          {submitting ? "Creating…" : "Create Event"}
+        </Button>
+      </form>
+    </section>
   );
 }

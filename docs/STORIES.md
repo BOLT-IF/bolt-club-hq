@@ -1,5 +1,7 @@
 # Bolt Club HQ: Epics, Stories & Build Order (v3)
 
+> **Status (updated 2026-11-27):** **46 of 48 stories are merged on `main`** (plus post-story PRs `#76`–`#93`). Only **`S0.6`** (real-device spike) and **`S5.6`** (`manager.io` export, blocked on treasurer CSV format) remain. See [`docs/STATUS.md`](./STATUS.md) and [`docs/CHECKPOINT.md`](./CHECKPOINT.md) for current state.
+
 Companion to `PLAN.md` (§ refers to it). This is a greenfield repo: **`BOLT-IF/bolt-club-hq`**. One story (R1) lands in **`BOLT-IF/roster-generator`**. v2 is preserved; dropped content is in `history/DISCARDED-v3.md`.
 
 ## The DP framing

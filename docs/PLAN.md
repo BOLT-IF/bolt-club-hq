@@ -1,6 +1,16 @@
 # Bolt Club HQ: Product & Technical Plan (v3)
 
-Status: Planning only. No code.
+> **Status (updated 2026-11-27):** Baseline v3 specification — **implemented** (46 of 48 stories merged + post-story PRs `#76`–`#93`; only `S0.6` real-device sign-off and `S5.6` manager.io export remain). Section numbers (§) are preserved because code comments and tests cite them.
+>
+> **Key post-v3 changes (see [`docs/DECISIONS.md`](./DECISIONS.md) and [`docs/CHECKPOINT.md`](./CHECKPOINT.md)):**
+> - Repository is **public** (keeps GitHub Actions free).
+> - Added **annual Fall/Spring club fees** (`0004_club_fees.sql`, #86), superseding §2 "No membership fee".
+> - Added **returning-member discounted pass rates** (`0002_series_discount.sql`, #82) and **admin pass assignment UI** (#85).
+> - Redesigned **one-off events** (`0003_event_audience.sql`, #83): `< 24h` club one-offs confirm immediately, audience groups (`all`/`series`/`members`), and `new_events` notifications.
+> - Added **"Not going" (`declined`) RSVP status** (`0005_rsvp_declined.sql`, #87) and **RSVP quick actions** in Web Push, Home, and Inbox (#88).
+> - **Six Drizzle migrations** exist (`0000_initial`–`0005_rsvp_declined`); Cloudflare `Workers Builds` deploys `main`, while `.github/workflows/deploy.yml` runs migrations + smoke test; Neon Free gives **1 GB** storage (not 0.5 GB); there is no `/admin/health` UI page (`/healthz` and `/healthz/ready` serve health).
+> - UI follows **[`docs/PWA_UI_Rules.md`](./PWA_UI_Rules.md)** (#90–#93).
+
 v3 = v2 with three changes from Ashok:
 - (a) The roster generator is **out of scope**. It stays a separate app on Render.
 - (b) **Greenfield** repo `BOLT-IF/bolt-club-hq`.

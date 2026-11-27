@@ -1,8 +1,8 @@
 # Follow-ups register
 
-Everything the story agents and the integrator said still needs doing, collected from their final reports on 2026-11-24 so nothing is lost. `docs/STATUS.md` says what to do next; this file is the full list behind it. **Owner** says who should pick it up. Tick an item (`[x]`) and add the PR number when it is done. Add new items at the bottom of the right section.
+Everything the story agents and the integrator reported, updated **2026-11-27**. For the consolidated forward-looking roadmap and prioritized blockers, see **[`docs/CHECKPOINT.md`](./CHECKPOINT.md)**. Tick an item (`[x]`) and add the PR number when done.
 
-**Owners:** *integrator* = one chore PR by the root agent (touches files no story owns); *story X* = fold into that story's PR; *Ashok* = needs a human; *migration* = needs Ashok's OK first.
+**Owners:** *integrator* = chore PR; *story X* = fold into that story's PR; *Ashok* = needs a human; *migration* = needs Ashok's OK first.
 
 ## A. Integrator chore PR (small wiring stories could not do)
 
@@ -29,11 +29,11 @@ Everything the story agents and the integrator said still needs doing, collected
 - [x] **Align `src/worker/ops/health.ts`** with `scheduler/schedule.ts`. It still treats UTC 05–21 as the frequent window, so during UTC 22:00–22:59 the `/healthz/ready` staleness check is lenient (2 h instead of 20 min). Harmless. Use `cronIntervalMs`. _(S6.4)_ — done in integrator chore PR
 - [x] **Fold the series slug generator** in `src/worker/terms/routes.ts` into `src/worker/events/slugs.ts` (`randomSlug`, `uniqueSlug`). _(S3.1)_ — done in integrator chore PR
 - [x] **Add `FLAG_POLLS`** to `wrangler.jsonc` and `worker-configuration.d.ts`; it does not exist yet, so polls can't be switched on. _(S9.1)_ — done in integrator chore PR
-- [ ] **Flip flags** `FLAG_EVENTS`, `FLAG_MONEY`, `FLAG_INBOX` to "on", last, after sign-in works end to end. _(all)_
-- [ ] **`FLAG_EVENTS` area is usable only once** S3.0, S3.1, S3.2, S3.3 and S4.2 all work together: do one manual pass before flipping.
+- [x] **Flip flags** `FLAG_EVENTS`, `FLAG_MONEY`, `FLAG_INBOX`, `FLAG_POLLS` to "on" in `wrangler.jsonc` (`fe34f58`).
+- [x] **`FLAG_EVENTS` area manual/Playwright verification** across Events, Terms, Recurrence, One-offs, and RSVP (#83, #87, #88, #93).
 - [ ] **Decide on gating the broadcast screen:** `/admin/broadcast` has no flag because no admin flag exists. _(S6.6)_
 - [ ] **Add `GET /series` access decision:** it allows any active member and returns an empty list for non-captains. Make it admin-and-captain only if wanted (one-line guard change). _(S3.1)_
-- [ ] **Account-code keys** in the settings form (`pass`, `adhoc`, `guest`, `payment`) are provisional. Confirm with the treasurer, then lock them. _(S2.3, S5.6)_
+- [ ] **Account-code keys** in the settings form (`pass`, `adhoc`, `guest`, `payment`) are provisional. Confirm with the treasurer, then lock them (and check whether `club_fee` needs its own account code for S5.6). _(S2.3, S5.6, #86)_
 - [ ] **`/config` additions:** if the shell needs non-sensitive fields before sign-in (for example `clubName`), add them to `/config` from `toPublicSettings`. _(S2.3)_
 
 ## B. Finish within a story (not a chore)
@@ -60,9 +60,9 @@ Everything the story agents and the integrator said still needs doing, collected
 - [ ] **"At publish" reminder** means "event starts within 7 days", because events have no publish time. Confirm. _(S6.5a)_
 - [ ] **Anonymous polls** hide voters from admins too and cannot be switched to named later. Confirm. _(S9.1)_
 - [ ] **Push batch cap = 20** (PLAN §11 says at most 10 per run). Revisit after the S0.6 device spike. _(S6.2)_
-- [ ] **Google sign-in hidden in the installed iOS app** is provisional until S0.6 (`GOOGLE_HIDDEN_IN_INSTALLED_IOS` in `src/app/auth/google.ts`). _(S1.1)_
+- [ ] **Google sign-in in the installed iOS app:** `GOOGLE_HIDDEN_IN_INSTALLED_IOS` in `src/app/auth/google.ts` was flipped to `false` in `#80` so SSO buttons show in installed iOS PWAs. Re-verify full OAuth completion against the Clerk production instance during `S0.6`. _(S1.1, #80)_
 - [ ] **Sign-in intent expires after 30 minutes;** the join RSVP intent lives 14 days under its own key (`bcq.join-rsvp-intent`) because approval can take days. _(S1.1, S1.3)_
-- [x] **Colour contrast:** the install-card axe test turns colour contrast off (`InstallPrompt.test.tsx:57`). Re-enable it and fix any real contrast issue now that the palette changed. _(S10.2, brand)_ — re-enabled and passing in unslop/ponytail polish PR
+- [x] **Colour contrast:** the install-card axe test turns colour contrast off (`InstallPrompt.test.tsx:57`). Re-enable it and fix any real contrast issue now that the palette changed. _(S10.2, brand)_ — re-enabled and passing in `#76`; `--bcq-muted` also darkened to `#526075` in `#93` for WCAG AA on `#faf8f5`.
 - [ ] **Brand:** replace the PNG-derived icons with an SVG logo when one exists; set the Clerk dashboard app name to BOLT HQ; existing home-screen installs keep the old name until re-added. _(brand)_
 
 ## D. Technical debt and optional hardening
@@ -71,14 +71,15 @@ Everything the story agents and the integrator said still needs doing, collected
 - [ ] **Vitest pool:** `@cloudflare/vitest-pool-workers` 0.23 is deprecated (now `@cloudflare/vitest-plugin`); migrating may let the db suites back into the Worker pool. _(S0.2)_
 - [ ] **`worker-configuration.d.ts`** is hand-edited for the `FLAG_*` vars; a `wrangler types` refresh rewrites 28k lines, so do it alone in its own PR. _(S0.1)_
 - [ ] **Playwright sign-in via Clerk testing tokens** was not built (needs Clerk keys in CI and `@clerk/testing`, which is not installed). Vitest covers sign-in behaviour. _(S1.1)_
-- [ ] **E2E coverage is thin:** only the shell, PWA, smoke and S5.2 specs exist. S2.1, S2.4, S3.x, S4.2, S5.4, S6.x and S9.1 shipped without Playwright specs. S11.1 should cover them. _(several)_
+- [ ] **E2E coverage gaps:** 12 Playwright specs now run in CI across 4 shards (`club-week`, `mobile-responsive-and-shell`, `pwa`, `s2.5-privacy`, `s5.2-member-money`, `s5.3-passes`, `s5.5-claims`, `s6.5b-reminders`, `s7.1-share`, `s9.2-poll-images`, `shell`, `smoke`). Dedicated specs for `AdminMembers`, `AdminApprovals`, `AdminTerms`, `AdminClubFees`, `AdminAudit`, and `NewEvent` one-off flows are still optional additions.
+- [ ] **Client bundle code-splitting:** `dist/client/assets/index-*.js` is ~614 KB minified (~167 KB gzipped); lazy-loading admin routes via dynamic `import()` would reduce initial member payload.
+- [ ] **Optional `AdminMembers` erase trigger:** `POST /admin/members/:id/erase` (`S2.5`) is implemented and tested on the backend, with no UI button in `AdminMembers` yet.
 - [ ] **`link` for notifications:** only in-app paths are stored or followed; anything else falls back to the category's screen. Keep it that way. _(S6.1)_
 
 ## E. Operations and accounts (Ashok)
 
-- [ ] See "Needs Ashok" in `docs/STATUS.md`: Neon migration and password rotation, Clerk and VAPID secrets, build variable `VITE_CLERK_PUBLISHABLE_KEY`, GitHub secrets, `HEALTHCHECK_PING_URL`, S0.6 device spike, treasurer format, off-site backups, optional GitHub Pro.
-- [ ] **Public repo hygiene:** the repo is public now. Confirm no secrets are in git history; keep `.env.local` out; rotate the Neon password.
-- [ ] **Local checkout:** Ashok's main checkout has an uncommitted `wrangler.jsonc` change (it duplicates ids that are now on `main`) and an untracked `spike/` folder. Discard the first and decide about the second before pulling.
+- [ ] See [`docs/CHECKPOINT.md`](./CHECKPOINT.md) and [`docs/LAUNCH.md`](./LAUNCH.md): custom domain + Clerk production instance, `S0.6` real-device spike, off-site 90-day backup store + real restore drill, first Lighthouse run, treasurer format for `S5.6`, GitHub `production` environment required reviewer, optional branch protection.
+- [ ] **Public repo hygiene:** the repo is public. Keep `.env.local` and `.audit/` gitignored; confirm Neon password was rotated if ever shared in chat.
 
 ## F. Process notes from the agents
 

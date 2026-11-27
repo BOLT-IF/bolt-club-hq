@@ -14,6 +14,6 @@ Response: `{ entries: [{ id, at, actorId, actorName, action, entity, entityId, b
 
 `/admin/audit`: filters (actor dropdown, action, entity, entity id, Stockholm date range with inclusive "To"), entry list with time in Stockholm, actor ("System" when null) and a collapsible before/after diff, and "Load more".
 
-## Not here
+## Related
 
-Audit JSON pseudonymisation on erasure (S2.5). Any index on `audit_log` (needs a migration).
+Audit JSON PII pseudonymisation on member erasure is implemented in `src/worker/privacy/` (`S2.5`). Adding a composite index on `audit_log(at desc, id desc)` remains an optional future migration if table volume grows.

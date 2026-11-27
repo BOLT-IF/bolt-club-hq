@@ -9,15 +9,15 @@ Clerk proves who someone is. **Our database decides what they may do** (roles an
 3. `currentMember` (`wiring.ts`):
    - unknown Clerk user: load name and verified primary email from the Clerk Backend API (`CLERK_SECRET_KEY`, once). If a non-erased pre-provisioned member (`clerk_user_id LIKE 'preprovisioned:%'`) matches that verified email case-insensitively, link it (`clerk_user_id` updated to the Clerk user ID, audited as `member.clerk_linked`) instead of creating a duplicate pending member. Otherwise insert a **pending** member plus a `member.created` audit row in one transaction. `ON CONFLICT (clerk_user_id) DO NOTHING` makes concurrent first requests produce exactly one member.
    - **bootstrap admin:** if the member's verified email equals `BOOTSTRAP_ADMIN_EMAIL` (case-insensitive) they are made `admin` + `active` on every request until it holds (audited as `member.bootstrap_admin`). Erased members are never touched.
-4. `originGuard` returns 403 for a state-changing request (POST/PUT/PATCH/DELETE) whose `Origin` is present and not this site's. No `Origin` (bearer-only clients) passes.
-5. `GET /api/v1/me` returns the actor (also for pending members, who need it for the waiting screen). Guard: `requireSignedIn()`.
+4. `originGuard` (mounted at `/api/v1/*` in `src/worker/app.ts`) returns 403 for a state-changing request (POST/PUT/PATCH/DELETE) whose `Origin` is present and not this site's. No `Origin` (bearer-only clients) passes.
+5. `GET /api/v1/me` returns the actor (also for pending members, who need it for the waiting screen). Guard: `requireSignedIn()`. Excluded from service-worker runtime caching so stale sessions cannot loop sign-in in installed iOS PWAs (`#89`).
 
 ## Frontend (`src/app/auth/`, `src/app/routes/auth/`)
 
 - `AuthProvider` (wrapped around the app in `src/app/main.tsx`) mounts `<ClerkProvider>` and sets `apiFetch`'s `getToken`. **Without a valid `VITE_CLERK_PUBLISHABLE_KEY` nothing Clerk runs** and the app boots signed out (dev, CI, e2e). `/sign-in` then says sign-in is not set up.
-- `/sign-in` (`?return_to=` same-site path): Clerk `<SignIn>`, email code first, Google below. **Google is hidden in the installed iOS app** (`google.ts`, one constant, provisional until S0.6).
-- `intent.ts`: `saveIntent({ returnTo, rsvp })` before sending someone to `/sign-in`; `takeIntent()` after. 30-minute expiry, consumed once, same-site paths only. The RSVP screen (S4.x) and join flow (S1.3) own saving and completing the `rsvp` part.
-- `/sign-out`: Clerk sign-out, then `clearAppCaches()` (service-worker caches), then home.
+- `/sign-in` (`?return_to=` same-site path): Clerk `<SignIn>`, email code first, Google below. `GOOGLE_HIDDEN_IN_INSTALLED_IOS` (`google.ts`) is currently `false` (`#80`, so Google SSO shows in installed iOS PWAs; re-verify full OAuth flow against the Clerk production instance in `S0.6`).
+- `intent.ts`: `saveIntent({ returnTo, rsvp })` before sending someone to `/sign-in`; `takeIntent()` after. 30-minute expiry, consumed once, same-site paths only. The RSVP/share screen (`S4.x`/`S7.1`) and join flow (`S1.3`) own saving and completing the `rsvp` part.
+- `/sign-out`: `unsubscribePush()`, Clerk sign-out, then `clearAppCaches()` (service-worker caches), then home.
 
 ## Config
 

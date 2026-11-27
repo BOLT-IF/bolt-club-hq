@@ -37,8 +37,8 @@ Add `src/worker/notifications/policies/<name>.ts` that default-exports a `Notifi
 - **Wake-up:** `notify()` and the sender call `markPushDue(at)` → scheduler `markDue`, so pushes go out on the next tick.
 - **Quiet hours:** policy `policies/quiet-hours.ts` (order 20) defers to the end of `club_settings.quiet_hours` (default 22:00-08:00 Stockholm, `null` = off).
 - **Secrets:** `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`. Unset → nothing is sent, rows stay queued.
-- **Service worker:** `src/sw/push.ts` always shows a notification; tap focuses or opens the app at the in-app `url` (else `/inbox`).
-- **Client:** `resubscribePush()` (`src/sw/push-client.ts`) on every app open (not wired yet); `unsubscribePush()` on sign-out. Neither prompts for permission.
+- **Service worker (`src/sw/push.ts`):** always shows a notification; supports up to 2 `actions` buttons. For `new_events` pushes linking to `/events/*`, `push-sender.ts` attaches `RSVP` (`going`) and `Not going` (`decline`); tapping an action appends `?quickRsvp=going|decline` to the event URL (`#88`). Tapping the body focuses or opens the app at the in-app `url` (else `/inbox`).
+- **Client:** `resubscribePush()` (`src/sw/push-client.ts`) is wired on mount in `InstallPrompt`; `unsubscribePush()` is wired on sign-out (`SignOutPage`). Neither prompts for permission.
 
 ## Push API (`/api/v1`)
 
@@ -58,11 +58,11 @@ Add `src/worker/notifications/policies/<name>.ts` that default-exports a `Notifi
 
 ## Screen
 
-`/inbox` (flag `FLAG_INBOX`, still off): list, unread chip, tap opens the deep link and marks read, "Mark all read".
+`/inbox` (flag `FLAG_INBOX`, `"on"` in production): unread badge wired to bottom nav (`badges.inbox`), unread chip, tap opens the deep link and marks read, one-tap RSVP / Not Going quick actions on eligible event notifications (`#88`), and tonal `Mark All Read`.
 
 ## Mute and preferences (S6.3)
 
 - Policy `policies/mute.ts` (order 10): `member.global_mute` suppresses every push; otherwise a `notification_pref` row with `muted = true` for the category suppresses it. No row means on. The inbox row is always written.
 - `GET /notifications/prefs` → `{ globalMute, categories: [{ category, muted }] }` (all categories, `admin_tasks` for admins only).
 - `PUT /notifications/prefs` body `{ globalMute?: boolean, categories?: { [category]: boolean } }` (`true` = muted). Partial updates; unknown or not-allowed category, or non-boolean → 400. Sets absolute values, so no `Idempotency-Key`.
-- Screen `/settings/notifications`: one switch per category (on = pushed) plus "Mute all notifications". The More menu still points at `/profile/notifications`, which nothing registers yet (integrator: repoint `navigation.ts`).
+- Screen `/settings/notifications` (linked from `More` → `Notifications`): `Push on This Device` card + inset `GroupedList` sections (`Global`, `Categories`) with pill toggle switches (on = pushed) plus `Mute All Notifications`.

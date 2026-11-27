@@ -8,23 +8,25 @@ Code: `src/worker/members/` (API), `src/app/routes/admin/members/` and `src/app/
 |---|---|---|
 | `GET /admin/members` | admin | Every status, with `paymentRef`. Never returns the Clerk id. |
 | `GET /members` | member | Active members only: `id`, `displayName`, `rosterName`. |
-| `GET /me/profile` | member | Own profile and `paymentRef`. |
+| `GET /me/profile` | member (`allowInactive: true`) | Own profile and `paymentRef` (exited members need `paymentRef` to settle balances). |
 | `PATCH /members/:id` | owner-or-admin | `displayName`, `rosterName` (owner or admin); `paymentRef` (admin only). |
 | `PATCH /members/:id/role` | admin | `{ role }`. Last active admin can't be demoted (409 `last_admin`). |
-| `PATCH /members/:id/status` | admin | `{ status: "active" \| "inactive" }`. Deactivate cancels future RSVPs via the `rsvp.cancel` port. |
+| `PATCH /members/:id/status` | admin | `{ status: "active" \| "inactive" }`. Deactivate cancels future RSVPs (pre-close and post-close late-cancel) via `realRsvpCancel`. |
+| `POST /members/:id/approve` | admin | Approves a pending member who signed in directly without submitting a join request (`#78`). |
 
-Every change writes an `audit_log` row in the same transaction (`member.update`, `member.role_change`, `member.status_change`). A change that alters nothing writes nothing.
+Every change writes an `audit_log` row in the same transaction (`member.update`, `member.role_change`, `member.status_change`, `member.approve`). A change that alters nothing writes nothing.
 
 ## Rules
 
 - **Last admin:** role and status changes lock all active admins (`FOR UPDATE`, id order) and then the target, so two admins demoting each other at once leave exactly one.
 - **`payment_ref`:** trimmed and upper-cased, `^[A-Z0-9][A-Z0-9-]{2,39}$`. The DB unique index is the arbiter under concurrency (409 `payment_ref_taken`).
-- **Exit (PLAN §6.7):** deactivate sets `status=inactive`, `left_at`. Inactive members are refused by the plain member guard. Routes that must stay open to them (own ledger, own attendance) opt in with `requireGuard("member", { allowInactive: true })`.
-- **`rsvp.cancel` port:** `src/worker/members/rsvp-cancel.ts`. Production default is a no-op until the RSVP story calls `configureRsvpCancel(realAdapter)`. The recording fake `rsvp-cancel.fake.ts` is test only.
+- **Exit (PLAN §6.7):** deactivate sets `status=inactive`, `left_at`. Inactive members are refused by the plain member guard. Routes that must stay open to them (own ledger, own attendance, own profile, own payment claims, own export, `/settings/public`) opt in with `requireGuard("member", { allowInactive: true })`.
+- **`rsvp.cancel` port:** `src/worker/members/rsvp-cancel.ts`. Production default is wired to `realRsvpCancel` (`src/worker/rsvp/cancel.ts`), cancelling both open future RSVPs and closed-event RSVPs (late-cancel rules apply). The recording fake `rsvp-cancel.fake.ts` is test only.
+- **Admin Members UI (`/admin/members`, `#90`):** Compact cards with a `44×44px` `⋯` overflow button opening a Bottom Action Sheet (`Make Admin`/`Remove Admin`, `Edit Payment Reference`, `Deactivate Member` with confirmation step, or `Reactivate Member`). Pending direct sign-ins show an inline `Approve` CTA.
 
-## Not in this story
+## Related areas
 
-Approval of pending members (S1.3), audit viewer (S2.4), notification preferences. No feature flag: there is no `members` flag in `/config`, and the pages are admin-gated or own-data. Erasure, data export, and retention purges are implemented in `src/worker/privacy/` (S2.5, documented below).
+Audit viewer (`S2.4`, `docs/areas/audit.md`), notification preferences (`S6.3`, `docs/areas/notifications.md`). No feature flag: there is no `members` flag in `/config`, and the pages are admin-gated or own-data. Erasure, data export, and retention purges are implemented in `src/worker/privacy/` (`S2.5`, documented below).
 
 ## Privacy, export, erasure, retention (S2.5)
 

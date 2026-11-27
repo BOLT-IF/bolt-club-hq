@@ -42,7 +42,7 @@ cd .worktrunk/<slug> && ln -s ../../node_modules node_modules
 - **Postgres tests:** name them `*.db.test.ts` (the `db` project, plain Node, real Postgres). Pattern in `src/worker/core/context.test.ts`: `configureRequestDeps({ db: () => Promise.resolve(t.db), clock: new FixedClock(...) })`, call `routes.request(path, { headers: { "X-Test-Identity": m.clerkUserId } }, { ENV: "test" } as unknown as Cloudflare.Env)`, reset in `afterEach`. Factories live in `src/worker/test-support/factories.ts`.
 - **Pure logic:** `src/domain/<x>/` with plain `*.test.ts` (the `domain` project).
 - **Frontend:** `src/app/routes/<area>/routes.tsx` default-exports an `AppRoute` or an array; `:param` paths; `useRouteParams()`; `navigate()` from `src/app/lib/navigate`. Event-page slots (`RsvpSlot`, `ShareSlot`, `OrganizerToolsSlot`, `AttendeesSlot`) are filled with `registerSlot` from `src/app/routes/events/slots`. Nav entries already exist in `src/app/shell/navigation.ts`. UI tests are `*.test.tsx` in the `ui` project; stub the API with `configureApiClient({ fetch })`.
-- **UI quality:** mobile first, labelled and focus-visible, UI kit from `src/app/components/ui/` and the BOLT HQ palette tokens in `ui.css`. Orange fills take dark text, never white. Follow `web-design-guidelines`; axe must be clean.
+- **UI quality:** mobile first, labelled and focus-visible, follow `docs/PWA_UI_Rules.md` strictly, reuse primitives from `src/app/components/ui/` (`Button`, `GroupedList`, `ActionSheet`, `Card`, `DisclosureSection`, `CopyButton`, `StatusChip`, `EmptyState`, `ConfirmDialog`) and the BOLT HQ tokens in `ui.css`. Orange primary CTAs (`#f97316`) take dark ink (`#0f172a`), never white; `--bcq-muted` is `#526075` (WCAG AA on `#faf8f5`). Axe must be clean.
 
 ## Local verification
 

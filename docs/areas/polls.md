@@ -1,6 +1,6 @@
 # Polls (S9.1, S9.2)
 
-Code: `src/worker/polls/` (API, rules, closing reminder), `src/worker/media/` (R2 upload, `/media/:key` serve, 6-month purge), `src/app/components/ImagePicker*`, and `src/app/routes/polls/` (screens). Flag: `polls` (`FLAG_POLLS`, not yet in `wrangler.jsonc`, so off).
+Code: `src/worker/polls/` (API, rules, closing reminder), `src/worker/media/` (R2 upload, `/media/:key` serve, 6-month purge), `src/app/components/ImagePicker*`, and `src/app/routes/polls/` (screens). Flag: `polls` (`FLAG_POLLS`, `"on"` in production `wrangler.jsonc`, `"off"` in previews).
 
 ## Data (migration `0001_polls`)
 - `poll`: `question`, `closes_at` (null = open until an admin closes it), `multi_choice`, `anonymous`, `results_visibility` (enum `always | after_vote | after_close | admins`), `created_at`.
@@ -38,6 +38,6 @@ Poll DTO: `id, question, multiChoice, anonymous, resultsVisibility, closesAt, cl
 Creating a poll, or changing its closing date, calls `markDue(KV, closesAt - 24h)`. The tick hook `poll-closing-reminders` notifies active members who have not voted, for every poll closing within 24 h. It is idempotent per `poll-closing:<pollId>:<memberId>`, so every tick in the window is safe. The scheduler's daily maintenance run catches a lost `markDue`.
 
 ## Screens
-- `/polls`: list with an Open/Closed chip and "You voted".
-- `/polls/:id`: radios (single) or checkboxes (multi), Vote/Update vote, then results (bars, plus names on named polls) or a note saying when results appear.
-- `/admin/polls`: create form, list with Close now / Delete (confirmed).
+- `/polls`: active polls above collapsible `Past Polls (N)` disclosure, with Open/Closed chips and "Voted".
+- `/polls/:id`: radios (single) or checkboxes (multi), `Submit Vote`/`Update Vote`, then results (bars, plus names on named polls) or a note saying when results appear.
+- `/admin/polls`: carded `New Poll` form, `Active Polls` list with tonal `Close Now` and soft-red `Delete` (confirmed via `ConfirmDialog`), plus collapsible `Past Polls (N)`.

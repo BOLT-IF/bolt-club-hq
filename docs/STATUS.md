@@ -1,16 +1,16 @@
-# BOLT HQ: handoff and how to resume
+# BOLT HQ: current status & handoff
 
-Last updated 2026-11-25. **46 of 48 stories are on `main` (all non-blocked stories complete; 2 human-blocked: `S0.6`, `S5.6`).** Read this file top to bottom, then `docs/STORIES.md`, `docs/DECISIONS.md` (newest first) and `docs/PLAN.md`. Update this file at the end of every session.
+Last updated **2026-11-27** (head `main` at `#93`). **46 of 48 planned stories are merged on `main` (2 human-blocked: `S0.6` real-device spike, `S5.6` manager.io export), plus 18 post-story feature, bug-fix, and mobile PWA UI/UX upgrade PRs (`#76`–`#93`).**
 
-## Resume prompt (copy and paste this to a new agent)
-
-> You are the integrator (root agent) for the BOLT HQ build in `BOLT-IF/bolt-club-hq`. Read `docs/STATUS.md`, `docs/FOLLOWUPS.md`, `docs/WORKER-BRIEF.md`, `AGENTS.md`, `docs/STORIES.md` and the top of `docs/DECISIONS.md`. Then carry on delivery as the "Next steps" section says: check any open PRs first, then fan out the stories in the "Not started" table in dependency order, at most 2 stories at a time to avoid PR rebase churn, one story per PR on `story/<id>-<slug>` branches. Give each worker `docs/WORKER-BRIEF.md` and have it stop after pushing to its PR and running local checks (do not wait on CI inside the worker). As orchestrator, check CI status, merge each PR to `main` only when every GitHub Actions check is SUCCESS (ignore Cloudflare's "Workers Builds" check), and spawn a fix subagent if a PR fails CI. Ask me only for the human-only items in "Needs Ashok". Tick items in `docs/FOLLOWUPS.md` as you finish them and add any new ones your agents report. When you stop, update `docs/STATUS.md`.
+For the complete forward-looking tracker of what is missing, operational blockers, and future work, see **[`docs/CHECKPOINT.md`](./CHECKPOINT.md)**. Update this file and `docs/DECISIONS.md` after major milestones.
 
 ## What is built (all on `main`)
 
+### Planned stories (46/48 merged)
+
 | Area | Stories | State |
 |---|---|---|
-| Foundations | R1 roster import, S0.1–S0.5, S0.7 | merged: repo, CI, deploy workflow, PWA, UI kit, observability, schema, core contracts |
+| Foundations | R1 roster import (`roster-generator`), S0.1–S0.5, S0.7 | merged: repo, CI (4-shard Playwright + Postgres), deploy workflow, PWA, UI kit, observability, schema, core contracts |
 | Identity | S1.1 Clerk sign-in, S1.3 invites and approval | merged |
 | Members | S2.1 members and roles, S2.3 club settings, S2.4 audit viewer, S2.5 privacy (#61) | merged |
 | Events | S3.0 events core, S3.1 terms and series, S3.2 recurrence, S3.3 one-off events | merged |
@@ -20,79 +20,56 @@ Last updated 2026-11-25. **46 of 48 stories are on `main` (all non-blocked stori
 | Attendance | S8.1 attendance marking (#65), S8.2 member attendance history (#68), S8.3 roster deep link (#69) | merged |
 | Polls and install | S9.1 polls, S9.2 poll images on R2 (#62), S10.1 home dashboard (#70), S10.2 install and push onboarding | merged |
 | Sharing | S7.1 share links, edge OG, request-to-join (#71) | merged |
-| Brand and deploy | BOLT HQ theme, logo icons, KV/Hyperdrive/R2 config (#53), unslop UI polish (#64), deploy.yml migrate-only (#72) | merged |
-| Integrator & import | Chore follow-up wiring (#55), S11.2 member import (#58), S11.1 club-week scenarios (#74), S11.3 launch checklist (#73) | merged |
+| Brand and deploy | BOLT HQ theme, logo icons, KV/Hyperdrive/R2 config (#53), deploy.yml migrate-and-smoke (#72) | merged |
+| Integration & QA | Chore follow-up wiring (#55, #75), S11.2 member import (#58), S11.1 club-week scenarios (#74), S11.3 launch checklist (#73) | merged |
 
-Two migrations exist: `0000_initial` and `0001_polls`. Neither has been applied to Neon yet.
+### Post-story enhancements & polish (`#76`–`#93`, all on `main`)
 
-## In progress
+| PR | Summary |
+|---|---|
+| `#76` | UI polish, deduplication, post-close exit cancel wiring, axe contrast re-enabled on `InstallPrompt` |
+| `#77`, `#80`, `#89` | iOS PWA fixes: mobile overflow, standalone menu, show Google SSO buttons (`GOOGLE_HIDDEN_IN_INSTALLED_IOS = false`), break sign-in redirect loop, stop service worker from caching `/me` |
+| `#78`, `#79` | Direct sign-in member approval (`POST /members/:id/approve`), render `AdminIndex` at `/admin`, remove dead `/admin/health` link |
+| `#81` | Decided payment claims history (`GET /admin/payment-claims` returns `{ claims, history }`) + `docs/PUSH_NOTIFICATIONS.md` |
+| `#82` | Returning-member discounted pass rate per series (`0002_series_discount.sql`, `PUT /series/:id/discount-eligible`) |
+| `#83` | One-off events redesign: `< 24h` instant confirm, member vs club billing, audience groups (`all` / `series` / `members`), `new_events` notifications (`0003_event_audience.sql`) |
+| `#84`, `#85` | Bank name & account number in club settings and pay info; admin UI to assign season passes (`GET /admin/passes/offers`, `POST /admin/passes`) |
+| `#86` | Annual Fall/Spring club fee system (`0004_club_fees.sql`, `/admin/money/club-fees`, `club_fee` ledger reason, external Fall tracking) |
+| `#87`, `#88` | "Not going" (`declined`) RSVP option (`0005_rsvp_declined.sql`, suppresses un-RSVPed reminders) + RSVP quick actions (`RSVP` / `Not going`) in Web Push, Home, and Inbox |
+| `#90`–`#93` | Full mobile PWA UI/UX redesign & audit across all 35 routes (`docs/PWA_UI_Rules.md`): 4-tier Apple HIG button hierarchy, `GroupedList`, `ActionSheet`, `CopyButton`, `DisclosureSection`, compact `EmptyState`, 44px touch targets, 16px inputs, WCAG AA contrast (`--bcq-muted: #526075`) |
 
-None.
+Six migrations exist in a single linear chain: `0000_initial`, `0001_polls`, `0002_series_discount`, `0003_event_audience`, `0004_club_fees`, `0005_rsvp_declined`.
 
-## Not started (2 human-blocked)
+## Remaining planned stories (2 human-blocked)
 
-| Story | Size | Needs | Owns (summary) |
+| Story | Size | Blocker | Owns (summary) |
 |---|---|---|---|
-| S5.6 manager.io export | S | S5.4, S2.3 (met) | `src/worker/accounting/`, `src/app/routes/admin/money/export*`. **Blocked on the treasurer confirming the import format** |
-| **S0.6 Real-device spike** | M | human | Needs a Clerk production instance and a real iPhone and Android. Until it runs, the push batch cap (20) and "hide Google sign-in in the installed iOS app" are provisional |
-
-## Next steps (do these first)
-
-**Every follow-up the earlier agents reported is in `docs/FOLLOWUPS.md`** (sections A to F, with an owner for each). The list below is the short version.
-
-1. **Integrator follow-up chore PR** (one PR). These are small things the stories could not do inside their Owns:
-   - **Links:** "New event" on `EventListPage.tsx` to `/events/new`; "Schedule and occurrences" on `admin/terms/SeriesPage.tsx` to `/admin/terms/series/:id/schedule`; claims links on `MoneyPage.tsx` and `AdminBalances.tsx` once the S5.5 screens exist; "Request to join" on the event page's 403 state to `/join/event/<slug>` (may overlap S7.1).
-   - **Shell wiring:** call `completeJoinRsvpIntent()` (`src/app/routes/join/joinIntent.ts`) from `AppRoot.tsx`; add the inbox unread badge (`badges.inbox`; the API returns `unreadCount`); call `unsubscribePush()` on sign-out.
-   - **RSVP:** call `noteRsvpSaved()` (`src/app/components/install/`) in `RsvpPanel` after a successful save; make S4.2 use `rsvpTier` from `src/worker/events/oneoff-rules.ts` (pass holders must not be tier 1 at one-offs); wire `configureRsvpCancel(rsvpCancelAdapter(db, clock))` so deactivating a member cancels their RSVPs (S2.1's port has no db parameter, so this needs per-request wiring or a port change).
-   - **Inactive members:** add `allowInactive: true` to `GET /settings/public` and `GET /me/profile`, so exited members can see how to pay.
-   - **Cleanup:** remove the S0.1 probe route and its allowlist entry in the route-guard test; align the frequent window in `src/worker/ops/health.ts` with `scheduler/schedule.ts`; fold the series slug generator in `terms/routes.ts` into S3.0's `slugs.ts`; move the Clerk origin guard from `auth/routes.ts` to `app.ts`. Optional migration-queue items: unique index `rsvp(event_id, member_id)` and an index `audit_log(at desc, id desc)`.
-   - **Flags:** do this last, only after the site works end to end (see "Needs Ashok").
-2. **Fan out the stories** above.
-3. **Update `docs/STATUS.md`** at the end of every session.
-
-## Needs Ashok (human-only: ask, don't guess)
-
-The site is live at **https://bolt-club-hq.bashok001.workers.dev** but cannot be used yet:
-
-1. **Neon tables.** The database is empty. Rotate the Neon password first (the old one passed through chat and the repo is public). Then either add the new connection string as the `DATABASE_URL` GitHub repo secret (the deploy workflow then runs `npx drizzle-kit migrate` on the next merge), or get an explicit OK to run the migration from the laptop. Raw port 5432 is blocked from the laptop, so only Neon's HTTPS route works there.
-2. **Sign-in.** Cloudflare Worker secrets: `CLERK_SECRET_KEY`, `CLERK_PUBLISHABLE_KEY`, `BOOTSTRAP_ADMIN_EMAIL`. Build variable in the Cloudflare build settings: `VITE_CLERK_PUBLISHABLE_KEY` (needed at build time, so trigger a rebuild afterwards). Set the app name in the Clerk dashboard to BOLT HQ.
-3. **Flags.** Set `FLAG_EVENTS`, `FLAG_MONEY`, `FLAG_INBOX` to "on" in `wrangler.jsonc` once sign-in works. Add `FLAG_POLLS` to `wrangler.jsonc` and `worker-configuration.d.ts` first (it does not exist yet).
-4. **Push and health.** Secrets `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` (back them up; never rotate casually) and `HEALTHCHECK_PING_URL` (a healthchecks.io check with about a 1 hour period). Optional `SENTRY_DSN`.
-5. **GitHub secrets** (`deploy.yml` was simplified in #72 so only `DATABASE_URL` secret + `PUBLIC_BASE_URL` repo variable are needed for `deploy.yml`; `RESTORE_TARGET_URL`, `BACKUP_ENCRYPTION_KEY`, `BACKUP_BUCKET_TOKEN`, `LHCI_TARGET_URL` are for the backup/restore/Lighthouse workflows). See `docs/ops/secrets.md` and `docs/LAUNCH.md`. Decide on a required reviewer for the `production` environment before adding `DATABASE_URL`.
-6. **S0.6 device spike:** a Clerk production instance and real iPhone and Android devices.
-7. **Treasurer:** confirm the manager.io import format (S5.6) and the provisional account-code keys (`pass`, `adhoc`, `guest`, `payment`).
-8. **Off-site backup store** with 90-day retention (GitHub artifacts keep only 30).
-9. Optional: GitHub Pro, so "merge only on green" becomes a real rule instead of a convention.
+| **S5.6 manager.io export** | S | Waiting on treasurer to confirm exact CSV import format and account-code keys (`pass`, `adhoc`, `guest`, `payment`) | `src/worker/accounting/`, `src/app/routes/admin/money/export*` |
+| **S0.6 Real-device spike** | M | Human QA on real iPhone & Android against Clerk production instance + custom domain (verifies Google OAuth in installed iOS PWA and Worker CPU per push batch at `PUSH_BATCH_CAP = 20`) | `docs/ops/spike-devices.md` |
 
 ## Production state
 
-- **Site:** https://bolt-club-hq.bashok001.workers.dev (Cloudflare Worker `bolt-club-hq`, account `440a16d9fbe436e7133d5985ebd2a492`). Cloudflare Workers Builds builds it from GitHub `main`; every merge to `main` redeploys.
-- **Resources (all created, ids in `wrangler.jsonc`):** KV namespace `KV` plus a preview namespace, Hyperdrive `bolt-club-hq` pointing at Neon, R2 bucket `bolt-club-hq-media`.
-- **Health:** `/healthz` returns 200. `/healthz/ready` returns 503 ("degraded") until the Neon tables exist and a cron tick has run. That is expected for now.
-- **Neon:** PostgreSQL 18.7 (project `autumn-term-77415320`, branch `production`, database `neondb`), empty. The connection string is in `.env.local` (gitignored; never commit it).
-- **Brand:** the app is **BOLT HQ**, the club is **BOLT IF** (always upper case). Palette from the logo: orange `#fd8d27` actions with dark text, amber `#febe1d` highlights, burnt orange `#a63406` links, slate `#272e38` chrome. Tokens are in `src/app/components/ui/ui.css`.
-- **CI:** GitHub Actions. The repo is public, which keeps Actions free; while it was private a "payments failed" block stopped every job. Cloudflare's own "Workers Builds" check also runs on PRs. It is not a GitHub Actions check, it failed while the config had placeholder ids, and it passes on `main` now.
-- **GitHub settings:** squash merge only, branches auto-delete on merge, no branch protection (it needs GitHub Pro on a private repo, and "merge on green" is an agreement), no workflow waits for a manual approval, and `production` has no required reviewer.
+- **Site:** `https://bolt-club-hq.bashok001.workers.dev` (Cloudflare Worker `bolt-club-hq`, account `440a16d9fbe436e7133d5985ebd2a492`). Cloudflare `Workers Builds` deploys automatically on every push to `main`.
+- **Deploy workflow (`.github/workflows/deploy.yml`):** Runs `npx drizzle-kit migrate` against `DATABASE_URL` and `scripts/ci/smoke.sh` against `PUBLIC_BASE_URL` on pushes to `main`.
+- **Cloudflare resources (real IDs in `wrangler.jsonc`):** KV namespace `KV` (`68031a5b401347098df663b521a10ddf`, preview `5ee394e1f7344bb2a60af20b848ba2a8`), Hyperdrive `bolt-club-hq` (`24dd32c71522408ab20f3b51c6e65417`), R2 bucket `bolt-club-hq-media`.
+- **Feature flags (`wrangler.jsonc`):** `FLAG_EVENTS`, `FLAG_MONEY`, `FLAG_INBOX`, `FLAG_POLLS` are all `"on"` for production and `"off"` for preview deployments.
+- **Neon:** PostgreSQL 18.7 (`autumn-term-77415320`, branch `production`, database `neondb`). Local `.env.local` is gitignored and never committed.
+- **Brand & UI system:** App name **BOLT HQ**, club name **BOLT IF**. Source of truth is `docs/PWA_UI_Rules.md` and `src/app/components/ui/ui.css`: `#1e293b` navy header, `#faf8f5` warm canvas, `#ffffff` cards (`16px` radius), `#f97316` primary CTA with `#0f172a` ink, `#b45309` deep amber links, `#526075` WCAG AA muted ink.
+- **CI & repo:** Public repository on GitHub (`BOLT-IF/bolt-club-hq`), squash merge only, auto-delete branches on merge. GitHub Actions runs `ci` (typecheck, lint, full Vitest suite with Postgres 18) + `e2e-tests` (4-shard Playwright matrix across Desktop, iPhone/WebKit, Android/Chromium) on every PR.
 
-## Rules learned the hard way (keep following them)
+## Operational & human items remaining
 
-- **Contracts:** an area mounts `contextMiddleware()` on its own paths only, never `use("*")`. Exited members on own-data routes use `requireGuard("member", { allowInactive: true })`. A trailing `*` in an Owns entry is a prefix match. `docs/areas/` and `tests/e2e/` are shared. `docs/DECISIONS.md` merges with `merge=union`.
-- **Owns exceptions:** one line elsewhere (a route mount, a slot import) is added to the story's Owns line in a contract PR. UI links on other stories' pages are integrator follow-ups, not grants.
-- **Landing a PR:** one visible command per merge: `gh pr checks N --json state --jq '[.[].state]|unique|join(",")' | grep -qx SUCCESS && gh pr merge N --squash`. If GitHub says the branch is out of date, merge `origin/main` into the story branch in a temp worktree (`git worktree add --detach .worktrunk/land-N origin/<branch>`, `git merge origin/main`, push to `<branch>`), then wait for CI again. To rerun a failed job: `gh run rerun <id> --failed` (the Playwright browser install flakes).
-- **Auto-reviewer:** it blocks pushes, PR creation and merges it can't tie to an explicit approval, even when a standing one exists. What works: one visible command per action, the exact approval quoted in the justification, no unseen helper scripts for merges, and never a `reset --hard` or force-removal of a worktree without first showing it is clean. When a sub-agent is blocked, it commits locally and asks the integrator to push. Ask Ashok for Full Access at the start of a long fan-out; it removes most of these prompts.
-- **Commits** are unsigned (`git -c commit.gpgsign=false commit`); the 1Password SSH agent keeps failing here.
-- **Models:** the Sonnet override returns 403 "model not allowed" on this account; spawn workers on the inherited model.
-- **Machine quirks:**
-  - `npm ci` fails (the PayPal mirror blocks some packages). `pg` was installed by hand with `npm install --no-save --registry https://registry.npmjs.org/ pg @types/pg`.
-  - Worktrees go under `.worktrunk/` with a symlinked `node_modules`; remove the link before each commit.
-  - The `db` tests need Postgres: `~/.rd/bin/docker compose up -d postgres`.
-  - `gh` and `git` need escalated permissions in the sandbox.
-  - Dependencies change only on a `deps/<slug>` branch, through the lockfile bot.
-- **Process:** tests first, one story per PR, Owns paths only, decisions logged at the top of `docs/DECISIONS.md`, money in whole kronor, time via `Clock`.
+See **[`docs/CHECKPOINT.md`](./CHECKPOINT.md)** for the full prioritized checklist. Short version:
+1. **Custom domain & Clerk production instance** (for `S0.6` real-device sign-off and club-wide launch).
+2. **S0.6 real-device QA matrix** (`docs/LAUNCH.md` §1) on real iPhone & Android — confirm Google SSO in installed iOS PWA and measure Worker push batch CPU (`PUSH_BATCH_CAP = 20`).
+3. **Off-site 90-day backup store + restore drill** (`backup.yml` uploads 30-day GitHub artifacts only; `restore-drill.yml` still has a placeholder fetch step).
+4. **Treasurer confirmation for `S5.6`** (manager.io CSV format + account codes).
+5. **First Monthly Lighthouse run** (`LHCI_TARGET_URL`) and optional GitHub `production` environment required reviewer / branch protection.
 
-## Decisions Ashok made
+## Engineering conventions (keep following them)
 
-- Merge on green CI (squash) without asking per PR; the integrator decides the order. Story agents may push `story/*` branches and open PRs. Unsigned commits are fine. Contract fixes and one-line Owns grants may go through without a question each time.
-- The polls migration `0001` was approved; later migrations need his OK.
-- Naming: BOLT HQ for the app, BOLT IF for the club.
-- He wants direct, opinionated recommendations and works Stockholm hours.
+- **Area routing:** mount `contextMiddleware()` on the area's own paths only, never `use("*")`. Exited members on own-data routes use `requireGuard("member", { allowInactive: true })`.
+- **Money & time:** whole kronor as integers, append-only `ledger_entry`, `Idempotency-Key` on money/RSVP writes, injected `Clock` everywhere in domain/worker code.
+- **UI:** follow `docs/PWA_UI_Rules.md` (4-tier buttons, Title Case headings/buttons/chips, sentence case body/hints, `>= 44px` tap targets, `>= 16px` inputs, `GroupedList` / `ActionSheet` / `DisclosureSection`).
+- **Migrations:** always a single linear Drizzle chain (`scripts/ci/check-migrations.sh`); expand-only because `deploy.yml` runs migrations after `Workers Builds` deploys.
+- **Commits & tests:** `npm run typecheck && npm run lint && npm test` (DB tests require Postgres 18 on `DATABASE_URL`). `docs/DECISIONS.md` uses `merge=union` in `.gitattributes`.

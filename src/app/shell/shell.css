@@ -184,8 +184,8 @@ body {
 }
 .bcq-tabbar__item.is-active .bcq-tabbar__icon,
 .bcq-tabbar__item[aria-current="page"] .bcq-tabbar__icon {
-  background: var(--bcq-brand);
-  color: var(--bcq-ink);
+  background: #ffedd5;
+  color: #c2410c;
 }
 .bcq-tabbar__icon {
   position: relative;

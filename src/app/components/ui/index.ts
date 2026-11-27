@@ -3,7 +3,7 @@ export { StatusChip, type StatusTone } from "./StatusChip";
 export { SpotsBar } from "./SpotsBar";
 export { Stepper } from "./Stepper";
 export { BottomSheet, type BottomSheetProps } from "./BottomSheet";
-export { ActionSheet, MoreHorizontalIcon } from "./ActionSheet";
+export { ActionSheet, MoreHorizontalIcon, OverflowButton } from "./ActionSheet";
 export {
   GroupedList,
   ChevronRightIcon,

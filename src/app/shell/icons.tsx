@@ -19,13 +19,22 @@ const PATHS: Record<NavIconName, string> = {
 };
 
 export function NavIcon({ name }: { readonly name: NavIconName }) {
+  if (name === "more") {
+    return (
+      <svg className="bcq-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+        <circle cx="5" cy="12" r="1.75" fill="currentColor" />
+        <circle cx="12" cy="12" r="1.75" fill="currentColor" />
+        <circle cx="19" cy="12" r="1.75" fill="currentColor" />
+      </svg>
+    );
+  }
   return (
     <svg className="bcq-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
       <path
         d={PATHS[name]}
         fill="none"
         stroke="currentColor"
-        strokeWidth="1.5"
+        strokeWidth="1.75"
         strokeLinecap="round"
         strokeLinejoin="round"
       />

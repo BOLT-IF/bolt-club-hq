@@ -142,7 +142,7 @@ describe("HomePage", () => {
     expect(eventLink.getAttribute("href")).toBe("/events/k3f9xq2m");
     expect(screen.getByText(/0 kr/)).toBeTruthy();
     expect(screen.getByText("No active pass")).toBeTruthy();
-    expect(screen.getByRole("link", { name: /View pass offers/i }).getAttribute("href")).toBe(
+    expect(screen.getByRole("link", { name: /Pass Offers/i }).getAttribute("href")).toBe(
       "/money/passes",
     );
     const pollLink = screen.getByRole("link", { name: /Court preference\?/ });
@@ -218,7 +218,9 @@ describe("HomePage", () => {
     renderHome();
 
     expect(await screen.findByText(/Owes 150 kr/)).toBeTruthy();
-    expect(screen.getByRole("link", { name: /View balance/i }).getAttribute("href")).toBe("/money");
+    expect(screen.getByRole("link", { name: /Balance & Pay/i }).getAttribute("href")).toBe(
+      "/money",
+    );
     expect(screen.getByText(/1 pending claim/i)).toBeTruthy();
     expect(screen.getByRole("link", { name: /1 pending claim/i }).getAttribute("href")).toBe(
       "/money/claims",

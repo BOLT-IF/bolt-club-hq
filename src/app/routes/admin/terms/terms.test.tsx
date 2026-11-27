@@ -137,19 +137,24 @@ describe("TermsPage", () => {
     expect(calls).toHaveLength(0);
   });
 
-  it("lists terms with a status chip, dates and a link to each", async () => {
+  it("lists terms with a status chip, human-readable dates and a link to each", async () => {
     stub({
       "GET /terms": {
-        terms: [term(), term({ id: "t0", name: "Autumn 2026", status: "closed", seriesCount: 3 })],
+        terms: [
+          term({ status: "open_for_passes" }),
+          term({ id: "t0", name: "Autumn 2026", status: "closed", seriesCount: 3 }),
+        ],
       },
     });
     renderPage(<TermsPage />);
     const link = await screen.findByRole("link", { name: "Spring 2027" });
     expect(link.getAttribute("href")).toBe("/admin/terms/t1");
-    expect(screen.getByText("Draft")).toBeTruthy();
+    expect(screen.getByText("Passes Open")).toBeTruthy();
+    expect(screen.getByText("Jan 11 – Jun 24, 2027")).toBeTruthy();
+    expect(screen.getByText("2026/2027 · 1 Series")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: /Past Terms \(1\)/i }));
     expect(screen.getByText("Closed")).toBeTruthy();
-    expect(screen.getByText(/3 series/)).toBeTruthy();
+    expect(screen.getByText(/3 Series/)).toBeTruthy();
   });
 
   it("shows an empty state, and an error with a retry", async () => {
@@ -164,7 +169,7 @@ describe("TermsPage", () => {
     expect(screen.getByRole("button", { name: "Try Again" })).toBeTruthy();
   });
 
-  it("creates a term from the labelled form and reloads the list", async () => {
+  it("creates a term from the New Term bottom sheet and reloads the list", async () => {
     const user = userEvent.setup();
     stub({
       "GET /terms": { terms: [] },
@@ -173,10 +178,12 @@ describe("TermsPage", () => {
     renderPage(<TermsPage />);
     await screen.findByText(/no terms yet/i);
 
-    await user.type(screen.getByLabelText("Name"), "Spring 2027");
-    await user.type(screen.getByLabelText("Starts On"), "2027-01-11");
-    await user.type(screen.getByLabelText("Ends On"), "2027-06-24");
-    await user.click(screen.getByRole("button", { name: "Create Term" }));
+    await user.click(screen.getAllByRole("button", { name: /New Term/i })[0]!);
+    const dialog = screen.getByRole("dialog", { name: "New Term" });
+    await user.type(within(dialog).getByLabelText("Name"), "Spring 2027");
+    await user.type(within(dialog).getByLabelText("Starts On"), "2027-01-11");
+    await user.type(within(dialog).getByLabelText("Ends On"), "2027-06-24");
+    await user.click(within(dialog).getByRole("button", { name: /Create Term/i }));
 
     await waitFor(() => {
       expect(calls.some((c) => c.method === "POST" && c.path === "/terms")).toBe(true);
@@ -196,20 +203,22 @@ describe("TermsPage", () => {
     });
   });
 
-  it("clones a term with an Idempotency-Key and opens the new term", async () => {
+  it("clones a term via the overflow action sheet with an Idempotency-Key", async () => {
     const user = userEvent.setup();
     stub({
       "GET /terms": { terms: [term({ status: "active" })] },
       "POST /terms/t1/clone": { term: term({ id: "t2", name: "Autumn 2027" }), series: [] },
     });
     renderPage(<TermsPage />);
-    await user.click(await screen.findByRole("button", { name: "Clone Spring 2027" }));
+    await user.click(await screen.findByRole("button", { name: "Actions for Spring 2027" }));
+    const actionSheet = screen.getByRole("dialog", { name: "Spring 2027" });
+    await user.click(within(actionSheet).getByRole("button", { name: "Clone Term" }));
 
-    const dialog = screen.getByRole("dialog");
+    const dialog = screen.getByRole("dialog", { name: "Clone Spring 2027" });
     await user.type(within(dialog).getByLabelText("Name"), "Autumn 2027");
     await user.type(within(dialog).getByLabelText("Starts On"), "2027-07-05");
     await user.type(within(dialog).getByLabelText("Ends On"), "2027-12-20");
-    await user.click(within(dialog).getByRole("button", { name: "Clone term" }));
+    await user.click(within(dialog).getByRole("button", { name: /Clone Term/i }));
 
     await waitFor(() => {
       expect(calls.some((c) => c.path === "/terms/t1/clone")).toBe(true);

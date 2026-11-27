@@ -17,6 +17,23 @@ export interface AppShellProps {
   readonly isSignedIn?: boolean;
 }
 
+/** Determine contextual Back label and fallback target for the top bar. */
+function backTargetFor(path: string): { readonly label: string; readonly fallback: string } {
+  if (/^\/admin\/[^/]+$/.test(path)) {
+    return { label: "Admin", fallback: "/admin" };
+  }
+  if (path.startsWith("/admin/terms/")) {
+    return { label: "Terms", fallback: "/admin/terms" };
+  }
+  if (path.startsWith("/admin/money/")) {
+    return { label: "Finances", fallback: "/admin/money" };
+  }
+  if (path.startsWith("/admin/")) {
+    return { label: "Admin", fallback: "/admin" };
+  }
+  return { label: "Back", fallback: "/" };
+}
+
 /** Shell chrome: skip link, top bar with explicit Back, routed content, bottom nav, More sheet. */
 export function AppShell({
   path,
@@ -28,6 +45,7 @@ export function AppShell({
   const [moreOpen, setMoreOpen] = useState(false);
   const outdated = useClientOutdated();
   const showBack = path !== "/";
+  const backTarget = backTargetFor(path);
 
   return (
     <div className="bcq-app" data-testid="app-shell">
@@ -56,7 +74,7 @@ export function AppShell({
             type="button"
             className="bcq-back"
             onClick={() => {
-              goBack();
+              goBack(backTarget.fallback);
             }}
           >
             <svg
@@ -69,12 +87,12 @@ export function AppShell({
                 d="M15 6l-6 6 6 6"
                 fill="none"
                 stroke="currentColor"
-                strokeWidth="1.5"
+                strokeWidth="1.75"
                 strokeLinecap="round"
                 strokeLinejoin="round"
               />
             </svg>
-            Back
+            {backTarget.label}
           </button>
         ) : null}
         <span className="bcq-brand">

@@ -69,12 +69,13 @@ test("member submits a payment claim and sees rejected reason in their list", as
   });
 
   await page.goto("/money/claims");
+  await page.getByRole("button", { name: /Past Claims \(1\)/i }).click();
   await expect(page.getByText("No transfer found")).toBeVisible();
 
   await page.getByLabel("Amount (kr)").fill("300");
-  await page.getByLabel("Date paid").fill("2026-11-20");
-  await page.getByLabel("Note (optional)").fill("Swish");
-  await page.getByRole("button", { name: "Submit claim" }).click();
+  await page.getByLabel("Date Paid").fill("2026-11-20");
+  await page.getByLabel("Note (Optional)").fill("Swish");
+  await page.getByRole("button", { name: "Submit Claim" }).click();
 
   await expect(page.getByText("300 kr")).toBeVisible();
   expect(idempotencyKey).toBeTruthy();
@@ -165,7 +166,7 @@ test("admin confirms a member claim, rejects another with reason, and cannot dec
 
   await page.getByRole("button", { name: /reject Cy Dahl/i }).click();
   await page.getByLabel("Reason").fill("Wrong reference");
-  await page.getByRole("button", { name: "Reject claim" }).click();
+  await page.getByRole("button", { name: "Reject Claim" }).click();
   await expect(list.getByRole("listitem")).toHaveCount(1);
   expect(rejectKey).toBeTruthy();
 

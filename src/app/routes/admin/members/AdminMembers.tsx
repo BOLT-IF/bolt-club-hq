@@ -179,16 +179,17 @@ export function AdminMembers() {
       <h1 id="admin-members-title" className="bcq-page__title">
         Members
       </h1>
-      <p className="bcq-field__hint">
+      <p className="bcq-field__hint bcq-member__invite-banner">
         Need to invite someone?{" "}
         <a
+          className="bcq-member__invite-link"
           href="/admin/approvals"
           onClick={(e) => {
             e.preventDefault();
             navigate("/admin/approvals");
           }}
         >
-          Create an invite link
+          Create an Invite Link
         </a>
         .
       </p>

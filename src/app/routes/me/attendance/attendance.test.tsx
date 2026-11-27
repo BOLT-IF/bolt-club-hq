@@ -192,7 +192,7 @@ describe("AttendanceHistoryPage (/history, S8.2)", () => {
 
     renderHistory();
     await waitFor(() => {
-      expect(screen.getByText(/Couldn't load your attendance history/i)).toBeTruthy();
+      expect(screen.getByText(/Couldn't Load Attendance History/i)).toBeTruthy();
     });
 
     fail = false;

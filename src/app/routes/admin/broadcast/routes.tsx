@@ -87,9 +87,9 @@ function Broadcast() {
       <h1 id="broadcast-title" className="bcq-page__title">
         Broadcast
       </h1>
-      <form className="bcq-broadcast" onSubmit={review} noValidate>
+      <form className="bcq-card bcq-broadcast" onSubmit={review} noValidate>
         <label className="bcq-broadcast__field">
-          Send to
+          Send To
           <select
             value={kind}
             onChange={(e) => {
@@ -105,7 +105,7 @@ function Broadcast() {
         </label>
         {kind === "event_rsvps" ? (
           <label className="bcq-broadcast__field">
-            Event ID or share slug
+            Event ID or Share Slug
             <input
               value={eventRef}
               autoComplete="off"
@@ -147,14 +147,14 @@ function Broadcast() {
         ) : null}
         {sent ? <p role="status">{sent}</p> : null}
         <Button type="submit" block>
-          Review and send
+          Review &amp; Send
         </Button>
       </form>
       <ConfirmDialog
         open={confirming}
-        title="Send broadcast?"
+        title="Send Broadcast?"
         description={`"${title.trim()}" goes to: ${audienceLabel}. This cannot be undone.`}
-        confirmLabel={sending ? "Sending…" : "Send broadcast"}
+        confirmLabel={sending ? "Sending…" : "Send Broadcast"}
         onConfirm={() => {
           if (!sending) send();
         }}

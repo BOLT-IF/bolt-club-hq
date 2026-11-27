@@ -66,7 +66,7 @@ body {
   min-height: 56px;
   padding: env(safe-area-inset-top) calc(0.75rem + env(safe-area-inset-right)) 0
     calc(0.75rem + env(safe-area-inset-left));
-  background: var(--bcq-ink);
+  background: var(--bcq-navy);
   color: #fff;
   border-bottom: 2px solid var(--bcq-brand);
 }
@@ -141,8 +141,8 @@ body {
   z-index: 30;
   background: var(--bcq-card);
   border-top: 1px solid var(--bcq-line);
-  box-shadow: 0 -1px 2px rgb(39 46 56 / 0.04);
-  padding-bottom: env(safe-area-inset-bottom);
+  box-shadow: 0 -1px 3px rgb(15 23 42 / 0.04);
+  padding-bottom: max(0.375rem, env(safe-area-inset-bottom, 0px));
 }
 .bcq-tabbar__list {
   display: grid;
@@ -216,33 +216,14 @@ body {
   box-sizing: border-box;
 }
 
-/* More sheet and admin/menu lists */
-.bcq-menu {
-  list-style: none;
-  margin: 0;
-  padding: 0;
+/* More sheet grouped list */
+.bcq-more-groups {
   display: grid;
-  gap: 0.5rem;
+  gap: 1rem;
 }
-.bcq-menu__item {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  min-height: var(--bcq-touch);
-  padding: 0.75rem 1rem;
-  border-radius: var(--bcq-radius-sm);
-  background: var(--bcq-card);
-  border: 1px solid var(--bcq-line);
-  color: var(--bcq-ink);
-  font: 500 1rem/1.2 var(--bcq-font);
-  text-decoration: none;
-  transition: background-color 140ms var(--bcq-ease);
-}
-.bcq-menu__item:hover {
-  background: var(--bcq-brand-soft);
-}
-.bcq-menu__item .bcq-icon {
-  color: var(--bcq-brand-deep);
+.bcq-more-groups .bcq-icon {
+  width: 18px;
+  height: 18px;
 }
 
 /* Admin grouped inset hub */
@@ -259,7 +240,7 @@ body {
   font: 600 0.75rem/1.2 var(--bcq-font);
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: #64748b;
+  color: var(--bcq-muted);
 }
 .bcq-admin-group__card {
   list-style: none;
@@ -327,7 +308,7 @@ body {
 .bcq-admin-row__count {
   font: 500 0.875rem/1 var(--bcq-font);
   font-variant-numeric: tabular-nums;
-  color: #64748b;
+  color: var(--bcq-muted);
 }
 .bcq-admin-row__pill {
   display: inline-flex;

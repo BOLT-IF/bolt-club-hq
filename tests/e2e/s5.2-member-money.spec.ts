@@ -164,7 +164,7 @@ test("credit displays correctly", async ({ page }) => {
 test("shows how to pay with the payment reference", async ({ page }) => {
   await mockApi(page);
   await page.goto("/money");
-  const howTo = page.getByRole("region", { name: "How to pay" });
+  const howTo = page.getByRole("region", { name: "How to Pay" });
   await expect(howTo).toContainText("5050-1055");
   await expect(howTo).toContainText("BOLT-ALEX");
   await expect(howTo.getByRole("button", { name: "Copy payment reference" })).toBeVisible();

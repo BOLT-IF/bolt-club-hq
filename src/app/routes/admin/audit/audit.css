@@ -1,6 +1,13 @@
+.bcq-audit-page {
+  display: grid;
+  gap: 1.5rem;
+}
+.bcq-audit-page .bcq-page__title {
+  margin: 0;
+}
 .bcq-audit__filters {
-  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
-  margin-bottom: 1rem;
+  display: grid;
+  gap: 0.875rem;
 }
 .bcq-audit__buttons {
   display: flex;

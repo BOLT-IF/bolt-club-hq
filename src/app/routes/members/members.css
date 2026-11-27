@@ -12,6 +12,16 @@
   border-radius: var(--bcq-radius);
   background: var(--bcq-card);
   border: 1px solid var(--bcq-line);
+  box-shadow: var(--bcq-card-shadow);
+}
+.bcq-member__invite-banner {
+  margin-bottom: 1rem;
+}
+.bcq-member__invite-link {
+  color: var(--bcq-brand-deep);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
 }
 .bcq-member--interactive {
   cursor: pointer;

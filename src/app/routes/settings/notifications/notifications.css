@@ -1,52 +1,35 @@
+.bcq-prefs-page {
+  display: grid;
+  gap: 1.5rem;
+}
+.bcq-prefs-page .bcq-page__title {
+  margin: 0;
+}
 .bcq-prefs__device {
   display: grid;
-  gap: 0.5rem;
-  margin-bottom: 1rem;
-  padding: 1rem;
-  background: var(--bcq-card);
-  border: 1px solid var(--bcq-line);
-  border-radius: var(--bcq-radius);
+  gap: 0.75rem;
 }
 .bcq-prefs__device-title {
   margin: 0;
   font: 600 1rem/1.3 var(--bcq-font);
   color: var(--bcq-ink);
 }
-.bcq-prefs {
-  list-style: none;
-  margin: 1rem 0 0;
-  padding: 0;
+.bcq-prefs-groups {
   display: grid;
-  gap: 0.75rem;
+  gap: 1.25rem;
 }
-.bcq-prefs__row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  min-height: var(--bcq-touch);
-  padding: 0.75rem 1rem;
-  background: var(--bcq-card);
-  border: 1px solid var(--bcq-line);
-  border-radius: var(--bcq-radius);
-  cursor: pointer;
-}
-.bcq-prefs__text {
-  display: grid;
-  gap: 0.125rem;
+.bcq-prefs__intro {
+  margin: 0;
+  font: 400 0.875rem/1.45 var(--bcq-font);
+  color: var(--bcq-muted);
 }
 .bcq-prefs__hint {
+  margin: 0;
   color: var(--bcq-muted);
-  font-size: 0.8125rem;
-}
-.bcq-prefs__switch {
-  flex: none;
-  width: 1.75rem;
-  height: 1.75rem;
-  accent-color: var(--bcq-brand);
+  font-size: 0.875rem;
 }
 .bcq-prefs__error {
-  margin-top: 1rem;
+  margin: 0;
   padding: 0.75rem 1rem;
   color: var(--bcq-danger-ink);
   background: var(--bcq-danger-bg);

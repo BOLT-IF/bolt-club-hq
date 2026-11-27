@@ -126,15 +126,15 @@ function Inbox() {
         </ErrorState>
       ) : null}
       {state.status === "ready" && state.items.length === 0 ? (
-        <EmptyState title="Nothing here yet">
-          Updates about your RSVPs, payments and events will show up here.
+        <EmptyState title="Nothing Here Yet">
+          Updates about your RSVPs, payments, and events will show up here.
         </EmptyState>
       ) : null}
       {state.status === "ready" && state.items.length > 0 ? (
         <>
           {state.unreadCount > 0 ? (
             <Button
-              variant="secondary"
+              variant="tonal"
               onClick={() => {
                 markRead([], true);
               }}

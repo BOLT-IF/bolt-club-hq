@@ -51,7 +51,7 @@ function TermDetail() {
 
   return (
     <section className="bcq-page bcq-stack">
-      <BackLink to="/admin/terms">Terms &amp; series</BackLink>
+      <BackLink to="/admin/terms">Terms &amp; Series</BackLink>
       <Loaded load={load}>
         {({ term, series }) => {
           const next = NEXT_STATUS[term.status];
@@ -119,10 +119,10 @@ function TermDetail() {
               )}
 
               {term.status === "closed" ? null : (
-                <>
-                  <h2 className="bcq-section-title">Add a series</h2>
+                <div className="bcq-card">
+                  <h2 className="bcq-section-title">Add a Series</h2>
                   <SeriesForm
-                    submitLabel="Add series"
+                    submitLabel="Add Series"
                     eligibleCandidates={candidates.data?.members ?? []}
                     onSubmit={async (changes) => {
                       try {
@@ -138,7 +138,7 @@ function TermDetail() {
                       }
                     }}
                   />
-                </>
+                </div>
               )}
             </>
           );

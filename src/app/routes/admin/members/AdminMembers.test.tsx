@@ -104,7 +104,7 @@ describe("admin members page", () => {
       </ToastProvider>,
     );
     expect(await screen.findByRole("alert")).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Try again" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Try Again" })).toBeTruthy();
   });
 
   it("promoting via the action sheet PATCHes the role and refreshes the list", async () => {

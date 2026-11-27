@@ -36,6 +36,10 @@ type State =
   | { readonly kind: "error" }
   | { readonly kind: "ready"; readonly data: PassesOverview };
 
+function formatLabel(format: string): string {
+  return format.length > 0 ? format.charAt(0).toUpperCase() + format.slice(1) : format;
+}
+
 function OfferCard({
   offer,
   onSelect,
@@ -53,8 +57,8 @@ function OfferCard({
     <li className="bcq-pass-card">
       <div className="bcq-pass-card__head">
         <h3 className="bcq-pass-card__title">{offer.seriesName}</h3>
-        <StatusChip tone="neutral">{offer.format}</StatusChip>
-        {offer.discounted ? <StatusChip tone="info">Returning member rate</StatusChip> : null}
+        <StatusChip tone="neutral">{formatLabel(offer.format)}</StatusChip>
+        {offer.discounted ? <StatusChip tone="info">Returning Member Rate</StatusChip> : null}
       </div>
       <p className="bcq-pass-card__meta">
         {offer.termName} · {schedule}
@@ -67,20 +71,20 @@ function OfferCard({
             : `${String(offer.remainingEvents)} sessions`}
         </span>
       </div>
-      <SpotsBar taken={offer.passesSold} total={offer.passCap} label="Pass seats" />
+      <SpotsBar taken={offer.passesSold} total={offer.passCap} label="Pass Seats" />
       <p className="bcq-pass-terms">{offer.termsNotice}</p>
       <div>
         {offer.alreadyOwned ? (
-          <StatusChip tone="success">You hold a pass</StatusChip>
+          <StatusChip tone="success">You Hold a Pass</StatusChip>
         ) : offer.seatsRemaining <= 0 ? (
-          <StatusChip tone="neutral">Sold out</StatusChip>
+          <StatusChip tone="neutral">Sold Out</StatusChip>
         ) : (
           <Button
             onClick={() => {
               onSelect(offer);
             }}
           >
-            Buy pass
+            Buy Pass
           </Button>
         )}
       </div>
@@ -221,10 +225,10 @@ export function PassesPage() {
 
       <section className="bcq-passes__section" aria-labelledby="passes-offers-heading">
         <h2 id="passes-offers-heading" className="bcq-passes__heading">
-          Available passes
+          Available Passes
         </h2>
         {offers.length === 0 ? (
-          <EmptyState title="No passes on sale">
+          <EmptyState title="No Passes on Sale">
             No series are currently open for pass purchases.
           </EmptyState>
         ) : (
@@ -239,7 +243,7 @@ export function PassesPage() {
       {passes.length > 0 ? (
         <section className="bcq-passes__section" aria-labelledby="passes-owned-heading">
           <h2 id="passes-owned-heading" className="bcq-passes__heading">
-            Your passes
+            Your Passes
           </h2>
           <ul className="bcq-passes__list" aria-label="Your passes">
             {passes.map((p) => (

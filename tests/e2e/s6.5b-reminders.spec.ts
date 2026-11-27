@@ -87,7 +87,7 @@ test("renders placeholders, rejects unknown placeholder, previews, and disables 
   await expect(page.getByRole("heading", { level: 1, name: "Reminders" })).toBeVisible();
   await expect(page.getByText(/you owe \{balance\} kr/i)).toBeVisible();
 
-  await page.getByRole("button", { name: "New rule" }).click();
+  await page.getByRole("button", { name: "New Rule" }).click();
   await expect(page.getByRole("button", { name: "{paymentRef}" })).toBeVisible();
 
   await page.getByLabel("Minimum balance owed (kr)").fill("200");
@@ -100,14 +100,22 @@ test("renders placeholders, rejects unknown placeholder, previews, and disables 
   await page.getByRole("button", { name: "Save rule" }).click();
   await expect(page.getByText("Pay {balance}")).toBeVisible();
 
-  await page.getByRole("button", { name: "Preview" }).first().click();
+  await page
+    .getByRole("button", { name: /Actions for/i })
+    .first()
+    .click();
+  await page.getByRole("button", { name: "Preview" }).click();
   const previewDialog = page.getByRole("dialog", { name: /preview/i });
   await expect(previewDialog).toContainText("1 member");
   await expect(previewDialog).toContainText("Alex");
   await previewDialog.getByRole("button", { name: "Close" }).click();
 
-  await page.getByRole("button", { name: "Delete" }).first().click();
-  await page.getByRole("button", { name: "Delete rule" }).click();
+  await page
+    .getByRole("button", { name: /Actions for/i })
+    .first()
+    .click();
+  await page.getByRole("button", { name: "Delete" }).click();
+  await page.getByRole("button", { name: "Delete Rule" }).click();
   await expect(page.getByText(/already sent reminders/i)).toBeVisible();
   await page.getByRole("button", { name: "Disable instead" }).click();
   await expect(page.getByText("Disabled").first()).toBeVisible();
@@ -145,7 +153,7 @@ test("the reminder admin screen has no serious or critical axe violations", asyn
   await page.goto("/admin/reminders");
   await expect(page.getByRole("heading", { level: 1, name: "Reminders" })).toBeVisible();
 
-  await page.getByRole("button", { name: "New rule" }).click();
+  await page.getByRole("button", { name: "New Rule" }).click();
   await expect(page.getByRole("button", { name: "{paymentRef}" })).toBeVisible();
 
   const results = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa"]).analyze();

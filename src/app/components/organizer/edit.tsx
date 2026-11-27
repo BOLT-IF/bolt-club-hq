@@ -41,7 +41,7 @@ export function EventEditPanel({ event, viewer }: SlotProps) {
       <section aria-labelledby="event-edit-heading" className="bcq-event-edit">
         <div className="bcq-event-edit__head">
           <h2 id="event-edit-heading" className="bcq-event-edit__title">
-            Manage event
+            Manage Event
           </h2>
           <StatusChip tone="danger">Cancelled</StatusChip>
         </div>
@@ -149,7 +149,7 @@ export function EventEditPanel({ event, viewer }: SlotProps) {
     <section aria-labelledby="event-edit-heading" className="bcq-event-edit">
       <div className="bcq-event-edit__head">
         <h2 id="event-edit-heading" className="bcq-event-edit__title">
-          Manage event
+          Manage Event
         </h2>
         {isClosed ? <StatusChip>Closed</StatusChip> : <StatusChip>Scheduled</StatusChip>}
       </div>
@@ -228,12 +228,13 @@ export function EventEditPanel({ event, viewer }: SlotProps) {
 
         <div className="bcq-event-edit__field">
           <label className="bcq-event-edit__label" htmlFor="edit-event-fee">
-            Drop-in fee (kr)
+            Drop-In Fee (kr)
           </label>
           <input
             id="edit-event-fee"
             className="bcq-event-edit__input"
             type="number"
+            inputMode="numeric"
             min={0}
             step={1}
             value={fee}
@@ -263,26 +264,26 @@ export function EventEditPanel({ event, viewer }: SlotProps) {
 
         <div className="bcq-event-edit__actions">
           <Button type="submit" disabled={saving || cancelling}>
-            {saving ? "Saving…" : "Save changes"}
+            {saving ? "Saving…" : "Save Changes"}
           </Button>
           <Button
             type="button"
-            variant="danger"
+            variant="destructive-tonal"
             disabled={saving || cancelling}
             onClick={() => {
               setConfirmCancel(true);
             }}
           >
-            {cancelling ? "Cancelling…" : "Cancel event"}
+            {cancelling ? "Cancelling…" : "Cancel Event"}
           </Button>
         </div>
       </form>
 
       <ConfirmDialog
         open={confirmCancel}
-        title="Cancel this event?"
+        title="Cancel This Event?"
         description="All charges for this event will be reversed and participants will be notified."
-        confirmLabel="Cancel event"
+        confirmLabel="Cancel Event"
         destructive
         onConfirm={() => {
           void handleCancelEvent();

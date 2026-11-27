@@ -5,6 +5,9 @@ package-lock.json
 playwright-report/
 test-results/
 coverage/
+.audit/
+.agents/
+.playwright-cli/
 docs/
 .github/
 *.md

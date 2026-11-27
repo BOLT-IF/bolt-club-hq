@@ -103,6 +103,7 @@ describe("PollListPage", () => {
     render(withFlag(<PollListPage />));
     const link = await screen.findByRole("link", { name: /Kit colour\?/ });
     expect(link.getAttribute("href")).toBe("/polls/pol_1");
+    fireEvent.click(screen.getByRole("button", { name: /Past Polls \(1\)/i }));
     expect(screen.getByRole("link", { name: /Venue\?/ }).textContent).toMatch(/closed/i);
   });
 

@@ -107,6 +107,6 @@ describe("notification settings", () => {
     configureApiClient({ fetch: () => Promise.resolve(json({ error: "boom" }, 500)) });
     renderPage();
     expect(await screen.findByRole("alert")).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Try again" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Try Again" })).toBeTruthy();
   });
 });

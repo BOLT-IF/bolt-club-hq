@@ -171,7 +171,7 @@ function Detail() {
             ))}
           </fieldset>
           <Button type="submit" block disabled={busy || choice.length === 0}>
-            {poll.myVote.length > 0 ? "Update vote" : "Vote"}
+            {poll.myVote.length > 0 ? "Update Vote" : "Vote"}
           </Button>
         </form>
       )}

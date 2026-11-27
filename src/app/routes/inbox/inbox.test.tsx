@@ -87,7 +87,7 @@ describe("inbox screen", () => {
     configureApiClient({ fetch: () => Promise.resolve(json({ error: "boom" }, 500)) });
     renderInbox();
     expect(await screen.findByRole("alert")).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Try again" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Try Again" })).toBeTruthy();
   });
 
   it("opening an item marks it read and goes to its deep link", async () => {

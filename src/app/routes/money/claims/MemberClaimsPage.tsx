@@ -6,6 +6,7 @@ import { useCallback, useEffect, useRef, useState, type SyntheticEvent } from "r
 import { ApiError, apiFetch, newIdempotencyKey } from "../../../api/client";
 import {
   Button,
+  DisclosureSection,
   EmptyState,
   ErrorState,
   Skeleton,
@@ -182,64 +183,92 @@ export function MemberClaimsPage() {
     }
   }
 
+  const pendingClaims =
+    state.status === "ready" ? state.claims.filter((c) => c.status === "pending") : [];
+  const pastClaims =
+    state.status === "ready" ? state.claims.filter((c) => c.status !== "pending") : [];
+
+  const renderClaim = (claim: PaymentClaim) => {
+    const chip = claimStatus(claim.status);
+    return (
+      <li key={claim.id} className="bcq-money__item">
+        <div className="bcq-money__row">
+          <strong className="bcq-money__sum">{claim.amountSek} kr</strong>
+          <StatusChip tone={chip.tone}>{chip.text}</StatusChip>
+        </div>
+        <p className="bcq-money__when">
+          Paid <time dateTime={claim.paidOn}>{formatDay(claim.paidOn)}</time>
+        </p>
+        {claim.note ? <p className="bcq-claims__note">{claim.note}</p> : null}
+        {claim.status === "rejected" && claim.rejectReason ? (
+          <p className="bcq-claims__reason">Reason: {claim.rejectReason}</p>
+        ) : null}
+      </li>
+    );
+  };
+
   return (
     <section aria-labelledby="claims-title" className="bcq-money">
       <h1 id="claims-title" className="bcq-page__title">
-        Payment claims
+        Payment Claims
       </h1>
-      <a
-        className="bcq-claims__link"
-        href="/money"
-        onClick={(e) => {
-          e.preventDefault();
-          navigate("/money");
-        }}
-      >
-        View balance and bank details
-      </a>
+      <div>
+        <a
+          className="bcq-btn bcq-btn--tonal"
+          href="/money"
+          onClick={(e) => {
+            e.preventDefault();
+            navigate("/money");
+          }}
+        >
+          Balance &amp; Bank Details
+        </a>
+      </div>
 
       <section aria-labelledby="claim-form-title" className="bcq-money__card">
         <h2 id="claim-form-title" className="bcq-money__heading">
-          I&apos;ve paid
+          I&apos;ve Paid
         </h2>
-        <p className="bcq-field__hint">
+        <p className="bcq-field__hint" style={{ marginBottom: "1rem" }}>
           Let the club know after you transfer money. Your balance updates once an admin confirms
           it.
         </p>
         <form className="bcq-form" noValidate onSubmit={(e) => void onSubmit(e)}>
-          <div className="bcq-field">
-            <label className="bcq-field__label" htmlFor="claim-amount">
-              Amount (kr)
-            </label>
-            <input
-              id="claim-amount"
-              className="bcq-input"
-              inputMode="numeric"
-              autoComplete="off"
-              value={amount}
-              onChange={(e) => {
-                setAmount(e.target.value);
-              }}
-            />
-          </div>
-          <div className="bcq-field">
-            <label className="bcq-field__label" htmlFor="claim-paid-on">
-              Date paid
-            </label>
-            <input
-              id="claim-paid-on"
-              className="bcq-input"
-              type="date"
-              max={today}
-              value={paidOn}
-              onChange={(e) => {
-                setPaidOn(e.target.value);
-              }}
-            />
+          <div className="bcq-form-grid-2">
+            <div className="bcq-field">
+              <label className="bcq-field__label" htmlFor="claim-amount">
+                Amount (kr)
+              </label>
+              <input
+                id="claim-amount"
+                className="bcq-input"
+                inputMode="numeric"
+                autoComplete="off"
+                value={amount}
+                onChange={(e) => {
+                  setAmount(e.target.value);
+                }}
+              />
+            </div>
+            <div className="bcq-field">
+              <label className="bcq-field__label" htmlFor="claim-paid-on">
+                Date Paid
+              </label>
+              <input
+                id="claim-paid-on"
+                className="bcq-input"
+                type="date"
+                max={today}
+                value={paidOn}
+                onChange={(e) => {
+                  setPaidOn(e.target.value);
+                }}
+              />
+            </div>
           </div>
           <div className="bcq-field">
             <label className="bcq-field__label" htmlFor="claim-note">
-              Note (optional)
+              Note (Optional)
             </label>
             <textarea
               id="claim-note"
@@ -257,19 +286,19 @@ export function MemberClaimsPage() {
             </p>
           ) : null}
           <Button type="submit" block disabled={submitting}>
-            {submitting ? "Submitting…" : "Submit claim"}
+            {submitting ? "Submitting…" : "Submit Claim"}
           </Button>
         </form>
       </section>
 
       <section aria-labelledby="my-claims-heading">
         <h2 id="my-claims-heading" className="bcq-money__heading">
-          Your claims
+          Your Claims
         </h2>
         {state.status === "loading" ? <Skeleton label="Loading payment claims" /> : null}
         {state.status === "error" ? (
           <ErrorState
-            title="Couldn't load your payment claims"
+            title="Couldn't Load Payment Claims"
             onRetry={() => {
               setState({ status: "loading" });
               void load();
@@ -282,30 +311,24 @@ export function MemberClaimsPage() {
         ) : null}
         {state.status === "ready" ? (
           state.claims.length === 0 ? (
-            <EmptyState title="No payment claims yet">
+            <EmptyState title="No Payment Claims Yet">
               Claims you submit appear here while an admin reviews them.
             </EmptyState>
           ) : (
-            <ul className="bcq-money__list" aria-label="Payment claims">
-              {state.claims.map((claim) => {
-                const chip = claimStatus(claim.status);
-                return (
-                  <li key={claim.id} className="bcq-money__item">
-                    <div className="bcq-money__row">
-                      <strong className="bcq-money__sum">{claim.amountSek} kr</strong>
-                      <StatusChip tone={chip.tone}>{chip.text}</StatusChip>
-                    </div>
-                    <p className="bcq-money__when">
-                      Paid <time dateTime={claim.paidOn}>{formatDay(claim.paidOn)}</time>
-                    </p>
-                    {claim.note ? <p className="bcq-claims__note">{claim.note}</p> : null}
-                    {claim.status === "rejected" && claim.rejectReason ? (
-                      <p className="bcq-claims__reason">Reason: {claim.rejectReason}</p>
-                    ) : null}
-                  </li>
-                );
-              })}
-            </ul>
+            <div className="bcq-money">
+              {pendingClaims.length > 0 ? (
+                <ul className="bcq-money__list" aria-label="Pending payment claims">
+                  {pendingClaims.map(renderClaim)}
+                </ul>
+              ) : null}
+              {pastClaims.length > 0 ? (
+                <DisclosureSection label={`Past Claims (${String(pastClaims.length)})`}>
+                  <ul className="bcq-money__list" aria-label="Past payment claims">
+                    {pastClaims.map(renderClaim)}
+                  </ul>
+                </DisclosureSection>
+              ) : null}
+            </div>
           )
         ) : null}
       </section>

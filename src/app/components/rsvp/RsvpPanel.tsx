@@ -243,7 +243,7 @@ export function RsvpPanel({ event }: SlotProps) {
             </Button>
             {active ? (
               <Button
-                variant="secondary"
+                variant="destructive-tonal"
                 block
                 disabled={busy}
                 onClick={() => {
@@ -254,7 +254,7 @@ export function RsvpPanel({ event }: SlotProps) {
               </Button>
             ) : !declined ? (
               <Button
-                variant="secondary"
+                variant="tonal"
                 block
                 disabled={busy}
                 onClick={() => {

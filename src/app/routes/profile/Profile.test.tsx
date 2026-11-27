@@ -57,17 +57,17 @@ describe("profile page", () => {
 
   it("shows labelled fields and the payment reference to quote on transfers", async () => {
     setup();
-    const name = await screen.findByLabelText("Display name");
+    const name = await screen.findByLabelText("Display Name");
     expect((name as HTMLInputElement).value).toBe("Ada Lovelace");
-    expect(screen.getByLabelText(/Roster name/)).toBeTruthy();
+    expect(screen.getByLabelText(/Roster Name/)).toBeTruthy();
     expect(screen.getByText("BC-ADA")).toBeTruthy();
   });
 
   it("saves the roster name and display name", async () => {
     const calls = setup();
-    const roster = await screen.findByLabelText(/Roster name/);
+    const roster = await screen.findByLabelText(/Roster Name/);
     fireEvent.change(roster, { target: { value: "Ada" } });
-    fireEvent.change(screen.getByLabelText("Display name"), { target: { value: "Ada L" } });
+    fireEvent.change(screen.getByLabelText("Display Name"), { target: { value: "Ada L" } });
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
     await waitFor(() => {
       expect(calls).toContainEqual({
@@ -81,7 +81,7 @@ describe("profile page", () => {
 
   it("blocks an empty display name with an inline error and sends nothing", async () => {
     const calls = setup();
-    const name = await screen.findByLabelText("Display name");
+    const name = await screen.findByLabelText("Display Name");
     fireEvent.change(name, { target: { value: "   " } });
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
     expect(await screen.findByText(/Enter a display name/i)).toBeTruthy();
@@ -90,8 +90,8 @@ describe("profile page", () => {
 
   it("tells the member when saving failed", async () => {
     setup(500);
-    await screen.findByLabelText("Display name");
-    fireEvent.change(screen.getByLabelText(/Roster name/), { target: { value: "Ada" } });
+    await screen.findByLabelText("Display Name");
+    fireEvent.change(screen.getByLabelText(/Roster Name/), { target: { value: "Ada" } });
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
     expect(await screen.findByText(/couldn.t save/i)).toBeTruthy();
   });

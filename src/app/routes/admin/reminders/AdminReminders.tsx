@@ -2,11 +2,13 @@ import { useCallback, useEffect, useState } from "react";
 
 import { ApiError } from "../../../api/client";
 import {
+  ActionSheet,
   BottomSheet,
   Button,
   ConfirmDialog,
   EmptyState,
   ErrorState,
+  MoreHorizontalIcon,
   Skeleton,
   StatusChip,
   useToast,
@@ -71,6 +73,7 @@ export function AdminReminders() {
   const [preview, setPreview] = useState<PreviewState | null>(null);
   const [deleting, setDeleting] = useState<ReminderRule | null>(null);
   const [hasSendsRule, setHasSendsRule] = useState<ReminderRule | null>(null);
+  const [selectedRule, setSelectedRule] = useState<ReminderRule | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
@@ -235,7 +238,7 @@ export function AdminReminders() {
               setEditor({ mode: "create" });
             }}
           >
-            New rule
+            New Rule
           </Button>
         ) : null}
       </div>
@@ -260,7 +263,7 @@ export function AdminReminders() {
       ) : null}
 
       {state.rules.length === 0 ? (
-        <EmptyState title="No reminder rules yet">
+        <EmptyState title="No Reminder Rules Yet">
           Create a payment or un-RSVPed event rule to send automatic reminders.
         </EmptyState>
       ) : (
@@ -268,53 +271,93 @@ export function AdminReminders() {
           {state.rules.map((rule) => (
             <li key={rule.id} className="bcq-reminder-card">
               <div className="bcq-reminder-card__top">
-                <h2 className="bcq-reminder-card__title">{KIND_LABEL[rule.kind]}</h2>
-                <StatusChip tone={rule.enabled ? "success" : "neutral"}>
-                  {rule.enabled ? "Enabled" : "Disabled"}
-                </StatusChip>
+                <div className="bcq-reminder-card__head-info">
+                  <h2 className="bcq-reminder-card__title">{KIND_LABEL[rule.kind]}</h2>
+                  <StatusChip tone={rule.enabled ? "success" : "neutral"}>
+                    {rule.enabled ? "Enabled" : "Disabled"}
+                  </StatusChip>
+                </div>
+                <button
+                  type="button"
+                  className="bcq-member__overflow"
+                  aria-label={`Actions for ${KIND_LABEL[rule.kind]}`}
+                  onClick={() => {
+                    setSelectedRule(rule);
+                  }}
+                >
+                  <MoreHorizontalIcon />
+                </button>
               </div>
               <p className="bcq-reminder-card__meta">{describeRule(rule)}</p>
               <p className="bcq-reminder-card__template">{rule.template}</p>
-              <div className="bcq-reminder-card__actions">
-                <Button
-                  variant="secondary"
-                  onClick={() => {
-                    void openPreview(rule);
-                  }}
-                >
-                  Preview
-                </Button>
-                <Button
-                  variant="secondary"
-                  disabled={busyId === rule.id}
-                  onClick={() => {
-                    void toggleEnabled(rule);
-                  }}
-                >
-                  {rule.enabled ? "Disable" : "Enable"}
-                </Button>
-                <Button
-                  variant="secondary"
-                  onClick={() => {
-                    setEditor({ mode: "edit", rule });
-                  }}
-                >
-                  Edit
-                </Button>
-                <Button
-                  variant="danger"
-                  disabled={busyId === rule.id}
-                  onClick={() => {
-                    setDeleting(rule);
-                  }}
-                >
-                  Delete
-                </Button>
-              </div>
             </li>
           ))}
         </ul>
       )}
+
+      <ActionSheet.Root
+        open={selectedRule !== null}
+        title="Rule Actions"
+        onClose={() => {
+          setSelectedRule(null);
+        }}
+      >
+        {selectedRule ? (
+          <>
+            <ActionSheet.Header
+              title={KIND_LABEL[selectedRule.kind]}
+              subtitle={describeRule(selectedRule)}
+            />
+            <ActionSheet.Group>
+              <ActionSheet.Item
+                onClick={() => {
+                  const target = selectedRule;
+                  setSelectedRule(null);
+                  void openPreview(target);
+                }}
+              >
+                Preview
+              </ActionSheet.Item>
+              <ActionSheet.Item
+                disabled={busyId === selectedRule.id}
+                onClick={() => {
+                  const target = selectedRule;
+                  setSelectedRule(null);
+                  void toggleEnabled(target);
+                }}
+              >
+                {selectedRule.enabled ? "Disable" : "Enable"}
+              </ActionSheet.Item>
+              <ActionSheet.Item
+                onClick={() => {
+                  const target = selectedRule;
+                  setSelectedRule(null);
+                  setEditor({ mode: "edit", rule: target });
+                }}
+              >
+                Edit
+              </ActionSheet.Item>
+            </ActionSheet.Group>
+            <ActionSheet.Divider />
+            <ActionSheet.Item
+              tone="destructive-tonal"
+              disabled={busyId === selectedRule.id}
+              onClick={() => {
+                const target = selectedRule;
+                setSelectedRule(null);
+                setDeleting(target);
+              }}
+            >
+              Delete
+            </ActionSheet.Item>
+            <ActionSheet.Cancel
+              onClick={() => {
+                setSelectedRule(null);
+              }}
+            />
+          </>
+        ) : null}
+      </ActionSheet.Root>
 
       <BottomSheet
         open={preview !== null}
@@ -361,9 +404,9 @@ export function AdminReminders() {
 
       <ConfirmDialog
         open={deleting !== null}
-        title="Delete reminder rule?"
+        title="Delete Reminder Rule?"
         description="This removes the rule permanently. Rules that have already sent reminders cannot be deleted."
-        confirmLabel="Delete rule"
+        confirmLabel="Delete Rule"
         destructive
         onCancel={() => {
           setDeleting(null);

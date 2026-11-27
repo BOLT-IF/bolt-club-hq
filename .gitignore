@@ -21,3 +21,7 @@ test-results/
 
 # Neon CLI project link (local; holds org/project ids)
 .neon
+
+# Local UI/UX audit artifacts
+.audit/
+.playwright-cli/

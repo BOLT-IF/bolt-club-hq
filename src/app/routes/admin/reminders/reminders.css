@@ -32,14 +32,22 @@
   border: 1px solid var(--bcq-line);
   border-radius: var(--bcq-radius);
   background: var(--bcq-card);
+  box-shadow: var(--bcq-card-shadow);
 }
 
 .bcq-reminder-card__top {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 0.5rem;
+}
+
+.bcq-reminder-card__head-info {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
 }
 
 .bcq-reminder-card__title {

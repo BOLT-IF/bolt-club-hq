@@ -1,12 +1,18 @@
 /* Admin terms & series. Builds on the UI kit tokens (ui.css). */
 .bcq-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--bcq-touch);
   color: var(--bcq-brand-deep);
   font-weight: 600;
   text-underline-offset: 3px;
 }
 .bcq-stack {
   display: grid;
-  gap: 1rem;
+  gap: 1.25rem;
+}
+.bcq-stack .bcq-page__title {
+  margin: 0;
 }
 .bcq-card {
   display: grid;
@@ -15,6 +21,7 @@
   border: 1px solid var(--bcq-line);
   border-radius: var(--bcq-radius);
   background: var(--bcq-card);
+  box-shadow: var(--bcq-card-shadow);
 }
 .bcq-card__row {
   display: flex;

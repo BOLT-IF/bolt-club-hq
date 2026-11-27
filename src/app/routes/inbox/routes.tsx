@@ -676,16 +676,9 @@ function Inbox() {
   return (
     <section className="bcq-inbox-page" aria-labelledby="inbox-title">
       <div className="bcq-inbox-page__head">
-        <div className="bcq-inbox-page__title-group">
-          <h1 id="inbox-title" className="bcq-page__title">
-            Inbox
-          </h1>
-          {state.status === "ready" && state.unreadCount > 0 ? (
-            <span className="bcq-count-pill" aria-label={`${String(state.unreadCount)} unread`}>
-              {state.unreadCount}
-            </span>
-          ) : null}
-        </div>
+        <h1 id="inbox-title" className="bcq-page__title">
+          Inbox
+        </h1>
         {state.status === "ready" && state.unreadCount > 0 ? (
           <button
             type="button"

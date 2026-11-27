@@ -160,6 +160,6 @@ describe("admin settings page", () => {
   it("tells a non-admin they cannot open it", async () => {
     respond = () => json(403, { error: "forbidden" });
     renderPage();
-    expect(await screen.findByText("Admins only")).toBeTruthy();
+    expect(await screen.findByText("Admins Only")).toBeTruthy();
   });
 });

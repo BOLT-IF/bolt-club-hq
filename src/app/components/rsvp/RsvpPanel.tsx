@@ -5,7 +5,7 @@ import type { EventDetail } from "../../api/events";
 import type { SlotProps } from "../../routes/events/slots";
 import { noteRsvpSaved } from "../install";
 import { Button, Skeleton, StatusChip, Stepper, type StatusTone } from "../ui";
-import { cancelRsvp, getMyRsvp, putRsvp, type RsvpStatus, type RsvpView } from "./api";
+import { cancelRsvp, declineRsvp, getMyRsvp, putRsvp, type RsvpStatus, type RsvpView } from "./api";
 import "./rsvp.css";
 
 const LABEL: Record<RsvpStatus, string> = {
@@ -15,6 +15,7 @@ const LABEL: Record<RsvpStatus, string> = {
   offered: "Spot offered",
   cancelled: "Cancelled",
   late_cancelled: "Cancelled",
+  declined: "Not going",
 };
 const TONE: Record<RsvpStatus, StatusTone> = {
   requested: "info",
@@ -23,11 +24,13 @@ const TONE: Record<RsvpStatus, StatusTone> = {
   offered: "info",
   cancelled: "neutral",
   late_cancelled: "neutral",
+  declined: "neutral",
 };
 const HINT: Partial<Record<RsvpStatus, string>> = {
   requested: "You'll hear when RSVPs close whether you got a spot.",
   confirmed: "You're in.",
   waitlisted: "You're on the waitlist. We'll tell you if a spot opens.",
+  declined: "You're marked as not going and won't get reminders for this event.",
 };
 const ERRORS: Record<string, string> = {
   rsvp_closed: "RSVPs for this event have closed.",
@@ -37,7 +40,10 @@ const ERRORS: Record<string, string> = {
 };
 
 const isActive = (r: RsvpView | null): r is RsvpView =>
-  r !== null && r.status !== "cancelled" && r.status !== "late_cancelled";
+  r !== null &&
+  r.status !== "cancelled" &&
+  r.status !== "late_cancelled" &&
+  r.status !== "declined";
 
 /** Before close only (S4.2). The server is the authority; this only hides controls. */
 function isOpen(e: EventDetail): boolean {
@@ -107,6 +113,7 @@ export function RsvpPanel({ event }: SlotProps) {
 
   const open = isOpen(event);
   const active = isActive(rsvp);
+  const declined = rsvp !== null && rsvp.status === "declined";
   const maxGuests = event.maxGuestsPerMember;
 
   return (
@@ -121,7 +128,7 @@ export function RsvpPanel({ event }: SlotProps) {
         </p>
       ) : null}
 
-      {active ? (
+      {active || declined ? (
         <div className="bcq-rsvp__status">
           <StatusChip tone={TONE[rsvp.status]}>{LABEL[rsvp.status]}</StatusChip>
           {HINT[rsvp.status] && open ? <p className="bcq-rsvp__hint">{HINT[rsvp.status]}</p> : null}
@@ -203,6 +210,17 @@ export function RsvpPanel({ event }: SlotProps) {
                 }}
               >
                 Cancel RSVP
+              </Button>
+            ) : !declined ? (
+              <Button
+                variant="secondary"
+                block
+                disabled={busy}
+                onClick={() => {
+                  void run(() => declineRsvp(event.id));
+                }}
+              >
+                Not going
               </Button>
             ) : null}
           </div>

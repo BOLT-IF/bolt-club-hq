@@ -182,4 +182,19 @@ describe("RsvpPanel (S4.2)", () => {
       expect(container.textContent).toBe("");
     });
   });
+
+  it("marks Not going via POST /rsvp/decline with an Idempotency-Key and stops reminders", async () => {
+    const calls = stub(null, () => ({
+      body: { rsvp: view({ status: "declined", guests: [] }) },
+    }));
+    render(<RsvpPanel event={event()} viewer={viewer} />);
+    fireEvent.click(await screen.findByRole("button", { name: "Not going" }));
+
+    expect(await screen.findByText("Not going")).toBeTruthy();
+    expect(screen.getByText(/won't get reminders for this event/i)).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Not going" })).toBeNull();
+    expect(screen.getByRole("button", { name: "RSVP" })).toBeTruthy();
+    const post = calls.find((c) => c.method === "POST" && c.path === "/events/evt_1/rsvp/decline");
+    expect(post?.key).toBeTruthy();
+  });
 });

@@ -446,4 +446,55 @@ describe("rsvp routes (S4.2)", () => {
       expect(cancels).toHaveLength(1);
     });
   });
+
+  describe("decline RSVP (Not going)", () => {
+    it("creates a declined RSVP idempotently, promotes instant waitlist when active, and allows re-RSVPing", async () => {
+      const a = await makeMember(t.db, { displayName: "Ada" });
+      const b = await makeMember(t.db, { displayName: "Bo" });
+      const e = await instantEvent(1, 1);
+
+      // Member A declines directly without RSVPing first.
+      const res1 = await app().request(
+        `/events/${e.id}/rsvp/decline`,
+        {
+          method: "POST",
+          headers: { [TEST_IDENTITY_HEADER]: a.clerkUserId, "Idempotency-Key": "dec-1" },
+        },
+        testEnv,
+      );
+      expect(res1.status).toBe(200);
+      expect((await json(res1)).rsvp).toMatchObject({ status: "declined", guests: [] });
+
+      // Idempotent replay / second decline call keeps declined.
+      const res2 = await app().request(
+        `/events/${e.id}/rsvp/decline`,
+        {
+          method: "POST",
+          headers: { [TEST_IDENTITY_HEADER]: a.clerkUserId, "Idempotency-Key": "dec-2" },
+        },
+        testEnv,
+      );
+      expect(res2.status).toBe(200);
+      expect((await json(res2)).rsvp).toMatchObject({ status: "declined", guests: [] });
+
+      // A changes their mind and RSVPs Yes (confirmed because capacity is 1), B gets waitlisted.
+      expect((await json(await put(e.id, a.clerkUserId))).rsvp?.status).toBe("confirmed");
+      expect((await json(await put(e.id, b.clerkUserId))).rsvp?.status).toBe("waitlisted");
+
+      // Now A clicks Not going -> A becomes declined, B is promoted to confirmed!
+      const res3 = await app().request(
+        `/events/${e.id}/rsvp/decline`,
+        {
+          method: "POST",
+          headers: { [TEST_IDENTITY_HEADER]: a.clerkUserId, "Idempotency-Key": "dec-3" },
+        },
+        testEnv,
+      );
+      expect(res3.status).toBe(200);
+      expect((await json(res3)).rsvp).toMatchObject({ status: "declined", guests: [] });
+
+      const bRes = await send("GET", e.id, b.clerkUserId);
+      expect((await json(bRes)).rsvp?.status).toBe("confirmed");
+    });
+  });
 });

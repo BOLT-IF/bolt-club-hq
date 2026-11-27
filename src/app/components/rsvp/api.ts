@@ -1,7 +1,13 @@
 import { apiFetch, newIdempotencyKey } from "../../api/client";
 
 export type RsvpStatus =
-  "requested" | "confirmed" | "waitlisted" | "offered" | "cancelled" | "late_cancelled";
+  | "requested"
+  | "confirmed"
+  | "waitlisted"
+  | "offered"
+  | "cancelled"
+  | "late_cancelled"
+  | "declined";
 
 export interface RsvpView {
   readonly id: string;
@@ -40,6 +46,17 @@ export async function cancelRsvp(
 ): Promise<RsvpView> {
   const res = await apiFetch<{ rsvp: RsvpView }>(path(eventId), {
     method: "DELETE",
+    idempotencyKey: key,
+  });
+  return res.rsvp;
+}
+
+export async function declineRsvp(
+  eventId: string,
+  key: string = newIdempotencyKey(),
+): Promise<RsvpView> {
+  const res = await apiFetch<{ rsvp: RsvpView }>(`${path(eventId)}/decline`, {
+    method: "POST",
     idempotencyKey: key,
   });
   return res.rsvp;

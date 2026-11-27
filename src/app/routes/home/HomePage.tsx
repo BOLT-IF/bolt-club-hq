@@ -53,7 +53,7 @@ type LoadState =
 const MAX_EVENT_LOOKUPS = 6;
 
 const RSVP_CHIP: Record<
-  Exclude<RsvpStatus, "cancelled" | "late_cancelled">,
+  Exclude<RsvpStatus, "cancelled" | "late_cancelled" | "declined">,
   { readonly tone: StatusTone; readonly label: string }
 > = {
   confirmed: { tone: "success", label: "Confirmed" },
@@ -106,9 +106,14 @@ async function loadEventsSection(): Promise<{
   for (const [i, event] of upcoming.entries()) {
     const res = rsvpResults[i];
     const rsvp = res && res.status === "fulfilled" ? res.value : null;
-    if (rsvp && rsvp.status !== "cancelled" && rsvp.status !== "late_cancelled") {
+    if (
+      rsvp &&
+      rsvp.status !== "cancelled" &&
+      rsvp.status !== "late_cancelled" &&
+      rsvp.status !== "declined"
+    ) {
       rsvps.push({ event, rsvp });
-    } else if (event.status === "scheduled") {
+    } else if (event.status === "scheduled" && rsvp?.status !== "declined") {
       unanswered.push(event);
     }
   }
@@ -363,7 +368,10 @@ export function HomePage() {
               <ul className="bcq-home__list">
                 {data.rsvps.map(({ event, rsvp }) => {
                   const chip =
-                    rsvp && rsvp.status !== "cancelled" && rsvp.status !== "late_cancelled"
+                    rsvp &&
+                    rsvp.status !== "cancelled" &&
+                    rsvp.status !== "late_cancelled" &&
+                    rsvp.status !== "declined"
                       ? RSVP_CHIP[rsvp.status]
                       : null;
                   return (

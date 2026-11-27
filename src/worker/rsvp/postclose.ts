@@ -35,7 +35,8 @@ const STATUS_PATH = "/events/:id/rsvp/postclose";
 const DEFAULT_CUTOFF_MIN = 180;
 
 const ACTIVE_STATUSES = ["requested", "confirmed", "waitlisted", "offered"] as const;
-const isActive = (status: RsvpStatus) => status !== "cancelled" && status !== "late_cancelled";
+const isActive = (status: RsvpStatus) =>
+  status !== "cancelled" && status !== "late_cancelled" && status !== "declined";
 
 const actorId = (c: Context<AppEnv>) => requireActor(c).id;
 

@@ -33,7 +33,8 @@ export function isRsvpOpen(e: EventRow, now: Date): boolean {
   return e.status === "scheduled" && e.rsvpCloseAt > now && e.endsAt > now;
 }
 
-const isActive = (status: RsvpStatus) => status !== "cancelled" && status !== "late_cancelled";
+const isActive = (status: RsvpStatus) =>
+  status !== "cancelled" && status !== "late_cancelled" && status !== "declined";
 
 function toView(row: RsvpRow, guests: readonly GuestRow[]): RsvpView {
   return {
@@ -80,7 +81,7 @@ interface ChangeEvent {
   row: RsvpRow;
   previousStatus: RsvpStatus | null;
   guests: number;
-  reason: "rsvp" | "cancel" | "promoted" | "member_exit";
+  reason: "rsvp" | "cancel" | "decline" | "promoted" | "member_exit";
 }
 
 async function emit(tx: Tx, clock: Clock, change: ChangeEvent): Promise<void> {
@@ -331,6 +332,75 @@ export async function cancelRsvp(
     if (!row) return { ok: false, error: "not_found" } as const;
     const result = isActive(row.status) ? await cancelLocked(tx, clock, e, row, "cancel") : row;
     return { ok: true, rsvp: toView(result, []) } as const;
+  });
+}
+
+/**
+ * POST /events/:id/rsvp/decline before close: marks the member as explicitly not going (`declined`),
+ * suppressing `event_unrsvped` reminders. If they previously had an active RSVP, cancels any guests
+ * and promotes from the waitlist in instant mode. Already declined is a no-op.
+ */
+export async function declineRsvp(
+  db: Db,
+  clock: Clock,
+  input: { eventId: string; memberId: string },
+): Promise<RsvpResult> {
+  const now = clock.now();
+  return db.transaction(async (tx) => {
+    const e = await lockEvent(tx, input.eventId);
+    if (!e) return { ok: false, error: "not_found" } as const;
+    if (!isRsvpOpen(e, now)) return { ok: false, error: "rsvp_closed" } as const;
+
+    const existing = await findRsvp(tx, e.id, input.memberId);
+    if (!existing) {
+      const [created] = await tx
+        .insert(rsvp)
+        .values({
+          id: `rsv_${crypto.randomUUID()}`,
+          eventId: e.id,
+          memberId: input.memberId,
+          status: "declined",
+          tier: rsvpTier(e, false),
+          requestedAt: now,
+          confirmedAt: null,
+          cancelledAt: null,
+        })
+        .returning();
+      if (!created) throw new Error("declineRsvp: insert returned no row");
+      await emit(tx, clock, { row: created, previousStatus: null, guests: 0, reason: "decline" });
+      return { ok: true, rsvp: toView(created, []) } as const;
+    }
+
+    if (existing.status === "declined") {
+      return { ok: true, rsvp: toView(existing, []) } as const;
+    }
+
+    const wasActive = isActive(existing.status);
+    const [declined] = await tx
+      .update(rsvp)
+      .set({
+        status: "declined",
+        confirmedAt: null,
+        cancelledAt: wasActive ? now : existing.cancelledAt,
+      })
+      .where(eq(rsvp.id, existing.id))
+      .returning();
+    if (!declined) throw new Error("declineRsvp: update returned no row");
+
+    if (wasActive) {
+      await tx
+        .update(guest)
+        .set({ status: "cancelled" })
+        .where(and(eq(guest.rsvpId, existing.id), ne(guest.status, "cancelled")));
+      if (e.allocationMode === "instant") await fillInstant(tx, clock, e);
+    }
+    await emit(tx, clock, {
+      row: declined,
+      previousStatus: existing.status,
+      guests: 0,
+      reason: "decline",
+    });
+    return { ok: true, rsvp: toView(declined, []) } as const;
   });
 }
 

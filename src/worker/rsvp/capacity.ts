@@ -22,7 +22,8 @@ import type { EventRow, GuestRow, RsvpRow, RsvpStatus } from "./model";
 const CAPACITY_PATH = "/events/:id/capacity";
 const DEFAULT_CUTOFF_MIN = 180;
 const ACTIVE_STATUSES = ["requested", "confirmed", "waitlisted", "offered"] as const;
-const isActive = (status: RsvpStatus) => status !== "cancelled" && status !== "late_cancelled";
+const isActive = (status: RsvpStatus) =>
+  status !== "cancelled" && status !== "late_cancelled" && status !== "declined";
 
 const actorOf = requireActor;
 

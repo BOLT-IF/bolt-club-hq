@@ -164,7 +164,10 @@ async function countActiveGuests(tx: Tx, rsvpId: string): Promise<number> {
     .select({ n: count() })
     .from(guest)
     .where(
-      and(eq(guest.rsvpId, rsvpId), notInArray(guest.status, ["cancelled", "late_cancelled"])),
+      and(
+        eq(guest.rsvpId, rsvpId),
+        notInArray(guest.status, ["cancelled", "late_cancelled", "declined"]),
+      ),
     );
   return n;
 }
@@ -231,7 +234,12 @@ async function transitionOpenSeriesRsvps(
       });
       changed += 1;
     } else {
-      if (existing.status === "cancelled" || existing.status === "late_cancelled") continue;
+      if (
+        existing.status === "cancelled" ||
+        existing.status === "late_cancelled" ||
+        existing.status === "declined"
+      )
+        continue;
       if (existing.status !== "confirmed" && existing.tier !== 1) continue;
       const [updated] = await tx
         .update(rsvp)

@@ -162,6 +162,30 @@ describe("reminders engine (S6.5a)", () => {
     expect((await run()).sent).toBe(0); // the publish stage goes out once
   });
 
+  it("excludes members who explicitly declined (Not going) from event_unrsvped reminders", async () => {
+    const declined = await makeMember(t.db);
+    const unanswered = await makeMember(t.db);
+    await makeEvent(declined.id, new Date("2027-01-03T17:00:00Z"));
+    await t.db.insert(rsvp).values({
+      id: "r_declined",
+      eventId: "e1",
+      memberId: declined.id,
+      status: "declined",
+      tier: 2,
+      requestedAt: clock.now(),
+    });
+    await t.db.insert(reminderRule).values({
+      id: "r_ev",
+      category: "event_unrsvped",
+      params: { atPublish: true, hoursBeforeClose: null },
+      template: "{name}, coming to {event}?",
+    });
+
+    expect((await run()).sent).toBe(1);
+    const to = (await t.db.select().from(notification)).map((n) => n.memberId);
+    expect(to).toEqual([unanswered.id]);
+  });
+
   it("a muted member gets the inbox entry only", async () => {
     const muted = await makeMember(t.db);
     const loud = await makeMember(t.db);

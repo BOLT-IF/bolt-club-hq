@@ -19,7 +19,8 @@ import type { EventRow, GuestRow, RsvpRow, RsvpStatus, RsvpView } from "./model"
 
 const CLAIM_PATH = "/events/:id/claim";
 const ACTIVE_STATUSES = ["requested", "confirmed", "waitlisted", "offered"] as const;
-const isActive = (status: RsvpStatus) => status !== "cancelled" && status !== "late_cancelled";
+const isActive = (status: RsvpStatus) =>
+  status !== "cancelled" && status !== "late_cancelled" && status !== "declined";
 
 const actorId = (c: Context<AppEnv>) => requireActor(c).id;
 

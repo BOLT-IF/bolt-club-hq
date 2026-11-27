@@ -18,12 +18,14 @@ import {
   DEFAULT_GUEST_NAME,
   MAX_GUEST_NAME,
   cancelRsvp,
+  declineRsvp,
   getRsvp,
   putRsvp,
   type RsvpResult,
 } from "./model";
 
 const PATH = "/events/:id/rsvp";
+const DECLINE_PATH = "/events/:id/rsvp/decline";
 
 /** `{ guests?: string[] }`, nothing else. Blank names become "Guest" (A4). Null when malformed. */
 export function parseGuests(body: unknown): string[] | null {
@@ -55,6 +57,7 @@ function reply(c: Context<AppEnv>, result: RsvpResult) {
 // Scoped to this area's path only: every area is mounted at /api/v1 (DECISIONS W2 contract 2).
 export default new Hono<AppEnv>()
   .use(PATH, contextMiddleware())
+  .use(DECLINE_PATH, contextMiddleware())
   .get(PATH, requireGuard("member"), async (c) => {
     const eventId = c.req.param("id");
     await closeDueEvents(c.var.db, c.var.clock, { targetEventId: eventId });
@@ -87,6 +90,23 @@ export default new Hono<AppEnv>()
     });
     return reply(c, result);
   })
+  .post(
+    DECLINE_PATH,
+    requireGuard("member"),
+    idempotent("POST /api/v1/events/:id/rsvp/decline"),
+    async (c) => {
+      const eventId = c.req.param("id");
+      const [e] = await c.var.db.select().from(event).where(eq(event.id, eventId));
+      if (e && !(await canAccessEvent(c.var.db, requireActor(c), e))) {
+        return c.json({ error: "not_eligible" }, 403);
+      }
+      const result = await declineRsvp(c.var.db, c.var.clock, {
+        eventId,
+        memberId: actorId(c),
+      });
+      return reply(c, result);
+    },
+  )
   .route("/", postcloseRoutes)
   .route("/", claimRoutes)
   .route("/", capacityRoutes)

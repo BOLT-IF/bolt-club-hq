@@ -83,7 +83,14 @@ export async function makeRsvp(
   db: Db | Tx,
   eventId: string,
   memberId: string,
-  status: "requested" | "confirmed" | "waitlisted" | "offered" | "cancelled" | "late_cancelled",
+  status:
+    | "requested"
+    | "confirmed"
+    | "waitlisted"
+    | "offered"
+    | "cancelled"
+    | "late_cancelled"
+    | "declined",
 ): Promise<void> {
   await db.insert(rsvp).values({
     id: nextId("rsvp"),

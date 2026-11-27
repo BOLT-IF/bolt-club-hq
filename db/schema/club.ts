@@ -165,6 +165,7 @@ export const rsvpStatus = pgEnum("rsvp_status", [
   "offered",
   "cancelled",
   "late_cancelled",
+  "declined",
 ]);
 export const attendance = pgEnum("attendance", ["unknown", "attended", "no_show"]);
 

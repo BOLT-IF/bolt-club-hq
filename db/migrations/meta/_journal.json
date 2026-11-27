@@ -36,6 +36,13 @@
       "when": 1795668334239,
       "tag": "0004_club_fees",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1795753791055,
+      "tag": "0005_rsvp_declined",
+      "breakpoints": true
     }
   ]
 }

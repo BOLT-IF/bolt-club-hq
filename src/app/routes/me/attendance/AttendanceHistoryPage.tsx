@@ -64,6 +64,9 @@ function statusBadge(item: MemberAttendanceItem): { tone: StatusTone; text: stri
   if (r.status === "cancelled") {
     return { tone: "neutral", text: "Cancelled" };
   }
+  if (r.status === "declined") {
+    return { tone: "neutral", text: "Not going" };
+  }
   if (r.status === "waitlisted") return { tone: "info", text: "Waitlisted" };
   if (r.status === "offered") return { tone: "info", text: "Spot offered" };
   return { tone: "neutral", text: "Requested" };

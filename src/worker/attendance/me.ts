@@ -108,6 +108,9 @@ function explainEventWhy(input: {
       ? "Cancelled within free-cancel window — charge reversed."
       : "Cancelled in time — no charge.";
   }
+  if (r.status === "declined") {
+    return "Not going — no charge.";
+  }
   return `Not confirmed (${r.status}) — no charge.`;
 }
 

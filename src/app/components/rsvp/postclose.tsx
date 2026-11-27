@@ -21,6 +21,7 @@ const LABEL: Record<RsvpStatus, string> = {
   offered: "Spot offered",
   cancelled: "Cancelled",
   late_cancelled: "Late cancelled",
+  declined: "Not going",
 };
 
 const TONE: Record<RsvpStatus, StatusTone> = {
@@ -30,6 +31,7 @@ const TONE: Record<RsvpStatus, StatusTone> = {
   offered: "info",
   cancelled: "neutral",
   late_cancelled: "neutral",
+  declined: "neutral",
 };
 
 const ERRORS: Record<string, string> = {
@@ -42,7 +44,10 @@ const ERRORS: Record<string, string> = {
 };
 
 const isActive = (r: RsvpView | null): r is RsvpView =>
-  r !== null && r.status !== "cancelled" && r.status !== "late_cancelled";
+  r !== null &&
+  r.status !== "cancelled" &&
+  r.status !== "late_cancelled" &&
+  r.status !== "declined";
 
 function isClosedAndEditable(e: EventDetail): boolean {
   if (e.readOnly || e.status === "cancelled" || e.status === "completed") return false;

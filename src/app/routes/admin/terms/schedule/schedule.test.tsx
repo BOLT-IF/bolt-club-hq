@@ -126,12 +126,12 @@ describe("SchedulePage", () => {
   it("lists occurrences in Stockholm time with their state", async () => {
     stub({ "GET /series/s1/occurrences": listing() });
     renderPage();
-    expect(await screen.findByRole("heading", { name: /Sunday XD/ })).toBeTruthy();
+    expect(await screen.findByRole("heading", { name: /Sunday XD Schedule/ })).toBeTruthy();
     const items = screen.getAllByRole("listitem");
     expect(items).toHaveLength(3);
     expect(within(items[0]!).getByText(/19:00/)).toBeTruthy();
     expect(within(items[0]!).getByText("Scheduled")).toBeTruthy();
-    expect(within(items[1]!).getByText("Not generated")).toBeTruthy();
+    expect(within(items[1]!).getByText("Not Generated")).toBeTruthy();
     expect(within(items[2]!).getByText("Skipped")).toBeTruthy();
   });
 
@@ -141,7 +141,7 @@ describe("SchedulePage", () => {
       "POST /series/s1/generate-events": { created: 1, events: [] },
     });
     renderPage();
-    fireEvent.click(await screen.findByRole("button", { name: "Generate events" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Generate Events" }));
     await waitFor(() => {
       expect(sent("POST", "/series/s1/generate-events")).toHaveLength(1);
     });
@@ -151,14 +151,14 @@ describe("SchedulePage", () => {
     expect(await screen.findByText(/1 event created/i)).toBeTruthy();
   });
 
-  it("saves skip-dates from the checkboxes", async () => {
+  it("saves skip-dates from the switches", async () => {
     stub({
       "GET /series/s1/occurrences": listing(),
       "PUT /series/s1/skip-dates": { skipDates: ["2027-03-28", "2027-04-04"] },
     });
     renderPage();
-    fireEvent.click(await screen.findByRole("checkbox", { name: /Skip .*28/ }));
-    fireEvent.click(screen.getByRole("button", { name: "Save skip-dates" }));
+    fireEvent.click(await screen.findByRole("switch", { name: /Skip .*28/ }));
+    fireEvent.click(screen.getByRole("button", { name: "Save Skip-Dates" }));
     await waitFor(() => {
       expect(sent("PUT", "/series/s1/skip-dates")).toHaveLength(1);
     });
@@ -167,7 +167,7 @@ describe("SchedulePage", () => {
     });
   });
 
-  it("explains the lock and only saves locked skip-dates after an explicit override", async () => {
+  it("hides Save Skip-Dates while locked and unmodified, and overrides via confirmation sheet", async () => {
     stub({
       "GET /series/s1/occurrences": listing({ series: { skipDatesLocked: true } }),
       "PUT /series/s1/skip-dates": [
@@ -177,10 +177,13 @@ describe("SchedulePage", () => {
     });
     renderPage();
     expect(await screen.findByText(/locked because passes are on sale/i)).toBeTruthy();
-    fireEvent.click(screen.getByRole("checkbox", { name: /Skip .*28/ }));
-    fireEvent.click(screen.getByRole("button", { name: "Save skip-dates" }));
-    const alert = await screen.findByRole("alert");
-    fireEvent.click(within(alert).getByRole("button", { name: "Save anyway" }));
+    expect(screen.queryByRole("button", { name: "Save Skip-Dates" })).toBeNull();
+
+    fireEvent.click(screen.getByRole("switch", { name: /Skip .*28/ }));
+    fireEvent.click(screen.getByRole("button", { name: "Save Skip-Dates" }));
+
+    const confirm = await screen.findByRole("dialog", { name: "Override Locked Skip-Dates?" });
+    fireEvent.click(within(confirm).getByRole("button", { name: "Save Anyway" }));
     await waitFor(() => {
       expect(sent("PUT", "/series/s1/skip-dates")).toHaveLength(2);
     });
@@ -197,14 +200,14 @@ describe("SchedulePage", () => {
     });
     renderPage();
     fireEvent.click(await screen.findByRole("button", { name: /Edit .*21/ }));
-    const dialog = screen.getByRole("dialog");
+    const dialog = screen.getByRole("dialog", { name: "Edit Occurrence" });
     fireEvent.change(within(dialog).getByLabelText("Capacity"), { target: { value: "4" } });
     fireEvent.click(within(dialog).getByRole("button", { name: "Save" }));
 
-    const alert = await within(dialog).findByRole("alert");
-    expect(alert.textContent).toMatch(/4.*5 passes/);
+    const confirm = await screen.findByRole("dialog", { name: "Override Pass Cap?" });
+    expect(confirm.textContent).toMatch(/4.*5 passes/);
     expect(sent("PATCH", "/series/s1/occurrences/e1")[0]!.body).toEqual({ capacity: 4 });
-    fireEvent.click(within(alert).getByRole("button", { name: "Save anyway" }));
+    fireEvent.click(within(confirm).getByRole("button", { name: "Save Anyway" }));
     await waitFor(() => {
       expect(sent("PATCH", "/series/s1/occurrences/e1")).toHaveLength(2);
     });

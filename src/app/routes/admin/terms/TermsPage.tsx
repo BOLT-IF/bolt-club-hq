@@ -1,4 +1,4 @@
-import { useState, type SyntheticEvent } from "react";
+import { useRef, useState } from "react";
 
 import { apiFetch, newIdempotencyKey } from "../../../api/client";
 import {
@@ -24,9 +24,12 @@ import { cx } from "../../../lib/cx";
 import { navigate } from "../../../lib/navigate";
 import {
   AreaGate,
+  CalendarIcon,
   Loaded,
+  PlusIcon,
   SelectField,
   errorMessage,
+  formatDateRange,
   toWhole,
   useLoad,
   type TermRow,
@@ -34,51 +37,12 @@ import {
 } from "./shared";
 import "./terms.css";
 
-const MONTHS = [
-  "Jan",
-  "Feb",
-  "Mar",
-  "Apr",
-  "May",
-  "Jun",
-  "Jul",
-  "Aug",
-  "Sep",
-  "Oct",
-  "Nov",
-  "Dec",
-] as const;
-
 const CARD_STATUS_LABEL: Record<TermStatus, string> = {
   draft: "Draft",
   open_for_passes: "Passes Open",
   active: "Active",
   closed: "Closed",
 };
-
-function parseIsoDate(iso: string): { year: number; month: number; day: number } | null {
-  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
-  if (!match) return null;
-  const year = Number(match[1]);
-  const month = Number(match[2]);
-  const day = Number(match[3]);
-  if (month < 1 || month > 12 || day < 1 || day > 31) return null;
-  return { year, month, day };
-}
-
-/** Human-readable date range (e.g., "Jan 17 – May 16, 2027"). Omits first year if same year. */
-function formatDateRange(startsOn: string, endsOn: string): string {
-  const s = parseIsoDate(startsOn);
-  const e = parseIsoDate(endsOn);
-  if (!s || !e) return `${startsOn} – ${endsOn}`;
-  const sMonth = MONTHS[s.month - 1];
-  const eMonth = MONTHS[e.month - 1];
-  if (!sMonth || !eMonth) return `${startsOn} – ${endsOn}`;
-  if (s.year === e.year) {
-    return `${sMonth} ${String(s.day)} – ${eMonth} ${String(e.day)}, ${String(e.year)}`;
-  }
-  return `${sMonth} ${String(s.day)}, ${String(s.year)} – ${eMonth} ${String(e.day)}, ${String(e.year)}`;
-}
 
 /** Concise second-line term metadata: omits season if already in title, Title Case Series, no orphan middot. */
 function formatTermMeta(t: TermRow): string {
@@ -102,65 +66,6 @@ function formatTermMeta(t: TermRow): string {
   return parts.join(" · ");
 }
 
-function PlusIcon() {
-  return (
-    <svg
-      width="16"
-      height="16"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2.25"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <line x1="12" y1="5" x2="12" y2="19" />
-      <line x1="5" y1="12" x2="19" y2="12" />
-    </svg>
-  );
-}
-
-function CalendarIcon({ size = 15 }: { readonly size?: number }) {
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <rect x="3" y="4" width="18" height="18" rx="2" />
-      <line x1="16" y1="2" x2="16" y2="6" />
-      <line x1="8" y1="2" x2="8" y2="6" />
-      <line x1="3" y1="10" x2="21" y2="10" />
-    </svg>
-  );
-}
-
-function CopyIcon() {
-  return (
-    <svg
-      width="18"
-      height="18"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <rect x="9" y="9" width="13" height="13" rx="2" />
-      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-    </svg>
-  );
-}
-
 function DateInputField({
   label,
   value,
@@ -173,14 +78,14 @@ function DateInputField({
   readonly required?: boolean;
 }) {
   return (
-    <label className="bcq-field">
-      <span className="bcq-field__label">{label}</span>
+    <label className="bcq-terms-field">
+      <span className="bcq-terms-field__label">{label}</span>
       <span className="bcq-date-wrap">
         <span className="bcq-date-wrap__icon" aria-hidden="true">
           <CalendarIcon size={16} />
         </span>
         <input
-          className={cx("bcq-input bcq-date-input", !value && "is-empty")}
+          className={cx("bcq-terms-input bcq-date-input", !value && "is-empty")}
           type="date"
           value={value}
           required={required}
@@ -219,10 +124,10 @@ function DateRangeFields({
   const parsedYear = toWhole(clubYear);
   return (
     <>
-      <label className="bcq-field">
-        <span className="bcq-field__label">Name</span>
+      <label className="bcq-terms-field">
+        <span className="bcq-terms-field__label">Name</span>
         <input
-          className="bcq-input"
+          className="bcq-terms-input"
           type="text"
           placeholder="e.g. Fall 2027"
           value={name}
@@ -246,11 +151,14 @@ function DateRangeFields({
             { value: "spring", label: "Spring" },
           ]}
         />
-        <label className="bcq-field">
-          <span className="bcq-field__label">Membership Year</span>
+        <label className="bcq-terms-field">
+          <span className="bcq-terms-field__label">Membership Year</span>
           <span className="bcq-input-affix">
             <input
-              className={cx("bcq-input", parsedYear !== null && "bcq-input--has-affix")}
+              className={cx(
+                "bcq-terms-input bcq-terms-input--tabular",
+                parsedYear !== null && "bcq-input--has-affix",
+              )}
               type="number"
               inputMode="numeric"
               min={0}
@@ -291,6 +199,25 @@ function buildTermPeriodBody(season: string, clubYear: string) {
   };
 }
 
+function CopyIcon() {
+  return (
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <rect x="9" y="9" width="13" height="13" rx="2" />
+      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+    </svg>
+  );
+}
+
 function NewTermSheet({
   open,
   onClose,
@@ -301,6 +228,7 @@ function NewTermSheet({
   readonly onCreated: () => void;
 }) {
   const toast = useToast();
+  const formRef = useRef<HTMLFormElement>(null);
   const [name, setName] = useState("");
   const [startsOn, setStartsOn] = useState("");
   const [endsOn, setEndsOn] = useState("");
@@ -317,8 +245,8 @@ function NewTermSheet({
     }
   }
 
-  async function submit(event: SyntheticEvent) {
-    event.preventDefault();
+  async function runCreate() {
+    if (formRef.current?.reportValidity() === false) return;
     setBusy(true);
     try {
       await apiFetch("/terms", {
@@ -347,8 +275,25 @@ function NewTermSheet({
       onClose={() => {
         if (!busy) onClose();
       }}
+      footer={
+        <div className="bcq-terms-sheet-footer">
+          <Button type="button" disabled={busy} onClick={() => void runCreate()}>
+            Create Term
+          </Button>
+          <Button type="button" variant="tonal" disabled={busy} onClick={onClose}>
+            Cancel
+          </Button>
+        </div>
+      }
     >
-      <form className="bcq-form" onSubmit={(e) => void submit(e)}>
+      <form
+        ref={formRef}
+        className="bcq-form"
+        onSubmit={(e) => {
+          e.preventDefault();
+          void runCreate();
+        }}
+      >
         <DateRangeFields
           name={name}
           starts={startsOn}
@@ -361,15 +306,6 @@ function NewTermSheet({
           onSeason={setSeason}
           onClubYear={setClubYear}
         />
-        <div className="bcq-sheet-actions">
-          <Button type="submit" block disabled={busy}>
-            <PlusIcon />
-            <span>Create Term</span>
-          </Button>
-          <Button type="button" variant="tonal" block disabled={busy} onClick={onClose}>
-            Cancel
-          </Button>
-        </div>
       </form>
     </BottomSheet>
   );
@@ -383,6 +319,7 @@ function CloneSheet({
   readonly onClose: () => void;
 }) {
   const toast = useToast();
+  const formRef = useRef<HTMLFormElement>(null);
   const [name, setName] = useState("");
   const [startsOn, setStartsOn] = useState("");
   const [endsOn, setEndsOn] = useState("");
@@ -401,9 +338,9 @@ function CloneSheet({
     }
   }
 
-  async function submit(event: SyntheticEvent) {
-    event.preventDefault();
+  async function runClone() {
     if (!source) return;
+    if (formRef.current?.reportValidity() === false) return;
     setBusy(true);
     try {
       const period = buildTermPeriodBody(season, clubYear);
@@ -433,8 +370,25 @@ function CloneSheet({
       onClose={() => {
         if (!busy) onClose();
       }}
+      footer={
+        <div className="bcq-terms-sheet-footer">
+          <Button type="button" disabled={busy} onClick={() => void runClone()}>
+            Clone Term
+          </Button>
+          <Button type="button" variant="tonal" disabled={busy} onClick={onClose}>
+            Cancel
+          </Button>
+        </div>
+      }
     >
-      <form className="bcq-form" onSubmit={(e) => void submit(e)}>
+      <form
+        ref={formRef}
+        className="bcq-form"
+        onSubmit={(e) => {
+          e.preventDefault();
+          void runClone();
+        }}
+      >
         <p className="bcq-card__meta">
           Copies the series only. No events, passes, captains or skip-dates come along.
         </p>
@@ -450,15 +404,6 @@ function CloneSheet({
           onSeason={setSeason}
           onClubYear={setClubYear}
         />
-        <div className="bcq-sheet-actions">
-          <Button type="submit" block disabled={busy}>
-            <CopyIcon />
-            <span>Clone Term</span>
-          </Button>
-          <Button type="button" variant="tonal" block disabled={busy} onClick={onClose}>
-            Cancel
-          </Button>
-        </div>
       </form>
     </BottomSheet>
   );

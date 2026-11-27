@@ -208,8 +208,12 @@ export function AdminBalances() {
   const load = useCallback((isCancelled: () => boolean = () => false) => {
     Promise.all([
       apiFetch<{ members: BalanceRow[] }>("/admin/balances"),
-      apiFetch<{ passes?: AdminPassRow[] }>("/admin/passes").catch(() => null),
-      apiFetch<{ claims?: unknown[] }>("/admin/payment-claims").catch(() => null),
+      apiFetch<{ passes?: AdminPassRow[] }>("/admin/passes", {
+        redirectOnUnauthorized: false,
+      }).catch(() => null),
+      apiFetch<{ claims?: unknown[] }>("/admin/payment-claims", {
+        redirectOnUnauthorized: false,
+      }).catch(() => null),
     ])
       .then(([balancesData, passesData, claimsData]) => {
         if (!isCancelled()) {

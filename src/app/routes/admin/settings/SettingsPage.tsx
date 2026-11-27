@@ -4,6 +4,7 @@ import { ApiError, apiFetch } from "../../../api/client";
 import { Button } from "../../../components/ui/Button";
 import { ErrorState, Skeleton } from "../../../components/ui/States";
 import { useToast } from "../../../components/ui/Toast";
+import { cx } from "../../../lib/cx";
 import "./settings.css";
 
 /** Shape of GET/PUT /api/v1/admin/settings (src/worker/settings/model.ts). */
@@ -30,19 +31,19 @@ interface Settings {
 type Form = Record<string, string>;
 
 const DEFAULT_FIELDS = [
-  ["capacity", "Default Capacity (Players)"],
-  ["durationMin", "Default Session Length (Minutes)"],
-  ["passPrice", "Default Pass Price (kr)"],
-  ["adhocFee", "Default Drop-In Fee (kr)"],
-  ["maxGuestsDefault", "Default Guests Per Member"],
-  ["rsvpCloseOffsetMin", "RSVP Closes Before Start (Minutes)"],
+  ["capacity", "Default Capacity (Players)", "16"],
+  ["durationMin", "Default Session Length (Minutes)", "90"],
+  ["passPrice", "Default Pass Price (kr)", "1200"],
+  ["adhocFee", "Default Drop-In Fee (kr)", "120"],
+  ["maxGuestsDefault", "Default Guests Per Member", "2"],
+  ["rsvpCloseOffsetMin", "RSVP Closes Before Start (Minutes)", "60"],
 ] as const;
 
 const CODE_FIELDS = [
-  ["pass", "Passes"],
-  ["adhoc", "Drop-In Fees"],
-  ["guest", "Guest Fees"],
-  ["payment", "Payments"],
+  ["pass", "Passes", "3010"],
+  ["adhoc", "Drop-In Fees", "3011"],
+  ["guest", "Guest Fees", "3012"],
+  ["payment", "Payments", "1930"],
 ] as const;
 
 function toForm(s: Settings): Form {
@@ -124,16 +125,20 @@ const formKey = (path: string): string =>
 export default function SettingsPage() {
   const toast = useToast();
   const [form, setForm] = useState<Form | null>(null);
+  const [savedForm, setSavedForm] = useState<Form | null>(null);
   const [status, setStatus] = useState<"loading" | "ready" | "forbidden" | "error">("loading");
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
+  const [loadKey, setLoadKey] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
     apiFetch<Settings>("/admin/settings")
       .then((s) => {
         if (cancelled) return;
-        setForm(toForm(s));
+        const initial = toForm(s);
+        setForm(initial);
+        setSavedForm(initial);
         setStatus("ready");
       })
       .catch((e: unknown) => {
@@ -143,13 +148,13 @@ export default function SettingsPage() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [loadKey]);
 
   if (status === "loading") return <Skeleton lines={6} label="Loading settings" />;
   if (status === "forbidden") {
     return (
       <section className="bcq-state bcq-state--empty">
-        <h1 className="bcq-state__title">Admins only</h1>
+        <h1 className="bcq-state__title">Admins Only</h1>
         <p className="bcq-state__body">You need admin access to see this page.</p>
       </section>
     );
@@ -158,7 +163,8 @@ export default function SettingsPage() {
     return (
       <ErrorState
         onRetry={() => {
-          window.location.reload();
+          setStatus("loading");
+          setLoadKey((k) => k + 1);
         }}
       >
         Settings could not be loaded.
@@ -180,7 +186,9 @@ export default function SettingsPage() {
         method: "PUT",
         body: toBody(form),
       });
-      setForm(toForm(saved));
+      const updated = toForm(saved);
+      setForm(updated);
+      setSavedForm(updated);
       toast.show("Settings saved", "success");
     } catch (e: unknown) {
       const fields =
@@ -198,6 +206,8 @@ export default function SettingsPage() {
     }
   }
 
+  const isDirty = savedForm !== null && JSON.stringify(form) !== JSON.stringify(savedForm);
+
   const field = (
     key: string,
     label: string,
@@ -206,6 +216,8 @@ export default function SettingsPage() {
       inputMode?: "numeric" | "text" | "url";
       hint?: string;
       placeholder?: string;
+      mono?: boolean;
+      tabular?: boolean;
     } = {},
   ) => {
     const id = `settings-${key}`;
@@ -213,8 +225,10 @@ export default function SettingsPage() {
     const describedBy = [error ? `${id}-error` : null, props.hint ? `${id}-hint` : null]
       .filter(Boolean)
       .join(" ");
+    const isTime = props.type === "time";
+
     return (
-      <div className="bcq-field" key={key}>
+      <div className="bcq-settings-field" key={key}>
         <label htmlFor={id}>{label}</label>
         <input
           id={id}
@@ -222,6 +236,11 @@ export default function SettingsPage() {
           type={props.type ?? "text"}
           inputMode={props.inputMode}
           placeholder={props.placeholder}
+          className={cx(
+            props.mono && "bcq-settings-input--mono",
+            (props.tabular || isTime || props.inputMode === "numeric") &&
+              "bcq-settings-input--tabular",
+          )}
           value={form[key] ?? ""}
           aria-invalid={error ? "true" : undefined}
           aria-describedby={describedBy || undefined}
@@ -231,12 +250,12 @@ export default function SettingsPage() {
           }}
         />
         {props.hint ? (
-          <p id={`${id}-hint`} className="bcq-field__hint">
+          <p id={`${id}-hint`} className="bcq-settings-field__hint">
             {props.hint}
           </p>
         ) : null}
         {error ? (
-          <p id={`${id}-error`} className="bcq-field__error">
+          <p id={`${id}-error`} className="bcq-settings-field__error">
             {error}
           </p>
         ) : null}
@@ -245,101 +264,161 @@ export default function SettingsPage() {
   };
 
   return (
-    <section className="bcq-page" aria-labelledby="settings-title">
-      <h1 id="settings-title" className="bcq-page__title">
-        Club Settings
-      </h1>
+    <section className="bcq-page bcq-settings-page" aria-labelledby="settings-title">
+      <div className="bcq-settings-head">
+        <h1 id="settings-title" className="bcq-page__title">
+          Club Settings
+        </h1>
+        {isDirty ? <span className="bcq-settings-dirty-pill">Unsaved changes</span> : null}
+      </div>
+
       <form className="bcq-settings" onSubmit={(e) => void onSubmit(e)} noValidate>
-        <fieldset>
-          <legend>Club</legend>
-          {field("clubName", "Club Name")}
-          {field("rosterAppUrl", "Roster App URL", {
-            type: "url",
-            inputMode: "url",
-            placeholder: "https://",
-            hint: "Leave empty to hide the roster button.",
-          })}
-        </fieldset>
-
-        <fieldset>
-          <legend>Bank Details</legend>
-          {errors.bank ? <p className="bcq-field__error">{errors.bank}</p> : null}
-          {field("accountHolder", "Account Holder")}
-          {field("bankName", "Bank Name", { placeholder: "Swedbank" })}
-          {field("accountNumber", "Account Number", {
-            placeholder: "8327-9 123 456 789-0",
-            hint: "Clearing and account number for direct bank transfers.",
-          })}
-          {field("bankgiro", "Bankgiro (Optional)", {
-            inputMode: "numeric",
-            placeholder: "5402-9681",
-          })}
-          {field("iban", "IBAN (Optional)", { placeholder: "SE45 5000 0000 0583 9825 7466" })}
-          <div className="bcq-field">
-            <label htmlFor="settings-paymentInstructions">Payment Instructions</label>
-            <textarea
-              id="settings-paymentInstructions"
-              rows={3}
-              value={form.paymentInstructions ?? ""}
-              aria-invalid={errors.paymentInstructions ? "true" : undefined}
-              onChange={(e) => {
-                set("paymentInstructions", e.target.value);
-              }}
-            />
-            {errors.paymentInstructions ? (
-              <p className="bcq-field__error">{errors.paymentInstructions}</p>
-            ) : null}
-          </div>
-        </fieldset>
-
-        <fieldset>
-          <legend>Rules</legend>
-          {field("passUnpaidRevokeDays", "Days Before Unpaid Pass Revocation", {
-            inputMode: "numeric",
-          })}
-          {field("autoPromoteCutoffMin", "Stop Waitlist Auto-Promotion (Minutes Before Start)", {
-            inputMode: "numeric",
-          })}
-          <div className="bcq-form-grid-2">
-            {field("quietStart", "Quiet Hours Start", {
-              type: "time",
-              hint: "Push messages wait until quiet hours end.",
+        <section className="bcq-settings-section" aria-labelledby="settings-sec-club">
+          <h2 id="settings-sec-club" className="bcq-settings-section__label">
+            Club
+          </h2>
+          <div className="bcq-card bcq-settings-card">
+            {field("clubName", "Club Name", { placeholder: "BOLT IF" })}
+            {field("rosterAppUrl", "Roster App URL", {
+              type: "url",
+              inputMode: "url",
+              placeholder: "https://",
+              hint: "Leave empty to hide the roster button",
             })}
-            {field("quietEnd", "Quiet Hours End", { type: "time" })}
           </div>
-        </fieldset>
+        </section>
 
-        <fieldset>
-          <legend>Club Fees</legend>
-          <div className="bcq-form-grid-2">
-            {field("clubFeeFallSek", "Fall Club Fee (kr)", {
+        <section className="bcq-settings-section" aria-labelledby="settings-sec-bank">
+          <h2 id="settings-sec-bank" className="bcq-settings-section__label">
+            Bank Details
+          </h2>
+          <div className="bcq-card bcq-settings-card">
+            {errors.bank ? <p className="bcq-settings-field__error">{errors.bank}</p> : null}
+            {field("accountHolder", "Account Holder", { placeholder: "BOLT IF" })}
+            {field("bankName", "Bank Name", { placeholder: "Swedbank" })}
+            {field("accountNumber", "Account Number", {
+              placeholder: "8327-9 123 456 789-0",
+              mono: true,
+              tabular: true,
+              hint: "Clearing and account number for direct bank transfers",
+            })}
+            {field("bankgiro", "Bankgiro (Optional)", {
               inputMode: "numeric",
-              hint: "Charged once per membership year (Fall–Spring).",
+              placeholder: "5402-9681",
+              mono: true,
+              tabular: true,
             })}
-            {field("clubFeeSpringSek", "Spring Joining Fee (kr)", {
+            {field("iban", "IBAN (Optional)", {
+              placeholder: "SE45 5000 0000 0583 9825 7466",
+              mono: true,
+              tabular: true,
+            })}
+            <div className="bcq-settings-field">
+              <label htmlFor="settings-paymentInstructions">Payment Instructions</label>
+              <textarea
+                id="settings-paymentInstructions"
+                rows={3}
+                placeholder="Include your payment reference or full name in the transfer message"
+                value={form.paymentInstructions ?? ""}
+                aria-invalid={errors.paymentInstructions ? "true" : undefined}
+                onChange={(e) => {
+                  set("paymentInstructions", e.target.value);
+                }}
+              />
+              {errors.paymentInstructions ? (
+                <p className="bcq-settings-field__error">{errors.paymentInstructions}</p>
+              ) : null}
+            </div>
+          </div>
+        </section>
+
+        <section className="bcq-settings-section" aria-labelledby="settings-sec-rules">
+          <h2 id="settings-sec-rules" className="bcq-settings-section__label">
+            Rules
+          </h2>
+          <div className="bcq-card bcq-settings-card">
+            {field("passUnpaidRevokeDays", "Days Before Unpaid Pass Revocation", {
               inputMode: "numeric",
-              hint: "Only for Spring joiners who did not pay in Fall.",
+              placeholder: "21",
             })}
+            {field("autoPromoteCutoffMin", "Stop Waitlist Auto-Promotion (Minutes Before Start)", {
+              inputMode: "numeric",
+              placeholder: "180",
+            })}
+            <div className="bcq-settings-grid-group">
+              <div className="bcq-settings-grid-2">
+                {field("quietStart", "Quiet Hours Start", { type: "time" })}
+                {field("quietEnd", "Quiet Hours End", { type: "time" })}
+              </div>
+              <p className="bcq-settings-field__hint">Push messages wait until quiet hours end</p>
+            </div>
           </div>
-        </fieldset>
+        </section>
 
-        <fieldset>
-          <legend>Defaults For New Series</legend>
-          {DEFAULT_FIELDS.map(([key, label]) =>
-            field(`default.${key}`, label, { inputMode: "numeric" }),
-          )}
-        </fieldset>
-
-        <fieldset>
-          <legend>Accounting Codes</legend>
-          <div className="bcq-form-grid-2">
-            {CODE_FIELDS.map(([key, label]) => field(`code.${key}`, label))}
+        <section className="bcq-settings-section" aria-labelledby="settings-sec-fees">
+          <h2 id="settings-sec-fees" className="bcq-settings-section__label">
+            Club Fees
+          </h2>
+          <div className="bcq-card bcq-settings-card">
+            <div className="bcq-settings-grid-group">
+              <div className="bcq-settings-grid-2">
+                {field("clubFeeFallSek", "Fall Club Fee (kr)", {
+                  inputMode: "numeric",
+                  placeholder: "160",
+                })}
+                {field("clubFeeSpringSek", "Spring Joining Fee (kr)", {
+                  inputMode: "numeric",
+                  placeholder: "85",
+                })}
+              </div>
+              <p className="bcq-settings-field__hint">
+                Fall fee is charged once per membership year (Fall–Spring); Spring fee applies only
+                to Spring joiners who did not pay in Fall.
+              </p>
+            </div>
           </div>
-        </fieldset>
+        </section>
 
-        <Button type="submit" block disabled={saving}>
-          {saving ? "Saving…" : "Save Settings"}
-        </Button>
+        <section className="bcq-settings-section" aria-labelledby="settings-sec-defaults">
+          <h2 id="settings-sec-defaults" className="bcq-settings-section__label">
+            Defaults For New Series
+          </h2>
+          <div className="bcq-card bcq-settings-card">
+            <div className="bcq-settings-grid-2">
+              {DEFAULT_FIELDS.map(([key, label, placeholder]) =>
+                field(`default.${key}`, label, {
+                  inputMode: "numeric",
+                  placeholder,
+                  tabular: true,
+                }),
+              )}
+            </div>
+          </div>
+        </section>
+
+        <section className="bcq-settings-section" aria-labelledby="settings-sec-codes">
+          <h2 id="settings-sec-codes" className="bcq-settings-section__label">
+            Accounting Codes
+          </h2>
+          <div className="bcq-card bcq-settings-card">
+            <div className="bcq-settings-grid-2">
+              {CODE_FIELDS.map(([key, label, placeholder]) =>
+                field(`code.${key}`, label, {
+                  inputMode: "numeric",
+                  placeholder,
+                  mono: true,
+                  tabular: true,
+                }),
+              )}
+            </div>
+          </div>
+        </section>
+
+        <div className="bcq-settings-actions">
+          <Button type="submit" block disabled={saving}>
+            {saving ? "Saving…" : "Save Settings"}
+          </Button>
+        </div>
       </form>
     </section>
   );

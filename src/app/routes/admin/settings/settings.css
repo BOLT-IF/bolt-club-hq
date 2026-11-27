@@ -1,31 +1,77 @@
-/* Club settings form: mobile-first, one column, 48px controls. */
-.bcq-settings {
+/* Club settings form: mobile-first cards, 44px+ controls, zero fieldset border clipping. */
+.bcq-settings-page {
   display: grid;
   gap: 1.25rem;
+  padding-bottom: calc(6rem + env(safe-area-inset-bottom, 0px));
+}
+.bcq-settings-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+.bcq-settings-head .bcq-page__title {
+  margin: 0;
+}
+.bcq-settings-dirty-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.625rem;
+  border-radius: 999px;
+  background: #fef3c7;
+  color: #92400e;
+  font: 600 0.75rem/1.2 var(--bcq-font);
+}
+.bcq-settings {
+  display: grid;
+  gap: 1.5rem;
   max-width: 560px;
 }
-.bcq-settings fieldset {
+.bcq-settings-section {
+  display: grid;
+  gap: 0.5rem;
+}
+.bcq-settings-section__label {
+  margin: 0;
+  padding: 0 0.25rem;
+  font: 600 0.75rem/1.2 var(--bcq-font);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--bcq-muted);
+}
+.bcq-settings-card {
   display: grid;
   gap: 1rem;
-  margin: 0;
-  padding: 1rem;
-  border: 1px solid var(--bcq-line);
-  border-radius: var(--bcq-radius);
-  background: var(--bcq-card);
 }
-.bcq-settings legend {
-  padding: 0 0.5rem;
-  font: 600 1rem/1.2 var(--bcq-font);
-}
-.bcq-field {
+.bcq-settings-grid-group {
   display: grid;
-  gap: 0.25rem;
+  gap: 0.45rem;
 }
-.bcq-field label {
-  font-weight: 600;
+.bcq-settings-grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: end;
+  gap: 0.75rem;
 }
-.bcq-field input,
-.bcq-field textarea {
+.bcq-settings-grid-2 > * {
+  min-width: 0;
+}
+@media (max-width: 359px) {
+  .bcq-settings-grid-2 {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.bcq-settings-field {
+  display: grid;
+  gap: 0.3rem;
+}
+.bcq-settings-field label {
+  font: 600 0.875rem/1.3 var(--bcq-font);
+  color: var(--bcq-ink);
+}
+.bcq-settings-field input,
+.bcq-settings-field textarea {
   box-sizing: border-box;
   width: 100%;
   min-height: var(--bcq-touch);
@@ -37,18 +83,32 @@
   font: 400 1rem/1.4 var(--bcq-font);
   transition: border-color 140ms var(--bcq-ease);
 }
-.bcq-field input[aria-invalid="true"],
-.bcq-field textarea[aria-invalid="true"] {
+.bcq-settings-field input::placeholder,
+.bcq-settings-field textarea::placeholder {
+  color: #94a3b8;
+}
+.bcq-settings-input--tabular {
+  font-variant-numeric: tabular-nums;
+}
+.bcq-settings-input--mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace !important;
+}
+.bcq-settings-field input[aria-invalid="true"],
+.bcq-settings-field textarea[aria-invalid="true"] {
   border-color: var(--bcq-danger);
 }
-.bcq-field__hint {
+.bcq-settings-field__hint {
   margin: 0;
   color: var(--bcq-muted);
-  font-size: 0.875rem;
+  font-size: 0.8125rem;
+  line-height: 1.4;
 }
-.bcq-field__error {
+.bcq-settings-field__error {
   margin: 0;
   color: var(--bcq-danger-ink);
   font-size: 0.875rem;
   font-weight: 600;
+}
+.bcq-settings-actions {
+  padding-top: 0.25rem;
 }

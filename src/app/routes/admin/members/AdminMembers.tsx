@@ -407,7 +407,7 @@ function MemberActionSheet({
             onClick={() => void run(onToggleRole)}
           >
             <ShieldIcon />
-            <span>{member.role === "admin" ? "Remove admin" : "Make admin"}</span>
+            <span>{member.role === "admin" ? "Remove Admin" : "Make Admin"}</span>
           </button>
 
           <button
@@ -417,7 +417,7 @@ function MemberActionSheet({
             onClick={onEditPaymentRef}
           >
             <PencilIcon />
-            <span>Edit payment reference</span>
+            <span>Edit Payment Reference</span>
           </button>
 
           {member.status === "inactive" ? (
@@ -444,7 +444,7 @@ function MemberActionSheet({
                 }}
               >
                 <UserXIcon />
-                <span>Deactivate member</span>
+                <span>Deactivate Member</span>
               </button>
             </>
           ) : null}

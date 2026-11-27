@@ -107,7 +107,7 @@ describe("admin settings page", () => {
     });
     fireEvent.change(screen.getByLabelText("IBAN (optional)"), { target: { value: "" } });
     fireEvent.change(screen.getByLabelText("Bankgiro (optional)"), { target: { value: "" } });
-    fireEvent.click(screen.getByRole("button", { name: "Save settings" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save Settings" }));
 
     expect(await screen.findByText("Settings saved")).toBeTruthy();
     const put = calls.find((call) => call.method === "PUT")!;
@@ -142,7 +142,7 @@ describe("admin settings page", () => {
         : json(200, loaded);
     renderPage();
     await screen.findByLabelText("IBAN (optional)");
-    fireEvent.click(screen.getByRole("button", { name: "Save settings" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save Settings" }));
 
     const iban = await screen.findByLabelText("IBAN (optional)");
     const accountNumber = screen.getByLabelText("Account number");

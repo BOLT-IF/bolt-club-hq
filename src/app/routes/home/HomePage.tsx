@@ -473,12 +473,12 @@ export function HomePage() {
                       <Button
                         variant="secondary"
                         disabled={isBusy}
-                        aria-label={`Not going to ${event.title}`}
+                        aria-label={`Not Going to ${event.title}`}
                         onClick={() => {
                           respond("decline");
                         }}
                       >
-                        Not going
+                        Not Going
                       </Button>
                     </div>
                   </li>

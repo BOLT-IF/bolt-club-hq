@@ -172,7 +172,7 @@ describe("member money screen", () => {
     stubApi(owing);
     renderMoney();
     await screen.findByText("You owe 90 kr");
-    expect(screen.getByRole("link", { name: "Payment claims" }).getAttribute("href")).toBe(
+    expect(screen.getByRole("link", { name: "Payment Claims" }).getAttribute("href")).toBe(
       "/money/claims",
     );
     expect(screen.getByRole("link", { name: "Passes" }).getAttribute("href")).toBe("/money/passes");

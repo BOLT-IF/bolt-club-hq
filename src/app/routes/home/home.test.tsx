@@ -332,7 +332,7 @@ describe("HomePage", () => {
     });
 
     renderHome({ events: true, money: false, inbox: false, polls: false });
-    fireEvent.click(await screen.findByRole("button", { name: "Not going to Thu Mixed Doubles" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Not Going to Thu Mixed Doubles" }));
 
     await waitFor(() => {
       expect(screen.queryByRole("heading", { name: "Unanswered events" })).toBeNull();

@@ -1,12 +1,15 @@
-import { cleanup, render, screen } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { BottomNav } from "./BottomNav";
+import { configureApiClient } from "../api/client";
 import { FeatureFlagsProvider } from "../lib/flags";
+import { AdminIndex } from "./AdminIndex";
+import { BottomNav } from "./BottomNav";
 import { PRIMARY_NAV, adminIndex, moreMenu, visibleNavItems, type NavItem } from "./navigation";
 
 afterEach(() => {
   cleanup();
+  configureApiClient({});
 });
 
 function renderNav(flags: Record<string, boolean>, path = "/") {
@@ -86,5 +89,92 @@ describe("navigation registry", () => {
     const paths = adminIndex.map((item) => item.path);
     expect(new Set(paths).size).toBe(paths.length);
     expect(paths.every((path) => path.startsWith("/admin/"))).toBe(true);
+  });
+
+  it("uses Title Case for all navigation labels", () => {
+    expect(moreMenu.map((m) => m.label)).toEqual([
+      "Profile",
+      "Notifications",
+      "Attendance History",
+      "Privacy",
+      "Install the App",
+      "Admin",
+      "Sign Out",
+    ]);
+    expect(adminIndex.map((a) => a.label)).toEqual([
+      "Members",
+      "Invites & Join Requests",
+      "Terms & Series",
+      "Club Finances",
+      "Reminders",
+      "Broadcast",
+      "Polls",
+      "Settings",
+      "Audit Log",
+    ]);
+  });
+});
+
+describe("AdminIndex grouped hub", () => {
+  it("renders the 4 grouped sections with glanceable counts and badges", async () => {
+    configureApiClient({
+      fetch: vi.fn((input: string) => {
+        const path = input.replace("/api/v1", "");
+        if (path === "/admin/members") {
+          return Promise.resolve(
+            new Response(
+              JSON.stringify({
+                members: [
+                  { id: "m1", status: "active" },
+                  { id: "m2", status: "active" },
+                  { id: "m3", status: "erased" },
+                ],
+              }),
+              { status: 200 },
+            ),
+          );
+        }
+        if (path === "/admin/join-requests") {
+          return Promise.resolve(
+            new Response(JSON.stringify({ requests: [{ id: "r1" }, { id: "r2" }] }), {
+              status: 200,
+            }),
+          );
+        }
+        if (path === "/polls") {
+          return Promise.resolve(
+            new Response(
+              JSON.stringify({
+                polls: [
+                  { id: "p1", closed: false },
+                  { id: "p2", closed: true },
+                ],
+              }),
+              { status: 200 },
+            ),
+          );
+        }
+        return Promise.resolve(new Response("{}", { status: 404 }));
+      }),
+    });
+
+    render(<AdminIndex isAdmin />);
+
+    expect(screen.getByRole("heading", { name: "PEOPLE" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "OPERATIONS" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "COMMUNICATION" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "SYSTEM" })).toBeTruthy();
+
+    expect(screen.getByRole("link", { name: /Club Finances/ })).toBeTruthy();
+    expect(screen.getByRole("link", { name: /Audit Log/ })).toBeTruthy();
+
+    await waitFor(() => {
+      const membersLink = screen.getByRole("link", { name: /Members/ });
+      expect(within(membersLink).getByText("2")).toBeTruthy();
+      const approvalsLink = screen.getByRole("link", { name: /Invites & Join Requests/ });
+      expect(within(approvalsLink).getByText("2")).toBeTruthy();
+      const pollsLink = screen.getByRole("link", { name: /Polls/ });
+      expect(within(pollsLink).getByText("1 Active")).toBeTruthy();
+    });
   });
 });

@@ -183,7 +183,7 @@ export function AdminBalances() {
             navigate("/admin/money/claims");
           }}
         >
-          Payment claims
+          Payment Claims
         </a>
         <Button
           variant="secondary"
@@ -191,7 +191,7 @@ export function AdminBalances() {
             setAssignOpen(true);
           }}
         >
-          Assign pass
+          Assign Pass
         </Button>
         <a
           className="bcq-btn bcq-btn--secondary"
@@ -202,7 +202,7 @@ export function AdminBalances() {
             navigate("/admin/money/club-fees");
           }}
         >
-          Club fees
+          Club Fees
         </a>
       </div>
 

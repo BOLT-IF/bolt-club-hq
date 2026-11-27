@@ -13,7 +13,7 @@ expected load, so a reviewer can see the headroom.
 |---|---|---|---|
 | Requests | 100,000 per day (resets 00:00 UTC) | Well under 1,000 per day | Workers limits |
 | CPU time per HTTP request | 10 ms | Allocation <1 ms, JWT verify ~1 ms (PLAN §11.3) | Workers limits |
-| CPU time per Cron Trigger | 10 ms | Push encryption batched at 10 per run | Workers limits |
+| CPU time per Cron Trigger | 10 ms | Push encryption capped at `PUSH_BATCH_CAP = 20` per run (`push-sender.ts`, provisional vs PLAN's 10; profile in `S0.6`) | Workers limits |
 | Wall-clock duration, HTTP | No limit | n/a | Workers limits |
 | Wall-clock duration, Cron Trigger | 15 minutes | n/a | Workers limits |
 | Subrequests per invocation | 50 | Keep fan-out small | Workers limits |
@@ -22,9 +22,7 @@ expected load, so a reviewer can see the headroom.
 | Static asset files per Worker version | 20,000 | SPA build, far fewer | Workers limits |
 | Static asset file size | 25 MiB | n/a | Workers limits |
 
-**Cron Triggers (Free plan): 5 per account.** We use 2 (`*/10 5-21 * * *` and `0 * * * *`, see
-`docs/DECISIONS.md`, S0.1). The Free plan allows 5, so there is room for one more. The
-Stockholm DST gap is handled in S6.4.
+**Cron Triggers (Free plan): 5 per account.** We use 2 (`*/10 5-22 * * *` and `0 0-4,23 * * *` UTC, covering Stockholm 07–23 year-round across DST; see `wrangler.jsonc` and `src/worker/scheduler/schedule.ts`). The Free plan allows 5, so there is room for 3 more.
 
 ## Workers KV
 
@@ -37,8 +35,8 @@ Stockholm DST gap is handled in S6.4.
 | Value size | 25 MiB | n/a |
 
 KV is also subject to the Workers free plan's daily reset at 00:00 UTC. The 1,000-writes cap is
-the tightest KV limit for us: a burst of event edits could exhaust it within a day. The admin
-health screen (S0.7) should show KV writes used.
+the tightest KV limit for us: a burst of event edits could exhaust it within a day. Watch KV write
+metrics in the Cloudflare dashboard (and `/healthz/ready` for scheduler liveness).
 
 ## R2 (free tier, bucket allowance is shared with paid tiers)
 
@@ -100,12 +98,12 @@ signs up and never returns in a later month does not count. The club has about 4
 the cap is far away. Production sign-in needs our own domain (see `docs/DECISIONS.md`, domain
 deferred).
 
-## GitHub Actions (private repository)
+## GitHub Actions (public repository)
 
-Actions minutes and artifact storage are billed by GitHub. **We could not verify the current
-included-minutes figure from the sandbox**, because the GitHub billing page was unreachable from
-the build machine. Check the Billing page in the org settings before enabling the sharded
-Playwright matrix. The matrix runs 4 shards of about 30 minutes each at most, plus the fast gate.
+`BOLT-IF/bolt-club-hq` is a **public repository**, so standard GitHub-hosted Ubuntu runners are
+free (unlimited minutes for CI, the 4-shard Playwright matrix, and scheduled workflows). If the
+repository is ever made private again, check GitHub Actions included-minutes billing before keeping
+the 4-shard Playwright matrix enabled.
 
 ## Budget alerts and what to do
 

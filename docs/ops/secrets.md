@@ -6,13 +6,11 @@ need exist (`scripts/ci/require-secrets.sh`), so a missing secret never turns CI
 writes `ready=true|false` to `$GITHUB_OUTPUT`; jobs gate on `steps.guard.outputs.ready`, never on
 its exit code (a skip also exits 0).
 
-**Never commit a secret value, and never paste one into an issue, PR or chat.** The repo is
-private, but a leak still means rotating the key.
+**Never commit a secret value, and never paste one into an issue, PR or chat.** The repo is **public**, so any leaked secret must be rotated immediately.
 
-## Status
+## Status (updated 2026-11-27)
 
-Nothing is set yet. Ashok supplies every value below. Until the Cloudflare and Neon accounts
-exist, the deploy, backup, restore-drill and Lighthouse jobs all skip.
+Cloudflare (`Workers Builds`, `KV`, `R2`, `Hyperdrive`) and Neon Postgres are provisioned. Core deployment and runtime secrets (`DATABASE_URL`, `PUBLIC_BASE_URL`, Clerk, VAPID) power production; backup, restore-drill, and Lighthouse jobs remain gated by `require-secrets.sh` until `RESTORE_TARGET_URL`, `BACKUP_ENCRYPTION_KEY`, `BACKUP_BUCKET_TOKEN`, and `LHCI_TARGET_URL` are configured.
 
 ## GitHub Actions secrets
 

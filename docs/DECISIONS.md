@@ -2,6 +2,39 @@
 
 Decisions made after `PLAN.md` (v3) was written. Newest first. Every entry gives the decision, the reason, and what it changes.
 
+## 2026-11-27: Mobile PWA UI/UX design system & full audit (`docs/PWA_UI_Rules.md`, PRs #90–#93)
+
+- **Design system source of truth (`docs/PWA_UI_Rules.md`):** Standardizes BOLT HQ's visual tokens (`#1e293b` navy chrome, `#faf8f5` warm canvas, `#ffffff` cards with `16px` radius, `#f97316` primary CTA with `#0f172a` ink, `#526075` WCAG AA muted ink — darkened from `#64748b` which measured 4.48:1 on `#faf8f5`), Title Case for headings/labels/buttons/chips vs sentence case for body/helper copy, and the 4-tier Apple HIG button hierarchy (`primary`, `tonal` [replacing outlined white text boxes], `destructive-tonal`, and `destructive-solid` reserved exclusively for final confirmation modals).
+- **Composable UI primitives (`src/app/components/ui/`):** Added `GroupedList` (inset grouped lists with `32x32px` tinted icon containers and chevrons), `ActionSheet` (compound Bottom Action Sheet with drag handle, tonal actions, divider, destructive-tonal trigger, and cancel), `Card` / `FormRow` / `DisclosureSection` (collapsible `Past … (N)` drawers), `CopyButton` (2s emerald `✓ Copied` feedback), pill toggle switches (`.bcq-switch`), tactile filter pills (`.bcq-filter-pills`), and compact left-aligned `EmptyState` / `CompactEmptyState`.
+- **Mobile ergonomics (`ui.css`, `shell.css`):** Global `touch-action: manipulation`, `-webkit-tap-highlight-color: transparent`, `font-size: max(1rem, 16px)` on inputs/selects/textareas (prevents iOS Safari auto-zoom), `>= 44×44px` tap targets across all 35 routes, `scroll-padding-top`/`scroll-padding-bottom`, `overscroll-behavior: contain` on modal sheets/backdrops, safe-area tabbar clearance, and automatic single-column stacking for paired date/time fields below `400px`.
+- **Screens redesigned:** `AdminMembers` (`⋯` overflow + Bottom Action Sheet, #90), `AdminIndex` (4 grouped inset sections, #91), `AdminApprovals` (compact empty state, active/past invite links, #92), `MoreSheet`, `AdminReminders` (`⋯` + ActionSheet → ConfirmDialog), `NotificationsSettings` (inset grouped switches), and all remaining member and admin routes (#93).
+
+## 2026-11-26: "Not going" (`declined`) RSVP status & RSVP quick actions (PRs #87–#88)
+
+- **Declined RSVP (`0005_rsvp_declined.sql`, PR #87):** Added `'declined'` to `rsvp_status` enum and `POST /api/v1/events/:id/rsvp/decline` (`Idempotency-Key` required). Members can actively mark themselves **Not going** on open events; `declined` counts as a response so `event_unrsvped` reminders are suppressed for that event, and the member can still switch back to Going (`PUT /events/:id/rsvp`) before RSVP close.
+- **Quick actions in Web Push, Home, and Inbox (PR #88):** `push-sender.ts` attaches `{ action: "going", title: "RSVP" }` and `{ action: "decline", title: "Not going" }` to `new_events` pushes linking to `/events/*`. `src/sw/push.ts` appends `?quickRsvp=going|decline` when tapped; Home (`Unanswered Events`) and Inbox also expose one-tap **RSVP** and **Not Going** buttons.
+
+## 2026-11-26: Annual Fall/Spring club fee system (`0004_club_fees.sql`, PR #86)
+
+- **Supersedes PLAN §2 ("No membership fee"):** Added an annual membership club fee per club year (Fall–Spring): default **160 kr** for Fall (`club_fee_fall_sek`) and **85 kr** for Spring joiners who did not pay in Fall (`club_fee_spring_sek`), configurable in **Admin → Settings**.
+- **Schema & ledger (`0004_club_fees.sql`, `src/worker/ledger/club-fees.ts`):** Added `club_fee` table (`charged | external_fall_paid | exempt`), `ledger_reason = 'club_fee'`, and `term.season` (`fall | spring`) + `term.club_year`.
+- **Admin routes & UI (`/admin/money/club-fees`):** `GET /admin/club-fees`, `POST /admin/club-fees/charge` (batch or selected members; Spring automatically skips Fall payers and already-covered members), `POST /admin/club-fees/mark-external-fall` (track members who paid Fall outside BOLT HQ), and `POST /admin/club-fees/:id/clear`.
+
+## 2026-11-26: Returning-member pass discounts, admin pass assignment, bank fields & claim history (PRs #81, #82, #84, #85)
+
+- **Returning-member discounted pass rate (`0002_series_discount.sql`, PR #82):** Added `series.discounted_pass_price` and `series_discount_eligible (series_id, member_id)` with `PUT /api/v1/series/:id/discount-eligible`. Eligible members automatically receive the prorated discounted rate on `GET /passes/offers` and `POST /passes`.
+- **Admin pass assignment UI (PR #85):** Added `GET /api/v1/admin/passes/offers` and wired `POST /api/v1/admin/passes` into `AdminBalances` and `AdminMemberLedger` so admins can grant/assign a prorated pass directly to a member.
+- **Bank name & account number (PR #84):** Extended `club_settings.bank` (`BankDetails`) with `bankName` and `accountNumber` alongside `accountHolder`, `iban`, and `bankgiro`, surfaced in `/admin/settings` and `/money`.
+- **Decided payment claims history (PR #81):** Extended `GET /api/v1/admin/payment-claims` to return `{ claims, history }` (recent 50 confirmed/rejected claims, newest first), rendered under a collapsible `Past Claims (N)` section in `AdminClaimsPage`.
+
+## 2026-11-25: iOS PWA auth fixes, direct sign-in approval, and `/admin` hub (PRs #77–#80, #89)
+
+- **Google SSO enabled in installed iOS PWA (PR #80):** Flipped `GOOGLE_HIDDEN_IN_INSTALLED_IOS = false` in `src/app/auth/google.ts` so SSO sign-in buttons appear in installed iOS PWAs (still to be re-verified on real hardware against the Clerk production instance in `S0.6`).
+- **Break iOS PWA sign-in redirect loop (PR #89):** Removed `/api/v1/me` from the service worker's runtime API cache allowlist so stale `401`/old-session responses can never loop sign-in in standalone mode.
+- **Direct sign-in approval (PR #78):** Added `POST /api/v1/members/:id/approve` so admins can approve pending members who signed in directly without submitting an invite/event join request.
+- **Admin hub route (PR #79):** Rendered `AdminIndex` at `/admin` and removed the dead `/admin/health` link (health endpoints remain `/healthz` and `/healthz/ready`).
+- **Feature flags enabled (`fe34f58`):** Set `FLAG_EVENTS`, `FLAG_MONEY`, `FLAG_INBOX`, and `FLAG_POLLS` to `"on"` in `wrangler.jsonc` production vars (preview deployments keep them `"off"`).
+
 ## 2026-11-25: One-off events redesign (< 24h instant confirm, member vs club billing, audience groups, `new_events` notifications)
 
 - **Events starting within 24 hours confirm immediately:** When a club one-off event (`admin_oneoff`) is created less than 24 hours before `startsAt` (without an explicit `rsvpCloseAt`), `allocationMode` becomes `instant` rather than waiting until `startsAt` to confirm. Paid club events in `instant` mode start in `status = "closed"` (`rsvpCloseAt = now`, `closedProcessedAt = now`), reusing the post-close RSVP flow (`postclose.ts`) so RSVPs confirm and charge the club ledger immediately, overflow waitlists, and cancellations follow late-cancel/refill rules.

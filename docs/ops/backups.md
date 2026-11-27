@@ -3,12 +3,9 @@
 This page covers the three scheduled jobs and the deploy path. Secrets are listed in
 `docs/ops/secrets.md`. Budgets are in `docs/ops/budgets.md`.
 
-## Current status: not yet live
+## Current status (updated 2026-11-27)
 
-No job here runs for real until Ashok supplies the Cloudflare and Neon accounts and the secrets.
-Each job prints a skip notice until then. A green run that only printed a skip notice is **not**
-evidence of a working backup. The first real backup and the first passing restore drill are the
-proof, and both are open items below.
+Cloudflare (`KV`, `R2`, `Hyperdrive`, `Workers Builds`) and Neon Postgres are provisioned and connected (`wrangler.jsonc` carries real resource IDs). Scheduled backup/restore/Lighthouse jobs still print a skip notice until their required GitHub secrets exist (`docs/ops/secrets.md`). A green run that only printed a skip notice is **not** evidence of a working backup. The off-site 90-day backup store, first real backup, and first passing restore drill remain open items below.
 
 ## Weekly encrypted backup (`.github/workflows/backup.yml`)
 
@@ -67,21 +64,12 @@ This workflow runs the post-deploy database migration and smoke test on every pu
 3. **Smoke test** (`scripts/ci/smoke.sh`) against `PUBLIC_BASE_URL`: `/healthz` must report
    `status: ok`, and `/` must serve the SPA shell.
 
-### Before the first real deploy
+### Deployment prerequisites & open ops items
 
-These need a human decision or setup. The deploy will fail on them, not silently pass:
-
-- `wrangler.jsonc` still has `REPLACE_WITH_*` placeholders for the KV namespace, the preview KV
-  namespace and the Hyperdrive config ID. Create the resources with
-  `wrangler kv namespace create`, `wrangler hyperdrive create`, and put the real IDs in
-  `wrangler.jsonc`. Create the R2 bucket `bolt-club-hq-media` too.
-- Create the `production` GitHub environment (repo Settings → Environments) and add a required
-  reviewer, so a merge to `main` cannot deploy without a human approval. The deploy job names it.
-  I have not verified whether GitHub auto-creates a missing environment on first use, so create
-  it explicitly.
-- `PUBLIC_BASE_URL` must be set as a repository variable. The smoke step fails without it.
-- Runtime Worker secrets (Clerk, VAPID, Sentry, healthchecks) must be set with
-  `wrangler secret put` before the Worker can serve signed-in traffic.
+- **Provisioned:** Cloudflare KV (`KV` + preview), Hyperdrive (`bolt-club-hq`), R2 bucket (`bolt-club-hq-media`), and Neon Postgres (`neondb`) are created with real IDs in `wrangler.jsonc`.
+- **Open:** Create/confirm the `production` GitHub environment (repo Settings → Environments) with a required reviewer if manual approval is desired before migrations run.
+- **Required for `deploy.yml`:** `DATABASE_URL` secret and `PUBLIC_BASE_URL` repository variable.
+- **Required for runtime:** Worker secrets (Clerk, VAPID, Sentry, `HEALTHCHECK_PING_URL`, `BOOTSTRAP_ADMIN_EMAIL`) set via `npx wrangler secret put`, plus `VITE_CLERK_PUBLISHABLE_KEY` in Cloudflare Workers Builds settings.
 
 ### Rollback
 
@@ -89,11 +77,10 @@ These need a human decision or setup. The deploy will fail on them, not silently
 automatically: that is why every migration must be expand-only. A destructive change needs a
 planned two-step release.
 
-## Manual steps Ashok owns
+## Remaining manual steps Ashok owns
 
-1. Create the Cloudflare account, the Neon project and a restore database (branch).
+1. Provision a throwaway restore database/branch in Neon (`RESTORE_TARGET_URL`).
 2. Generate `BACKUP_ENCRYPTION_KEY` and store two copies in a password manager.
-3. Add the secrets in `docs/ops/secrets.md` under repo settings.
-4. Create the `production` environment and set `PUBLIC_BASE_URL`.
-5. Choose the off-site backup store and provide `BACKUP_BUCKET_TOKEN` (open item above).
-6. Confirm the GitHub Actions minutes allowance (see `budgets.md`).
+3. Add the remaining backup/restore/Lighthouse secrets in `docs/ops/secrets.md` under repo settings.
+4. Choose the off-site 90-day backup store, provide `BACKUP_BUCKET_TOKEN`, and replace the placeholder fetch step in `.github/workflows/restore-drill.yml`.
+5. Run the first real `backup.yml`, `restore-drill.yml`, and `lighthouse.yml` workflows via `workflow_dispatch`.

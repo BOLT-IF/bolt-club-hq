@@ -1,23 +1,24 @@
-# Area: terms, series, captains, clone (S3.1)
+# Area: terms, series, captains, clone (S3.1, S3.2, `#82`, `#86`)
 
-Flag: `FLAG_EVENTS` (off until the integrator flips it). Backend `src/worker/terms/`, frontend `src/app/routes/admin/terms/`.
+Flag: `FLAG_EVENTS` (`"on"` in production `wrangler.jsonc`, `"off"` in previews). Backend `src/worker/terms/`, frontend `src/app/routes/admin/terms/`.
 
 ## API (`/api/v1`)
 
 | Route | Who | Notes |
 |---|---|---|
-| `GET /terms`, `POST /terms` | admin | list has `seriesCount`; create is a draft |
-| `GET /terms/:id` | admin | term plus its series with captains |
-| `PATCH /terms/:id` | admin | `name` any time; `startsOn`/`endsOn` while draft; `status` one step forward |
+| `GET /terms`, `POST /terms` | admin | list has `seriesCount`; create is a draft with optional `season` (`fall\|spring`) and `clubYear` (`#86`) |
+| `GET /terms/:id` | admin | term plus its series with captains and discount-eligible members |
+| `PATCH /terms/:id` | admin | `name` any time; `startsOn`/`endsOn`/`season`/`clubYear` while draft; `status` one step forward |
 | `DELETE /terms/:id` | admin | empty draft only |
-| `POST /terms/:id/clone` | admin | `Idempotency-Key` required; body `{ name?, startsOn, endsOn }` |
+| `POST /terms/:id/clone` | admin | `Idempotency-Key` required; body `{ name?, startsOn, endsOn, season?, clubYear? }` |
 | `GET /series` | member | admin: all; captain: own; others: empty |
 | `GET /series/captain-candidates` | admin | active members |
-| `POST /series` | admin | not into a closed term |
-| `GET /series/:id` | admin or captain of it | |
-| `PATCH /series/:id` | admin; captain of it (`location`, `maxGuestsDefault`, `rsvpCloseOffsetMin` only) | cap-below-sold needs `overrideCapBelowSold` (admin) |
+| `POST /series` | admin | not into a closed term; accepts optional `discountedPassPrice` (`#82`) |
+| `GET /series/:id` | admin or captain of it | includes `captains` and `discountEligible` (`#82`) |
+| `PATCH /series/:id` | admin; captain of it (`location`, `maxGuestsDefault`, `rsvpCloseOffsetMin` only) | cap-below-sold needs `overrideCapBelowSold` (admin); admin can edit `discountedPassPrice` |
 | `DELETE /series/:id` | admin | no events or passes |
 | `PUT /series/:id/captains` | admin | `{ memberIds }` replaces the set; active members only |
+| `PUT /series/:id/discount-eligible` | admin | `{ memberIds }` replaces returning-member discount eligibility (`0002_series_discount.sql`, `#82`) |
 | `GET /series/:id/occurrences` | admin or captain of it | term dates for the weekday, `skipped` flag, `event` once generated (S3.2) |
 | `PUT /series/:id/skip-dates` | admin | `{ skipDates, overrideLock? }`; 409 `skip_dates_locked`, `skip_date_has_event` (S3.2) |
 | `POST /series/:id/generate-events` | admin | idempotent; creates missing future dates only; returns `{ created, events }` (S3.2) |

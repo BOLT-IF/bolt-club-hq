@@ -473,30 +473,28 @@ export function MoneyPage() {
   const [payInfo, setPayInfo] = useState<PayInfo | null>(null);
 
   const load = useCallback((signal?: AbortSignal) => {
-    fetchMyLedger(signal)
-      .then((ledger) => {
-        setState({ status: "ready", ledger });
-      })
-      .catch((error: unknown) => {
-        if (signal?.aborted) return;
-        setState({ status: "error", forbidden: error instanceof ApiError && error.status === 403 });
+    void Promise.allSettled([
+      fetchMyLedger(signal),
+      fetchPaymentSettings(signal),
+      fetchMyPaymentRef(signal),
+    ]).then(([ledgerRes, settingsRes, refRes]) => {
+      if (signal?.aborted) return;
+      setPayInfo({
+        settings: settingsRes.status === "fulfilled" ? settingsRes.value : null,
+        paymentRef: refRes.status === "fulfilled" ? refRes.value : null,
       });
+      if (ledgerRes.status === "fulfilled") {
+        setState({ status: "ready", ledger: ledgerRes.value });
+      } else {
+        const error: unknown = ledgerRes.reason;
+        setState({ status: "error", forbidden: error instanceof ApiError && error.status === 403 });
+      }
+    });
   }, []);
 
   useEffect(() => {
     const controller = new AbortController();
     load(controller.signal);
-    // Best effort: the ledger still shows if these fail (e.g. an exited member).
-    void Promise.allSettled([
-      fetchPaymentSettings(controller.signal),
-      fetchMyPaymentRef(controller.signal),
-    ]).then(([settings, ref]) => {
-      if (controller.signal.aborted) return;
-      setPayInfo({
-        settings: settings.status === "fulfilled" ? settings.value : null,
-        paymentRef: ref.status === "fulfilled" ? ref.value : null,
-      });
-    });
     return () => {
       controller.abort();
     };
@@ -526,32 +524,36 @@ export function MoneyPage() {
       ) : null}
       {state.status === "ready" ? <BalanceCard ledger={state.ledger} /> : null}
 
-      <nav aria-label="Money actions" className="bcq-money-nav">
-        <AppLink href="/money/claims" className="bcq-money-nav__card">
-          <span className="bcq-money-nav__left">
-            <span className="bcq-money-nav__icon" aria-hidden="true">
-              <ReceiptIcon size={17} />
-            </span>
-            <span className="bcq-money-nav__label">Payment Claims</span>
-          </span>
-          <span className="bcq-money-nav__chevron" aria-hidden="true">
-            <ChevronRightIcon />
-          </span>
-        </AppLink>
-        <AppLink href="/money/passes" className="bcq-money-nav__card">
-          <span className="bcq-money-nav__left">
-            <span className="bcq-money-nav__icon" aria-hidden="true">
-              <TicketIcon />
-            </span>
-            <span className="bcq-money-nav__label">Passes</span>
-          </span>
-          <span className="bcq-money-nav__chevron" aria-hidden="true">
-            <ChevronRightIcon />
-          </span>
-        </AppLink>
-      </nav>
+      {state.status !== "loading" ? (
+        <>
+          <nav aria-label="Money actions" className="bcq-money-nav">
+            <AppLink href="/money/claims" className="bcq-money-nav__card">
+              <span className="bcq-money-nav__left">
+                <span className="bcq-money-nav__icon" aria-hidden="true">
+                  <ReceiptIcon size={17} />
+                </span>
+                <span className="bcq-money-nav__label">Payment Claims</span>
+              </span>
+              <span className="bcq-money-nav__chevron" aria-hidden="true">
+                <ChevronRightIcon />
+              </span>
+            </AppLink>
+            <AppLink href="/money/passes" className="bcq-money-nav__card">
+              <span className="bcq-money-nav__left">
+                <span className="bcq-money-nav__icon" aria-hidden="true">
+                  <TicketIcon />
+                </span>
+                <span className="bcq-money-nav__label">Passes</span>
+              </span>
+              <span className="bcq-money-nav__chevron" aria-hidden="true">
+                <ChevronRightIcon />
+              </span>
+            </AppLink>
+          </nav>
 
-      <HowToPay info={payInfo} defaultExpanded={owesBalance} />
+          <HowToPay info={payInfo} defaultExpanded={owesBalance} />
+        </>
+      ) : null}
 
       {state.status === "ready" ? (
         <section aria-labelledby="money-activity" className="bcq-money-activity">

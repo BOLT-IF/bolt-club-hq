@@ -12,7 +12,7 @@ import {
   StatusChip,
   useToast,
 } from "../../../components/ui";
-import { useFeatureFlag } from "../../../lib/flags";
+import { useFeatureFlag, useFeatureFlagsLoaded } from "../../../lib/flags";
 import {
   describePassError,
   fetchPassOffers,
@@ -171,6 +171,7 @@ function BuyPassSheet({
 
 /** Member passes screen (PLAN §6.5, §12): prorated pass offers, terms notice, owned passes. */
 export function PassesPage() {
+  const flagsLoaded = useFeatureFlagsLoaded();
   const moneyOn = useFeatureFlag("money");
   const toast = useToast();
   const [state, setState] = useState<State>({ kind: "loading" });
@@ -197,6 +198,9 @@ export function PassesPage() {
     };
   }, [moneyOn, load]);
 
+  if (!flagsLoaded) {
+    return <Skeleton label="Loading passes" />;
+  }
   if (!moneyOn) {
     return <EmptyState title="Money">Money is not switched on yet.</EmptyState>;
   }

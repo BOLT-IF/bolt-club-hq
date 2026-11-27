@@ -260,8 +260,8 @@ export function AssignPassSheet({ member, members, onClose, onAssigned }: Assign
           {busy
             ? "Assigning..."
             : selectedOffer
-              ? `Assign pass (${String(selectedOffer.priceSek)} kr)`
-              : "Assign pass"}
+              ? `Assign Pass (${String(selectedOffer.priceSek)} kr)`
+              : "Assign Pass"}
         </Button>
       </form>
     </BottomSheet>

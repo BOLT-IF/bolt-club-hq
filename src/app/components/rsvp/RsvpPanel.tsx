@@ -15,7 +15,7 @@ const LABEL: Record<RsvpStatus, string> = {
   offered: "Spot offered",
   cancelled: "Cancelled",
   late_cancelled: "Cancelled",
-  declined: "Not going",
+  declined: "Not Going",
 };
 const TONE: Record<RsvpStatus, StatusTone> = {
   requested: "info",
@@ -261,7 +261,7 @@ export function RsvpPanel({ event }: SlotProps) {
                   void run(() => declineRsvp(event.id));
                 }}
               >
-                Not going
+                Not Going
               </Button>
             ) : null}
           </div>

@@ -212,7 +212,7 @@ export function AdminMemberLedger() {
             setAssignOpen(true);
           }}
         >
-          Assign pass
+          Assign Pass
         </Button>
       </div>
 

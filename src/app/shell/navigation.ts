@@ -54,11 +54,11 @@ export const PRIMARY_NAV: readonly NavItem[] = [
 export const moreMenu: readonly NavLink[] = [
   { id: "profile", label: "Profile", path: "/profile", icon: "profile" },
   { id: "notifications", label: "Notifications", path: "/settings/notifications", icon: "bell" },
-  { id: "attendance-history", label: "Attendance history", path: "/history", icon: "history" },
+  { id: "attendance-history", label: "Attendance History", path: "/history", icon: "history" },
   { id: "privacy", label: "Privacy", path: "/privacy", icon: "shield" },
   {
     id: "install",
-    label: "Install the app",
+    label: "Install the App",
     path: "/install",
     icon: "download",
     hideInStandalone: true,
@@ -66,7 +66,7 @@ export const moreMenu: readonly NavLink[] = [
   { id: "admin", label: "Admin", path: "/admin", icon: "admin", requiresAdmin: true },
   {
     id: "sign-out",
-    label: "Sign out",
+    label: "Sign Out",
     path: "/sign-out",
     icon: "logout",
     requiresSignedIn: true,
@@ -78,17 +78,17 @@ export const adminIndex: readonly NavLink[] = [
   { id: "admin-members", label: "Members", path: "/admin/members", requiresAdmin: true },
   {
     id: "admin-approvals",
-    label: "Invites & join requests",
+    label: "Invites & Join Requests",
     path: "/admin/approvals",
     requiresAdmin: true,
   },
-  { id: "admin-terms", label: "Terms & series", path: "/admin/terms", requiresAdmin: true },
-  { id: "admin-money", label: "Money", path: "/admin/money", requiresAdmin: true },
+  { id: "admin-terms", label: "Terms & Series", path: "/admin/terms", requiresAdmin: true },
+  { id: "admin-money", label: "Club Finances", path: "/admin/money", requiresAdmin: true },
   { id: "admin-reminders", label: "Reminders", path: "/admin/reminders", requiresAdmin: true },
   { id: "admin-broadcast", label: "Broadcast", path: "/admin/broadcast", requiresAdmin: true },
   { id: "admin-polls", label: "Polls", path: "/admin/polls", requiresAdmin: true },
   { id: "admin-settings", label: "Settings", path: "/admin/settings", requiresAdmin: true },
-  { id: "admin-audit", label: "Audit", path: "/admin/audit", requiresAdmin: true },
+  { id: "admin-audit", label: "Audit Log", path: "/admin/audit", requiresAdmin: true },
 ];
 
 export interface VisibleNavOptions {

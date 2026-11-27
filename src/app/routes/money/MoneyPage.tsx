@@ -287,7 +287,7 @@ export function MoneyPage() {
         Money
       </h1>
       <nav aria-label="Money actions" className="bcq-money__nav">
-        <NavLink href="/money/claims">Payment claims</NavLink>
+        <NavLink href="/money/claims">Payment Claims</NavLink>
         <NavLink href="/money/passes">Passes</NavLink>
       </nav>
       {state.status === "loading" ? <Skeleton label="Loading your balance" /> : null}

@@ -113,7 +113,7 @@ describe("admin members page", () => {
     fireEvent.click(within(item).getByRole("button", { name: "Actions for Bo Berg" }));
     const dialog = await screen.findByRole("dialog");
     expect(within(dialog).getByText(/BC-BO/)).toBeTruthy();
-    fireEvent.click(within(dialog).getByRole("button", { name: "Make admin" }));
+    fireEvent.click(within(dialog).getByRole("button", { name: "Make Admin" }));
     await waitFor(() => {
       expect(calls).toContainEqual({
         method: "PATCH",
@@ -131,7 +131,7 @@ describe("admin members page", () => {
     const item = await screen.findByRole("listitem", { name: /Bo Berg/ });
     fireEvent.click(within(item).getByRole("button", { name: "Actions for Bo Berg" }));
     const sheet = await screen.findByRole("dialog");
-    fireEvent.click(within(sheet).getByRole("button", { name: "Deactivate member" }));
+    fireEvent.click(within(sheet).getByRole("button", { name: "Deactivate Member" }));
     expect(calls.some((c) => c.method === "PATCH")).toBe(false);
 
     const confirm = await screen.findByRole("dialog", { name: /Deactivate Bo Berg\?/i });
@@ -166,7 +166,7 @@ describe("admin members page", () => {
     const item = await screen.findByRole("listitem", { name: /Ada/ });
     fireEvent.click(within(item).getByRole("button", { name: "Actions for Ada Lovelace" }));
     const dialog = await screen.findByRole("dialog");
-    fireEvent.click(within(dialog).getByRole("button", { name: "Remove admin" }));
+    fireEvent.click(within(dialog).getByRole("button", { name: "Remove Admin" }));
     expect(await screen.findByText(/last admin/i)).toBeTruthy();
   });
 
@@ -179,7 +179,7 @@ describe("admin members page", () => {
     const item = await screen.findByRole("listitem", { name: /Bo Berg/ });
     fireEvent.click(within(item).getByRole("button", { name: "Actions for Bo Berg" }));
     const dialog = await screen.findByRole("dialog");
-    fireEvent.click(within(dialog).getByRole("button", { name: "Edit payment reference" }));
+    fireEvent.click(within(dialog).getByRole("button", { name: "Edit Payment Reference" }));
     const input = await screen.findByLabelText("Payment reference");
     fireEvent.change(input, { target: { value: "BC-ADA" } });
     fireEvent.click(screen.getByRole("button", { name: "Save" }));

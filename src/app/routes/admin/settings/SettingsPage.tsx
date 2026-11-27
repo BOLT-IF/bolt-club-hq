@@ -334,7 +334,7 @@ export default function SettingsPage() {
         </fieldset>
 
         <Button type="submit" block disabled={saving}>
-          {saving ? "Saving…" : "Save settings"}
+          {saving ? "Saving…" : "Save Settings"}
         </Button>
       </form>
     </section>

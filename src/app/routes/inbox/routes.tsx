@@ -26,7 +26,7 @@ const QUICK_STATUS_LABEL: Partial<Record<RsvpStatus, string>> = {
   confirmed: "Confirmed",
   requested: "Requested",
   waitlisted: "Waitlisted",
-  declined: "Not going",
+  declined: "Not Going",
 };
 
 const dateFormat = new Intl.DateTimeFormat("sv-SE", {
@@ -139,7 +139,7 @@ function Inbox() {
                 markRead([], true);
               }}
             >
-              Mark all read
+              Mark All Read
             </Button>
           ) : null}
           <ul className="bcq-inbox">
@@ -170,7 +170,7 @@ function Inbox() {
                   {eventSlug ? (
                     <div className="bcq-inbox__actions">
                       {outcome ? (
-                        <StatusChip tone={outcome === "Not going" ? "neutral" : "success"}>
+                        <StatusChip tone={outcome === "Not Going" ? "neutral" : "success"}>
                           {outcome}
                         </StatusChip>
                       ) : (
@@ -190,7 +190,7 @@ function Inbox() {
                               quickRespond(item, eventSlug, "decline");
                             }}
                           >
-                            Not going
+                            Not Going
                           </Button>
                         </>
                       )}

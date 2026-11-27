@@ -287,10 +287,10 @@ describe("balances page", () => {
     stub();
     renderWith(<AdminBalances />);
     const list = await screen.findByRole("list", { name: /balances/i });
-    expect(screen.getByRole("link", { name: "Payment claims" }).getAttribute("href")).toBe(
+    expect(screen.getByRole("link", { name: "Payment Claims" }).getAttribute("href")).toBe(
       "/admin/money/claims",
     );
-    expect(screen.getByRole("link", { name: "Club fees" }).getAttribute("href")).toBe(
+    expect(screen.getByRole("link", { name: "Club Fees" }).getAttribute("href")).toBe(
       "/admin/money/club-fees",
     );
     expect(within(list).getByText("Bo Berg")).toBeTruthy();

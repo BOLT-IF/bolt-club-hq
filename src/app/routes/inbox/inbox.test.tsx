@@ -123,12 +123,12 @@ describe("inbox screen", () => {
   it("mark all read sends all:true and clears the unread flags", async () => {
     const fetchMock = stubApi([item({ id: "a" }), item({ id: "b" })]);
     renderInbox();
-    fireEvent.click(await screen.findByRole("button", { name: "Mark all read" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Mark All Read" }));
     await waitFor(() => {
       expect(screen.queryAllByText("Unread")).toHaveLength(0);
     });
     expect(reads(fetchMock)).toEqual([{ all: true }]);
-    expect(screen.queryByRole("button", { name: "Mark all read" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Mark All Read" })).toBeNull();
   });
 
   it("shows RSVP and Not going quick actions on new_events reminders", async () => {
@@ -166,9 +166,9 @@ describe("inbox screen", () => {
     });
 
     renderInbox();
-    fireEvent.click(await screen.findByRole("button", { name: "Not going" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Not Going" }));
 
-    expect(await screen.findByText("Not going")).toBeTruthy();
+    expect(await screen.findByText("Not Going")).toBeTruthy();
     expect(calls.some((c) => c.url === "/api/v1/events/evt_thu/rsvp/decline")).toBe(true);
     expect(calls.some((c) => c.url === "/api/v1/notifications/read")).toBe(true);
   });

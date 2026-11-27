@@ -90,21 +90,35 @@ function ActionSheetCancel({
 
 export function MoreHorizontalIcon() {
   return (
-    <svg
-      width="20"
-      height="20"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <circle cx="12" cy="12" r="1" />
-      <circle cx="19" cy="12" r="1" />
-      <circle cx="5" cy="12" r="1" />
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <circle cx="5" cy="12" r="1.75" />
+      <circle cx="12" cy="12" r="1.75" />
+      <circle cx="19" cy="12" r="1.75" />
     </svg>
+  );
+}
+
+/** Tactile 36x36px tinted circular overflow trigger centered inside a 44x44px tap target. */
+export function OverflowButton({
+  label,
+  onClick,
+  className,
+}: {
+  readonly label: string;
+  readonly onClick: (event: React.MouseEvent<HTMLButtonElement>) => void;
+  readonly className?: string;
+}) {
+  return (
+    <button
+      type="button"
+      className={cx("bcq-overflow-btn", className)}
+      aria-label={label}
+      onClick={onClick}
+    >
+      <span className="bcq-overflow-btn__circle" aria-hidden="true">
+        <MoreHorizontalIcon />
+      </span>
+    </button>
   );
 }
 

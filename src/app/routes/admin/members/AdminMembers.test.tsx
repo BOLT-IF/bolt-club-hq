@@ -44,6 +44,7 @@ function json(status: number, body: unknown): Response {
 function setup(
   rows: Row[],
   patch: (path: string, body: unknown) => Response = () => json(200, {}),
+  meId: string | null = null,
 ) {
   const calls: Array<{ method: string; path: string; body: unknown }> = [];
   const fetch = vi.fn((input: string, init?: RequestInit) => {
@@ -51,6 +52,9 @@ function setup(
     const method = init?.method ?? "GET";
     const body: unknown = typeof init?.body === "string" ? JSON.parse(init.body) : undefined;
     calls.push({ method, path, body });
+    if (method === "GET" && path === "/me") {
+      return Promise.resolve(meId ? json(200, { id: meId }) : json(404, { error: "not_found" }));
+    }
     if (method === "GET") return Promise.resolve(json(200, { members: rows }));
     return Promise.resolve(patch(path, body));
   });
@@ -122,7 +126,9 @@ describe("admin members page", () => {
       });
     });
     await waitFor(() => {
-      expect(calls.filter((c) => c.method === "GET")).toHaveLength(2);
+      expect(calls.filter((c) => c.method === "GET" && c.path === "/admin/members")).toHaveLength(
+        2,
+      );
     });
   });
 
@@ -214,5 +220,46 @@ describe("admin members page", () => {
         body: undefined,
       });
     });
+  });
+
+  it("filters by search and quick filter chips, and shows Clear Filters empty state", async () => {
+    setup([ada, bo, cy]);
+    await screen.findByRole("listitem", { name: /Ada Lovelace/ });
+
+    expect(screen.getByRole("link", { name: /Invite/i }).getAttribute("href")).toBe(
+      "/admin/approvals",
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /Admins \(1\)/i }));
+    expect(screen.getByRole("listitem", { name: /Ada Lovelace/ })).toBeTruthy();
+    expect(screen.queryByRole("listitem", { name: /Bo Berg/ })).toBeNull();
+
+    const search = screen.getByLabelText("Search members");
+    fireEvent.change(search, { target: { value: "zzzz-no-match" } });
+    expect(screen.getByText("No Matching Members")).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: "Clear Filters" }));
+    expect(screen.getByRole("listitem", { name: /Bo Berg/ })).toBeTruthy();
+    expect(screen.getByRole("listitem", { name: /Cy Dahl/ })).toBeTruthy();
+  });
+
+  it("shows You badge and disables self-demotion and self-deactivation for signed-in admin", async () => {
+    setup([ada, bo], undefined, "m1");
+    const selfItem = await screen.findByRole("listitem", { name: /Ada Lovelace/ });
+    expect(within(selfItem).getByText("You")).toBeTruthy();
+
+    fireEvent.click(within(selfItem).getByRole("button", { name: "Actions for Ada Lovelace" }));
+    const dialog = await screen.findByRole("dialog");
+    expect(
+      within(dialog).getByRole<HTMLButtonElement>("button", { name: "Remove Admin" }).disabled,
+    ).toBe(true);
+    expect(
+      within(dialog).getByRole<HTMLButtonElement>("button", { name: "Deactivate Member" }).disabled,
+    ).toBe(true);
+    expect(
+      within(dialog).getByRole<HTMLButtonElement>("button", { name: "Edit Payment Reference" })
+        .disabled,
+    ).toBe(false);
+    expect(within(dialog).getByText(/your own account/i)).toBeTruthy();
   });
 });

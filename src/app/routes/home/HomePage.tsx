@@ -10,13 +10,178 @@ import {
   type RsvpStatus,
   type RsvpView,
 } from "../../components/rsvp/api";
-import { Button, ErrorState, Skeleton, StatusChip, type StatusTone } from "../../components/ui";
+import {
+  Button,
+  ChevronRightIcon,
+  ErrorState,
+  Skeleton,
+  StatusChip,
+  type StatusTone,
+} from "../../components/ui";
 import { useFeatureFlag } from "../../lib/flags";
 import { navigate } from "../../lib/navigate";
 import { formatWhen } from "../events/format";
 import { fetchPassOffers, type MemberPass } from "../money/passes/passesApi";
 import { listPolls, type Poll } from "../polls/api";
 import "./home.css";
+
+function CheckCircleIcon() {
+  return (
+    <svg
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <circle cx="12" cy="12" r="10" />
+      <path d="m9 12 2 2 4-4" />
+    </svg>
+  );
+}
+
+function ShieldIcon() {
+  return (
+    <svg
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+    </svg>
+  );
+}
+
+function CalendarIcon() {
+  return (
+    <svg
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <rect x="3" y="4" width="18" height="18" rx="2" />
+      <line x1="16" y1="2" x2="16" y2="6" />
+      <line x1="8" y1="2" x2="8" y2="6" />
+      <line x1="3" y1="10" x2="21" y2="10" />
+    </svg>
+  );
+}
+
+function WalletIcon({ size = 18 }: { readonly size?: number }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1" />
+      <path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4" />
+    </svg>
+  );
+}
+
+function TicketIcon() {
+  return (
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z" />
+      <path d="M13 5v2" />
+      <path d="M13 17v2" />
+      <path d="M13 11v2" />
+    </svg>
+  );
+}
+
+function BarChartIcon() {
+  return (
+    <svg
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <line x1="18" y1="20" x2="18" y2="10" />
+      <line x1="12" y1="20" x2="12" y2="4" />
+      <line x1="6" y1="20" x2="6" y2="14" />
+    </svg>
+  );
+}
+
+function CompactSummaryCard({
+  id,
+  href,
+  icon,
+  iconTone,
+  title,
+  subtitle,
+  actionLabel,
+}: {
+  readonly id: string;
+  readonly href: string;
+  readonly icon: ReactNode;
+  readonly iconTone: "emerald" | "neutral" | "amber" | "slate";
+  readonly title: string;
+  readonly subtitle: string;
+  readonly actionLabel: string;
+}) {
+  return (
+    <section className="bcq-home__card bcq-home__card--compact" aria-labelledby={id}>
+      <AppLink href={href} className="bcq-home__compact-link">
+        <span className="bcq-home__compact-left">
+          <span className={`bcq-icon-badge bcq-icon-badge--${iconTone}`} aria-hidden="true">
+            {icon}
+          </span>
+          <span className="bcq-home__compact-copy">
+            <h2 id={id} className="bcq-home__compact-title">
+              {title}
+            </h2>
+            <span className="bcq-home__compact-sub">{subtitle}</span>
+          </span>
+        </span>
+        <span className="bcq-chevron-link" aria-hidden="true">
+          <span>{actionLabel}</span>
+          <ChevronRightIcon />
+        </span>
+      </AppLink>
+    </section>
+  );
+}
 
 interface ActorSummary {
   readonly id: string;
@@ -326,19 +491,33 @@ export function HomePage() {
 
       <div className="bcq-home__grid">
         {data.adminTasks ? (
-          <section className="bcq-home__card" aria-labelledby="home-admin-title">
-            <div className="bcq-home__card-head">
-              <h2 id="home-admin-title" className="bcq-home__card-title">
-                Admin Tasks
-              </h2>
-              <AppLink href="/admin" className="bcq-home__link">
-                Admin
-              </AppLink>
-            </div>
-            {data.adminTasks.pendingJoinRequests === 0 &&
-            data.adminTasks.pendingPaymentClaims === 0 ? (
-              <p className="bcq-home__muted">All caught up — no pending admin tasks.</p>
-            ) : (
+          data.adminTasks.pendingJoinRequests === 0 &&
+          (!moneyOn || data.adminTasks.pendingPaymentClaims === 0) ? (
+            <CompactSummaryCard
+              id="home-admin-title"
+              href="/admin"
+              icon={<CheckCircleIcon />}
+              iconTone="emerald"
+              title="Admin Tasks"
+              subtitle="All caught up"
+              actionLabel="Admin"
+            />
+          ) : (
+            <section className="bcq-home__card" aria-labelledby="home-admin-title">
+              <div className="bcq-home__card-head">
+                <div className="bcq-home__card-title-group">
+                  <span className="bcq-icon-badge bcq-icon-badge--amber" aria-hidden="true">
+                    <ShieldIcon />
+                  </span>
+                  <h2 id="home-admin-title" className="bcq-home__card-title">
+                    Admin Tasks
+                  </h2>
+                </div>
+                <AppLink href="/admin" className="bcq-chevron-link">
+                  <span>Admin</span>
+                  <ChevronRightIcon />
+                </AppLink>
+              </div>
               <ul className="bcq-home__list">
                 {data.adminTasks.pendingJoinRequests > 0 ? (
                   <li>
@@ -363,23 +542,37 @@ export function HomePage() {
                   </li>
                 ) : null}
               </ul>
-            )}
-          </section>
+            </section>
+          )
         ) : null}
 
         {eventsOn && isActive ? (
-          <section className="bcq-home__card" aria-labelledby="home-rsvps-title">
-            <div className="bcq-home__card-head">
-              <h2 id="home-rsvps-title" className="bcq-home__card-title">
-                Next RSVPs
-              </h2>
-              <AppLink href="/events" className="bcq-home__link">
-                All Events
-              </AppLink>
-            </div>
-            {data.rsvps.length === 0 ? (
-              <p className="bcq-home__muted">No upcoming RSVPs</p>
-            ) : (
+          data.rsvps.length === 0 ? (
+            <CompactSummaryCard
+              id="home-rsvps-title"
+              href="/events"
+              icon={<CalendarIcon />}
+              iconTone="neutral"
+              title="Next RSVPs"
+              subtitle="No upcoming RSVPs"
+              actionLabel="All Events"
+            />
+          ) : (
+            <section className="bcq-home__card" aria-labelledby="home-rsvps-title">
+              <div className="bcq-home__card-head">
+                <div className="bcq-home__card-title-group">
+                  <span className="bcq-icon-badge bcq-icon-badge--neutral" aria-hidden="true">
+                    <CalendarIcon />
+                  </span>
+                  <h2 id="home-rsvps-title" className="bcq-home__card-title">
+                    Next RSVPs
+                  </h2>
+                </div>
+                <AppLink href="/events" className="bcq-chevron-link">
+                  <span>All Events</span>
+                  <ChevronRightIcon />
+                </AppLink>
+              </div>
               <ul className="bcq-home__list">
                 {data.rsvps.map(({ event, rsvp }) => {
                   const chip =
@@ -405,8 +598,8 @@ export function HomePage() {
                   );
                 })}
               </ul>
-            )}
-          </section>
+            </section>
+          )
         ) : null}
 
         {eventsOn && isActive && data.unanswered.length > 0 ? (
@@ -491,9 +684,14 @@ export function HomePage() {
         {moneyOn ? (
           <section className="bcq-home__card" aria-labelledby="home-money-title">
             <div className="bcq-home__card-head">
-              <h2 id="home-money-title" className="bcq-home__card-title">
-                Money &amp; Passes
-              </h2>
+              <div className="bcq-home__card-title-group">
+                <span className="bcq-icon-badge bcq-icon-badge--slate" aria-hidden="true">
+                  <WalletIcon />
+                </span>
+                <h2 id="home-money-title" className="bcq-home__card-title">
+                  Money &amp; Passes
+                </h2>
+              </div>
               {data.ledger ? (
                 <StatusChip tone={balanceSummary(data.ledger).tone}>
                   {balanceSummary(data.ledger).text}
@@ -531,32 +729,61 @@ export function HomePage() {
               )
             ) : null}
 
-            <div className="bcq-home__actions">
-              <AppLink href="/money" className="bcq-btn bcq-btn--tonal">
-                View Balance &amp; Pay
-              </AppLink>
-              {isActive && (data.activePasses.length === 0 || data.offerCount > 0) ? (
-                <AppLink href="/money/passes" className="bcq-btn bcq-btn--tonal">
-                  View Pass Offers
-                </AppLink>
-              ) : null}
-            </div>
+            {(() => {
+              const showOffers =
+                isActive && (data.activePasses.length === 0 || data.offerCount > 0);
+              return (
+                <div
+                  className={
+                    showOffers ? "bcq-home__actions" : "bcq-home__actions bcq-home__actions--single"
+                  }
+                >
+                  <AppLink href="/money" className="bcq-btn bcq-btn--tonal bcq-home__action-btn">
+                    <WalletIcon size={16} />
+                    <span>Balance &amp; Pay</span>
+                  </AppLink>
+                  {showOffers ? (
+                    <AppLink
+                      href="/money/passes"
+                      className="bcq-btn bcq-btn--tonal bcq-home__action-btn"
+                    >
+                      <TicketIcon />
+                      <span>Pass Offers</span>
+                    </AppLink>
+                  ) : null}
+                </div>
+              );
+            })()}
           </section>
         ) : null}
 
         {pollsOn && isActive ? (
-          <section className="bcq-home__card" aria-labelledby="home-polls-title">
-            <div className="bcq-home__card-head">
-              <h2 id="home-polls-title" className="bcq-home__card-title">
-                Open Polls
-              </h2>
-              <AppLink href="/polls" className="bcq-home__link">
-                All Polls
-              </AppLink>
-            </div>
-            {data.openPolls.length === 0 ? (
-              <p className="bcq-home__muted">No open polls</p>
-            ) : (
+          data.openPolls.length === 0 ? (
+            <CompactSummaryCard
+              id="home-polls-title"
+              href="/polls"
+              icon={<BarChartIcon />}
+              iconTone="neutral"
+              title="Open Polls"
+              subtitle="No open polls"
+              actionLabel="All Polls"
+            />
+          ) : (
+            <section className="bcq-home__card" aria-labelledby="home-polls-title">
+              <div className="bcq-home__card-head">
+                <div className="bcq-home__card-title-group">
+                  <span className="bcq-icon-badge bcq-icon-badge--neutral" aria-hidden="true">
+                    <BarChartIcon />
+                  </span>
+                  <h2 id="home-polls-title" className="bcq-home__card-title">
+                    Open Polls
+                  </h2>
+                </div>
+                <AppLink href="/polls" className="bcq-chevron-link">
+                  <span>All Polls</span>
+                  <ChevronRightIcon />
+                </AppLink>
+              </div>
               <ul className="bcq-home__list">
                 {data.openPolls.map((poll) => (
                   <li key={poll.id}>
@@ -569,8 +796,8 @@ export function HomePage() {
                   </li>
                 ))}
               </ul>
-            )}
-          </section>
+            </section>
+          )
         ) : null}
       </div>
     </section>

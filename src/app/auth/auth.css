@@ -5,6 +5,10 @@
   gap: 1rem;
   padding: 24px 16px;
 }
+.bcq-auth .bcq-skeleton {
+  width: 100%;
+  max-width: 24rem;
+}
 .bcq-auth__privacy {
   margin: 0;
   font-size: 0.875rem;

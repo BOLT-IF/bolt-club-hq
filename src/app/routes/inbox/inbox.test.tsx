@@ -68,13 +68,16 @@ describe("inbox screen", () => {
     expect(registeredFrontendRoutes().map((r) => r.path)).toContain("/inbox");
   });
 
-  it("lists notifications and flags the unread ones", async () => {
+  it("lists notifications under NEW and EARLIER with unread dot indicators", async () => {
     stubApi([item({ id: "a" }), item({ id: "b", readAt: "2027-01-01T11:00:00.000Z" })]);
     renderInbox();
     expect(await screen.findByRole("heading", { level: 1, name: "Inbox" })).toBeTruthy();
     expect(await screen.findByText("Title a")).toBeTruthy();
     expect(screen.getByText("Body b")).toBeTruthy();
-    expect(screen.getAllByText("Unread")).toHaveLength(1);
+    expect(screen.getByRole("heading", { level: 2, name: "NEW (1)" })).toBeTruthy();
+    expect(screen.getByRole("heading", { level: 2, name: "EARLIER" })).toBeTruthy();
+    expect(screen.getAllByRole("img", { name: "Unread" })).toHaveLength(1);
+    expect(screen.queryByText("Unread")).toBeNull();
   });
 
   it("shows an empty state", async () => {
@@ -115,8 +118,8 @@ describe("inbox screen", () => {
   it("never navigates to an external or malformed link", async () => {
     stubApi([item({ id: "a", link: "https://evil.example/x" }), item({ id: "b", link: "//evil" })]);
     renderInbox();
-    fireEvent.click(await screen.findByRole("button", { name: /Title a/ }));
-    fireEvent.click(screen.getByRole("button", { name: /Title b/ }));
+    fireEvent.click(await screen.findByRole("button", { name: /Title a/i }));
+    fireEvent.click(screen.getByRole("button", { name: /Title b/i }));
     expect(window.location.pathname).toBe("/inbox");
   });
 
@@ -125,10 +128,56 @@ describe("inbox screen", () => {
     renderInbox();
     fireEvent.click(await screen.findByRole("button", { name: "Mark All Read" }));
     await waitFor(() => {
-      expect(screen.queryAllByText("Unread")).toHaveLength(0);
+      expect(screen.queryAllByRole("img", { name: "Unread" })).toHaveLength(0);
     });
     expect(reads(fetchMock)).toEqual([{ all: true }]);
     expect(screen.queryByRole("button", { name: "Mark All Read" })).toBeNull();
+  });
+
+  it("enforces Title Case on notification headers and supports inline Approve/Decline for join requests", async () => {
+    const calls: Array<{ method: string; url: string }> = [];
+    configureApiClient({
+      fetch: vi.fn((input: string, init?: RequestInit) => {
+        const method = init?.method ?? "GET";
+        calls.push({ method, url: input });
+        if (input === "/api/v1/notifications" && method === "GET") {
+          return Promise.resolve(
+            json({
+              items: [
+                item({
+                  id: "jr_notif",
+                  category: "admin_tasks",
+                  title: "New join request",
+                  body: "Sven Svensson asked to join the club.",
+                  link: "/admin/approvals",
+                }),
+              ],
+              unreadCount: 1,
+            }),
+          );
+        }
+        if (input === "/api/v1/admin/join-requests" && method === "GET") {
+          return Promise.resolve(
+            json({
+              requests: [{ id: "jr_1", displayName: "Sven Svensson" }],
+            }),
+          );
+        }
+        if (input === "/api/v1/notifications/read") return Promise.resolve(json({ updated: 1 }));
+        if (input === "/api/v1/join-requests/jr_1/approve" && method === "POST") {
+          return Promise.resolve(json({ ok: true }));
+        }
+        return Promise.resolve(json({ error: "unexpected" }, 500));
+      }),
+    });
+
+    renderInbox();
+    expect(await screen.findByText("New Join Request")).toBeTruthy();
+    fireEvent.click(await screen.findByRole("button", { name: "Approve" }));
+
+    expect(await screen.findByText("Approved")).toBeTruthy();
+    expect(calls.some((c) => c.url === "/api/v1/join-requests/jr_1/approve")).toBe(true);
+    expect(calls.some((c) => c.url === "/api/v1/notifications/read")).toBe(true);
   });
 
   it("shows RSVP and Not going quick actions on new_events reminders", async () => {

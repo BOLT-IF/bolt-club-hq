@@ -334,12 +334,12 @@ function PayDetailRow({
   readonly copyToast?: string;
 }) {
   return (
-    <div className="bcq-pay-row">
+    <li className="bcq-pay-row">
       <div className="bcq-pay-row__text">
-        <dt className="bcq-pay-row__label">{label}</dt>
-        <dd className={cx("bcq-pay-row__value", copyable && "bcq-pay-row__value--mono")}>
+        <span className="bcq-pay-row__label">{label}</span>
+        <span className={cx("bcq-pay-row__value", copyable && "bcq-pay-row__value--mono")}>
           {value}
-        </dd>
+        </span>
       </div>
       {copyable ? (
         <CopyButton
@@ -351,7 +351,7 @@ function PayDetailRow({
           className="bcq-pay-row__copy"
         />
       ) : null}
-    </div>
+    </li>
   );
 }
 
@@ -401,7 +401,7 @@ function HowToPay({
           {info !== null ? (
             <>
               {hasBank && bank ? (
-                <dl className="bcq-pay-rows">
+                <ul className="bcq-pay-rows">
                   {bank.accountHolder ? (
                     <PayDetailRow label="Recipient" value={bank.accountHolder} />
                   ) : null}
@@ -442,7 +442,7 @@ function HowToPay({
                       copyToast="Payment reference copied"
                     />
                   ) : null}
-                </dl>
+                </ul>
               ) : (
                 <p className="bcq-pay-card__fallback">
                   Ask the treasurer for the club&apos;s bank details.

@@ -228,7 +228,8 @@ test("club-week mobile journey across Home, Money, and Polls has zero serious ax
     .getByRole("navigation", { name: "Primary" })
     .getByRole("link", { name: /Money/ })
     .click();
-  await expect(page.getByText("You owe 120 kr")).toBeVisible();
+  await expect(page.getByText("120 kr", { exact: true })).toBeVisible();
+  await expect(page.getByText("Balance Due")).toBeVisible();
   await expect(page.getByText("Thursday Mixed")).toBeVisible();
 
   await page.goto("/polls/pol_1");

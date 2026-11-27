@@ -626,12 +626,12 @@ label.bcq-grouped-row:active {
 }
 
 /* ============================================================================
- * Bottom Sheet & Action Sheet (PWA_UI_Rules.md §4 & §6)
+ * Bottom Sheet & Action Sheet (PWA_UI_Rules.md §4, §5 & §6)
  * ============================================================================ */
 .bcq-sheet-backdrop {
   position: fixed;
   inset: 0;
-  z-index: 50;
+  z-index: 60;
   background: rgb(15 23 42 / 0.45);
   display: flex;
   align-items: flex-end;
@@ -640,31 +640,35 @@ label.bcq-grouped-row:active {
   animation: bcq-fade 160ms var(--bcq-ease);
 }
 .bcq-sheet {
+  display: flex;
+  flex-direction: column;
   width: 100%;
   max-width: 560px;
   max-height: 85dvh;
-  overflow: auto;
+  overflow: hidden;
   overscroll-behavior: contain;
   background: var(--bcq-card);
   border-radius: 20px 20px 0 0;
-  padding: 0.5rem 1.25rem max(1.25rem, calc(1rem + env(safe-area-inset-bottom, 0px)));
   box-shadow: var(--bcq-shadow);
   box-sizing: border-box;
   animation: bcq-rise 220ms var(--bcq-ease);
+}
+.bcq-sheet__top {
+  flex-shrink: 0;
+  padding: 0.5rem 1.25rem 0.5rem;
 }
 .bcq-sheet__grip {
   width: 40px;
   height: 5px;
   border-radius: 999px;
   background: #cbd5e1;
-  margin: 0.375rem auto 0.75rem;
+  margin: 0.25rem auto 0.625rem;
 }
 .bcq-sheet__header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  margin-bottom: 0.5rem;
 }
 .bcq-sheet__title {
   margin: 0;
@@ -672,27 +676,46 @@ label.bcq-grouped-row:active {
   color: var(--bcq-ink);
 }
 .bcq-sheet__close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   min-height: var(--bcq-touch);
   min-width: var(--bcq-touch);
-  padding: 0 0.75rem;
+  padding: 0;
+  margin: -0.25rem -0.25rem -0.25rem 0;
   border: none;
-  border-radius: var(--bcq-radius-sm);
+  border-radius: 999px;
   background: var(--bcq-tonal-bg);
   color: var(--bcq-ink-soft);
   font: 600 0.9375rem/1 var(--bcq-font);
   cursor: pointer;
+  flex-shrink: 0;
   transition:
     background-color 140ms var(--bcq-ease),
     transform 120ms var(--bcq-ease);
 }
 .bcq-sheet__close:hover {
   background: var(--bcq-tonal-hover);
+  color: var(--bcq-ink);
 }
 .bcq-sheet__close:active {
-  transform: scale(0.98);
+  transform: scale(0.96);
 }
 .bcq-sheet__body {
-  padding-top: 0.375rem;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 0.375rem 1.25rem max(1.25rem, calc(1rem + env(safe-area-inset-bottom, 0px)));
+}
+.bcq-sheet--with-footer .bcq-sheet__body {
+  padding-bottom: 1rem;
+}
+.bcq-sheet__footer {
+  flex-shrink: 0;
+  border-top: 1px solid var(--bcq-divider);
+  background: var(--bcq-card);
+  padding: 0.75rem 1.25rem max(1rem, env(safe-area-inset-bottom, 0px));
 }
 
 .bcq-confirm__text {
@@ -801,7 +824,7 @@ label.bcq-grouped-row:active {
   left: 50%;
   bottom: calc(96px + env(safe-area-inset-bottom, 0px));
   transform: translateX(-50%);
-  z-index: 60;
+  z-index: 70;
   display: flex;
   flex-direction: column;
   gap: 0.5rem;

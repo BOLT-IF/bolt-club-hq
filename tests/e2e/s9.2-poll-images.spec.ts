@@ -178,18 +178,19 @@ test.describe("polls with images on mobile (S9.2)", () => {
     );
 
     await page.goto("/admin/polls");
+    await page.getByRole("button", { name: /New Poll/i }).click();
     await page.getByLabel("Question").fill("Which jersey?");
     await page.getByRole("textbox", { name: "Option 1", exact: true }).fill("Orange");
     await page.getByRole("textbox", { name: "Option 2", exact: true }).fill("Slate");
 
-    await page.getByLabel("Image for option 1").setInputFiles({
+    await page.getByLabel("Add image to option 1").setInputFiles({
       name: "orange.png",
       mimeType: "image/png",
       buffer: TINY_PNG,
     });
     await expect(page.getByRole("button", { name: /remove image for option 1/i })).toBeVisible();
 
-    await page.getByRole("button", { name: "Create Poll" }).click();
+    await page.getByRole("button", { name: /Create Poll/i }).click();
     await expect
       .poll(() => createdBody)
       .toEqual({

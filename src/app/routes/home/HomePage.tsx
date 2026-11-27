@@ -3,8 +3,14 @@ import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { ApiError, apiFetch } from "../../api/client";
 import { listEvents, type EventDetail } from "../../api/events";
 import { fetchMyLedger, type MyLedger } from "../../api/ledger";
-import { getMyRsvp, type RsvpStatus, type RsvpView } from "../../components/rsvp/api";
-import { ErrorState, Skeleton, StatusChip, type StatusTone } from "../../components/ui";
+import {
+  declineRsvp,
+  getMyRsvp,
+  putRsvp,
+  type RsvpStatus,
+  type RsvpView,
+} from "../../components/rsvp/api";
+import { Button, ErrorState, Skeleton, StatusChip, type StatusTone } from "../../components/ui";
 import { useFeatureFlag } from "../../lib/flags";
 import { navigate } from "../../lib/navigate";
 import { formatWhen } from "../events/format";
@@ -232,6 +238,9 @@ export function HomePage() {
     };
   }, [attempt, eventsOn, moneyOn, pollsOn]);
 
+  const [busyEventId, setBusyEventId] = useState<string | null>(null);
+  const [quickError, setQuickError] = useState<string | null>(null);
+
   const retry = useCallback(() => {
     setState({ kind: "loading" });
     setAttempt((n) => n + 1);
@@ -399,20 +408,76 @@ export function HomePage() {
             <h2 id="home-unanswered-title" className="bcq-home__card-title">
               Unanswered events
             </h2>
+            {quickError ? (
+              <p role="alert" className="bcq-home__muted">
+                {quickError}
+              </p>
+            ) : null}
             <ul className="bcq-home__list">
-              {data.unanswered.map((event) => (
-                <li key={event.id}>
-                  <AppLink href={`/events/${event.slug}`} className="bcq-home__row">
-                    <span className="bcq-home__row-main">
-                      <span className="bcq-home__row-title">{event.title}</span>
-                      <span className="bcq-home__row-meta">
-                        {formatWhen(event.startsAt, event.endsAt)}
+              {data.unanswered.map((event) => {
+                const isBusy = busyEventId === event.id;
+                const respond = (action: "going" | "decline") => {
+                  if (busyEventId !== null) return;
+                  setBusyEventId(event.id);
+                  setQuickError(null);
+                  const req = action === "going" ? putRsvp(event.id, []) : declineRsvp(event.id);
+                  void req
+                    .then((saved) => {
+                      setState((prev) => {
+                        if (prev.kind !== "ready") return prev;
+                        const remaining = prev.data.unanswered.filter((e) => e.id !== event.id);
+                        const nextRsvps =
+                          action === "going"
+                            ? [...prev.data.rsvps, { event, rsvp: saved }]
+                            : prev.data.rsvps;
+                        return {
+                          kind: "ready",
+                          data: { ...prev.data, unanswered: remaining, rsvps: nextRsvps },
+                        };
+                      });
+                    })
+                    .catch(() => {
+                      setQuickError("Couldn't save that RSVP. Open the event to try again.");
+                    })
+                    .finally(() => {
+                      setBusyEventId(null);
+                    });
+                };
+                return (
+                  <li key={event.id} className="bcq-home__unanswered-item">
+                    <AppLink href={`/events/${event.slug}`} className="bcq-home__row">
+                      <span className="bcq-home__row-main">
+                        <span className="bcq-home__row-title">{event.title}</span>
+                        <span className="bcq-home__row-meta">
+                          {formatWhen(event.startsAt, event.endsAt)}
+                        </span>
                       </span>
-                    </span>
-                    <StatusChip tone="info">RSVP open</StatusChip>
-                  </AppLink>
-                </li>
-              ))}
+                      <StatusChip tone="info">RSVP open</StatusChip>
+                    </AppLink>
+                    <div className="bcq-home__quick-actions">
+                      <Button
+                        disabled={isBusy}
+                        aria-label={`RSVP to ${event.title}`}
+                        onClick={() => {
+                          respond("going");
+                        }}
+                      >
+                        RSVP
+                      </Button>
+                      <Button
+                        variant="secondary"
+                        disabled={isBusy}
+                        aria-label={`Not going to ${event.title}`}
+                        onClick={() => {
+                          respond("decline");
+                        }}
+                      >
+                        Not going
+                      </Button>
+                    </div>
+                  </li>
+                );
+              })}
             </ul>
           </section>
         ) : null}

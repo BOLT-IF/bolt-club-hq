@@ -1,4 +1,4 @@
-import { useEffect, useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 
 import { ApiError } from "../../api/client";
 import type { EventDetail } from "../../api/events";
@@ -68,6 +68,7 @@ export function RsvpPanel({ event }: SlotProps) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const headingId = useId();
+  const quickHandledRef = useRef(false);
 
   const apply = (next: RsvpView | null) => {
     setRsvp(next);
@@ -76,14 +77,54 @@ export function RsvpPanel({ event }: SlotProps) {
 
   useEffect(() => {
     let cancelled = false;
+    const isCancelled = () => cancelled;
     getMyRsvp(event.id)
-      .then((data) => {
-        if (cancelled) return;
+      .then(async (data) => {
+        if (isCancelled()) return;
+        const params = new URLSearchParams(window.location.search);
+        const quick = params.get("quickRsvp");
+        if (
+          !quickHandledRef.current &&
+          (quick === "going" || quick === "decline") &&
+          isOpen(event)
+        ) {
+          quickHandledRef.current = true;
+          params.delete("quickRsvp");
+          const qs = params.toString();
+          window.history.replaceState(
+            null,
+            "",
+            `${window.location.pathname}${qs ? `?${qs}` : ""}${window.location.hash}`,
+          );
+          try {
+            if (quick === "going" && !isActive(data)) {
+              const saved = await putRsvp(event.id, []);
+              if (isCancelled()) return;
+              apply(saved);
+              noteRsvpSaved();
+              setLoad("ready");
+              return;
+            }
+            if (quick === "decline" && data?.status !== "declined") {
+              const saved = await declineRsvp(event.id);
+              if (isCancelled()) return;
+              apply(saved);
+              setLoad("ready");
+              return;
+            }
+          } catch (quickErr: unknown) {
+            if (isCancelled()) return;
+            apply(data);
+            setError(errorText(quickErr));
+            setLoad("ready");
+            return;
+          }
+        }
         apply(data);
         setLoad("ready");
       })
       .catch((err: unknown) => {
-        if (cancelled) return;
+        if (isCancelled()) return;
         const status = err instanceof ApiError ? err.status : 0;
         // Pending, inactive and signed-out viewers cannot RSVP; the page explains why elsewhere.
         setLoad(status === 401 || status === 403 ? "hidden" : "error");
@@ -91,7 +132,7 @@ export function RsvpPanel({ event }: SlotProps) {
     return () => {
       cancelled = true;
     };
-  }, [event.id]);
+  }, [event]);
 
   if (load === "hidden") return null;
   if (event.status === "closed" && event.allocationMode === "instant" && !event.readOnly) {

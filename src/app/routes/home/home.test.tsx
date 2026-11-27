@@ -1,4 +1,4 @@
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { configureApiClient } from "../../api/client";
@@ -294,5 +294,49 @@ describe("HomePage", () => {
     renderHome();
     expect(await screen.findByRole("alert")).toBeTruthy();
     expect(screen.getByRole("button", { name: "Try again" })).toBeTruthy();
+  });
+
+  it("lets members RSVP or mark Not going directly from Unanswered events", async () => {
+    const calls: string[] = [];
+    configureApiClient({
+      fetch: (input, init) => {
+        const method = init?.method ?? "GET";
+        calls.push(`${method} ${input}`);
+        const path = input.replace("/api/v1", "");
+        if (path === "/me") {
+          return Promise.resolve(
+            new Response(
+              JSON.stringify({ id: "mem_1", role: "member", status: "active", seriesIds: [] }),
+              { status: 200 },
+            ),
+          );
+        }
+        if (path === "/events") {
+          return Promise.resolve(
+            new Response(JSON.stringify({ events: [sampleEvent()] }), { status: 200 }),
+          );
+        }
+        if (path === "/events/evt_1/rsvp" && method === "GET") {
+          return Promise.resolve(new Response(JSON.stringify({ rsvp: null }), { status: 200 }));
+        }
+        if (path === "/events/evt_1/rsvp/decline" && method === "POST") {
+          return Promise.resolve(
+            new Response(
+              JSON.stringify({ rsvp: { id: "r1", status: "declined", tier: 2, guests: [] } }),
+              { status: 200 },
+            ),
+          );
+        }
+        return Promise.resolve(new Response(JSON.stringify({}), { status: 200 }));
+      },
+    });
+
+    renderHome({ events: true, money: false, inbox: false, polls: false });
+    fireEvent.click(await screen.findByRole("button", { name: "Not going to Thu Mixed Doubles" }));
+
+    await waitFor(() => {
+      expect(screen.queryByRole("heading", { name: "Unanswered events" })).toBeNull();
+    });
+    expect(calls).toContain("POST /api/v1/events/evt_1/rsvp/decline");
   });
 });

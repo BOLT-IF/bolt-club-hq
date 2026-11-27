@@ -197,4 +197,18 @@ describe("RsvpPanel (S4.2)", () => {
     const post = calls.find((c) => c.method === "POST" && c.path === "/events/evt_1/rsvp/decline");
     expect(post?.key).toBeTruthy();
   });
+
+  it("applies ?quickRsvp=decline from a push action URL and cleans the query string", async () => {
+    window.history.replaceState(null, "", "/events/k3f9xq2m?quickRsvp=decline");
+    const calls = stub(null, () => ({
+      body: { rsvp: view({ status: "declined", guests: [] }) },
+    }));
+    render(<RsvpPanel event={event()} viewer={viewer} />);
+
+    expect(await screen.findByText("Not going")).toBeTruthy();
+    expect(window.location.search).toBe("");
+    expect(calls.some((c) => c.method === "POST" && c.path === "/events/evt_1/rsvp/decline")).toBe(
+      true,
+    );
+  });
 });

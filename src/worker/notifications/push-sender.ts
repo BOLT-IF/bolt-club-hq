@@ -59,6 +59,7 @@ export async function sendPushBatch(deps: SendPushDeps): Promise<SendPushResult>
       attempts: outboundPush.attempts,
       notificationId: notification.id,
       memberId: notification.memberId,
+      category: notification.category,
       title: notification.title,
       body: notification.body,
       link: notification.link,
@@ -94,6 +95,14 @@ export async function sendPushBatch(deps: SendPushDeps): Promise<SendPushResult>
     // A member with more devices than the cap (unrealistic) gets the first `cap` of them.
     const targets = devices.slice(0, cap);
 
+    const actions =
+      row.category === "new_events" && row.link?.startsWith("/events/")
+        ? [
+            { action: "going", title: "RSVP" },
+            { action: "decline", title: "Not going" },
+          ]
+        : undefined;
+
     const outcomes: PushResult[] = [];
     for (const device of targets) {
       const outcome = await deps.transport.send(
@@ -103,6 +112,7 @@ export async function sendPushBatch(deps: SendPushDeps): Promise<SendPushResult>
           body: row.body,
           url: row.link ?? "/inbox",
           tag: row.notificationId,
+          ...(actions ? { actions } : {}),
         },
       );
       outcomes.push(outcome);

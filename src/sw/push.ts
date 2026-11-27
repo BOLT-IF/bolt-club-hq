@@ -29,9 +29,19 @@ function inAppPath(url: unknown): string {
 const text = (v: unknown, fallback: string): string =>
   typeof v === "string" && v.trim() !== "" ? v : fallback;
 
+export interface PushAction {
+  action: string;
+  title: string;
+}
+
+export type PushNotificationOptions = NotificationOptions & {
+  data: { url: string };
+  actions?: PushAction[];
+};
+
 export function notificationFor(data: PushDataLike | null): {
   title: string;
-  options: NotificationOptions & { data: { url: string } };
+  options: PushNotificationOptions;
 } {
   let raw: string;
   try {
@@ -50,14 +60,37 @@ export function notificationFor(data: PushDataLike | null): {
       ? (parsed as Record<string, unknown>)
       : null;
 
-  const options: NotificationOptions & { data: { url: string } } = {
+  const options: PushNotificationOptions = {
     body: obj ? text(obj.body, FALLBACK_BODY) : text(raw, FALLBACK_BODY),
     icon: ICON,
     badge: ICON,
     data: { url: inAppPath(obj?.url) },
   };
   if (obj && typeof obj.tag === "string" && obj.tag !== "") options.tag = obj.tag;
+  if (obj && Array.isArray(obj.actions)) {
+    const valid = obj.actions
+      .filter(
+        (a): a is PushAction =>
+          typeof a === "object" &&
+          a !== null &&
+          typeof (a as { action?: unknown }).action === "string" &&
+          (a as { action: string }).action.trim() !== "" &&
+          typeof (a as { title?: unknown }).title === "string" &&
+          (a as { title: string }).title.trim() !== "",
+      )
+      .slice(0, 2)
+      .map((a) => ({ action: a.action.trim(), title: a.title.trim() }));
+    if (valid.length > 0) options.actions = valid;
+  }
   return { title: obj ? text(obj.title, FALLBACK_TITLE) : FALLBACK_TITLE, options };
+}
+
+/** Appends `?quickRsvp=` when the user tapped a push quick-action button. */
+export function actionUrl(url: unknown, action?: string): string {
+  const base = inAppPath(url);
+  if (action !== "going" && action !== "decline") return base;
+  const sep = base.includes("?") ? "&" : "?";
+  return `${base}${sep}quickRsvp=${action}`;
 }
 
 export function showPush(
@@ -110,7 +143,11 @@ function register(): void {
     event.notification.close();
     const url = (event.notification.data as { url?: unknown } | null)?.url;
     event.waitUntil(
-      focusOrOpen(sw.clients as unknown as ClientsLike, sw.location.origin, inAppPath(url)),
+      focusOrOpen(
+        sw.clients as unknown as ClientsLike,
+        sw.location.origin,
+        actionUrl(url, event.action),
+      ),
     );
   });
 }

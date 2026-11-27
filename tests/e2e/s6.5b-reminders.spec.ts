@@ -90,14 +90,14 @@ test("renders placeholders, rejects unknown placeholder, previews, and disables 
   await page.getByRole("button", { name: "New Rule" }).click();
   await expect(page.getByRole("button", { name: "{paymentRef}" })).toBeVisible();
 
-  await page.getByLabel("Minimum balance owed (kr)").fill("200");
-  await page.getByLabel("Message template").fill("Pay {nope}");
-  await page.getByRole("button", { name: "Save rule" }).click();
+  await page.getByLabel("Minimum Balance Owed (kr)").fill("200");
+  await page.getByLabel("Message Template").fill("Pay {nope}");
+  await page.getByRole("button", { name: "Save Rule" }).click();
   await expect(page.getByText(/unknown placeholder.*\{nope\}/i)).toBeVisible();
 
-  await page.getByLabel("Message template").fill("Pay ");
+  await page.getByLabel("Message Template").fill("Pay ");
   await page.getByRole("button", { name: "{balance}" }).click();
-  await page.getByRole("button", { name: "Save rule" }).click();
+  await page.getByRole("button", { name: "Save Rule" }).click();
   await expect(page.getByText("Pay {balance}")).toBeVisible();
 
   await page
@@ -118,7 +118,7 @@ test("renders placeholders, rejects unknown placeholder, previews, and disables 
   await page.getByRole("button", { name: "Delete Rule" }).click();
   await expect(page.getByText(/already sent reminders/i)).toBeVisible();
   await page.getByRole("button", { name: "Disable instead" }).click();
-  await expect(page.getByText("Disabled").first()).toBeVisible();
+  await expect(page.getByText("Paused").first()).toBeVisible();
 });
 
 test("members get 403 and see an admins-only message", async ({ page }) => {

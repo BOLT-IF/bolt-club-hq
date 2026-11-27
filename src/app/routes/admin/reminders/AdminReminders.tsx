@@ -8,7 +8,7 @@ import {
   ConfirmDialog,
   EmptyState,
   ErrorState,
-  MoreHorizontalIcon,
+  OverflowButton,
   Skeleton,
   StatusChip,
   useToast,
@@ -46,6 +46,44 @@ interface PreviewState {
   readonly loading: boolean;
   readonly data: PreviewResponse | null;
   readonly error: string | null;
+}
+
+function PlusIcon() {
+  return (
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <line x1="12" y1="5" x2="12" y2="19" />
+      <line x1="5" y1="12" x2="19" y2="12" />
+    </svg>
+  );
+}
+
+function BellIcon() {
+  return (
+    <svg
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
+      <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
+    </svg>
+  );
 }
 
 function formatInterval(days: number): string {
@@ -227,7 +265,7 @@ export function AdminReminders() {
   const placeholders = state.placeholders;
 
   return (
-    <section aria-labelledby="admin-reminders-title">
+    <section className="bcq-page bcq-reminders-page" aria-labelledby="admin-reminders-title">
       <div className="bcq-reminders-head">
         <h1 id="admin-reminders-title" className="bcq-page__title">
           Reminders
@@ -238,7 +276,8 @@ export function AdminReminders() {
               setEditor({ mode: "create" });
             }}
           >
-            New Rule
+            <PlusIcon />
+            <span>New Rule</span>
           </Button>
         ) : null}
       </div>
@@ -262,38 +301,37 @@ export function AdminReminders() {
         />
       ) : null}
 
-      {state.rules.length === 0 ? (
-        <EmptyState title="No Reminder Rules Yet">
-          Create a payment or un-RSVPed event rule to send automatic reminders.
-        </EmptyState>
-      ) : (
-        <ul className="bcq-reminders-list" aria-label="Reminder rules">
-          {state.rules.map((rule) => (
-            <li key={rule.id} className="bcq-reminder-card">
-              <div className="bcq-reminder-card__top">
-                <div className="bcq-reminder-card__head-info">
-                  <h2 className="bcq-reminder-card__title">{KIND_LABEL[rule.kind]}</h2>
-                  <StatusChip tone={rule.enabled ? "success" : "neutral"}>
-                    {rule.enabled ? "Enabled" : "Disabled"}
-                  </StatusChip>
+      <div className="bcq-reminders-section">
+        <p className="bcq-reminders-section__label">Reminder Rules</p>
+        {state.rules.length === 0 ? (
+          <EmptyState title="No Reminder Rules Yet" icon={<BellIcon />} tone="neutral">
+            Create a payment or un-RSVPed event rule to send automatic reminders
+          </EmptyState>
+        ) : (
+          <ul className="bcq-reminders-list" aria-label="Reminder rules">
+            {state.rules.map((rule) => (
+              <li key={rule.id} className="bcq-reminder-card">
+                <div className="bcq-reminder-card__top">
+                  <div className="bcq-reminder-card__head-info">
+                    <h2 className="bcq-reminder-card__title">{KIND_LABEL[rule.kind]}</h2>
+                    <StatusChip tone={rule.enabled ? "success" : "neutral"}>
+                      {rule.enabled ? "Enabled" : "Paused"}
+                    </StatusChip>
+                  </div>
+                  <OverflowButton
+                    label={`Actions for ${KIND_LABEL[rule.kind]}`}
+                    onClick={() => {
+                      setSelectedRule(rule);
+                    }}
+                  />
                 </div>
-                <button
-                  type="button"
-                  className="bcq-member__overflow"
-                  aria-label={`Actions for ${KIND_LABEL[rule.kind]}`}
-                  onClick={() => {
-                    setSelectedRule(rule);
-                  }}
-                >
-                  <MoreHorizontalIcon />
-                </button>
-              </div>
-              <p className="bcq-reminder-card__meta">{describeRule(rule)}</p>
-              <p className="bcq-reminder-card__template">{rule.template}</p>
-            </li>
-          ))}
-        </ul>
-      )}
+                <p className="bcq-reminder-card__meta">{describeRule(rule)}</p>
+                <p className="bcq-reminder-card__template">{rule.template}</p>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
 
       <ActionSheet.Root
         open={selectedRule !== null}

@@ -102,7 +102,7 @@ describe("admin reminders screen (S6.5b)", () => {
     expect(screen.getByRole("button", { name: "{paymentRef}" })).toBeTruthy();
 
     // Switching kind renders event_unrsvped placeholders
-    fireEvent.change(screen.getByLabelText("Rule kind"), {
+    fireEvent.change(screen.getByLabelText("Rule Kind"), {
       target: { value: "event_unrsvped" },
     });
     expect(screen.getByRole("button", { name: "{event}" })).toBeTruthy();
@@ -123,15 +123,15 @@ describe("admin reminders screen (S6.5b)", () => {
     renderPage();
 
     fireEvent.click(await screen.findByRole("button", { name: "New Rule" }));
-    fireEvent.change(screen.getByLabelText("Minimum balance owed (kr)"), {
+    fireEvent.change(screen.getByLabelText("Minimum Balance Owed (kr)"), {
       target: { value: "300" },
     });
-    fireEvent.change(screen.getByLabelText("Message template"), {
+    fireEvent.change(screen.getByLabelText("Message Template"), {
       target: { value: "Hello {bogus}!" },
     });
-    fireEvent.click(screen.getByRole("button", { name: "Save rule" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save Rule" }));
 
-    const templateInput = await screen.findByLabelText("Message template");
+    const templateInput = await screen.findByLabelText("Message Template");
     await waitFor(() => {
       expect(templateInput.getAttribute("aria-invalid")).toBe("true");
     });
@@ -153,13 +153,13 @@ describe("admin reminders screen (S6.5b)", () => {
     renderPage();
 
     fireEvent.click(await screen.findByRole("button", { name: "New Rule" }));
-    fireEvent.change(screen.getByLabelText("Minimum balance owed (kr)"), {
+    fireEvent.change(screen.getByLabelText("Minimum Balance Owed (kr)"), {
       target: { value: "300" },
     });
-    fireEvent.change(screen.getByLabelText("Message template"), {
+    fireEvent.change(screen.getByLabelText("Message Template"), {
       target: { value: "Hi {name}" },
     });
-    fireEvent.click(screen.getByRole("button", { name: "Save rule" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save Rule" }));
 
     expect(await screen.findByText(/unknown placeholder: \{serverBad\}/i)).toBeTruthy();
   });
@@ -195,15 +195,15 @@ describe("admin reminders screen (S6.5b)", () => {
 
     // Create event_unrsvped rule
     fireEvent.click(screen.getByRole("button", { name: "New Rule" }));
-    fireEvent.change(screen.getByLabelText("Rule kind"), { target: { value: "event_unrsvped" } });
-    fireEvent.click(screen.getByLabelText(/when event opens/i));
+    fireEvent.change(screen.getByLabelText("Rule Kind"), { target: { value: "event_unrsvped" } });
+    fireEvent.click(screen.getByRole("switch", { name: /when event opens/i }));
     fireEvent.change(screen.getByLabelText(/hours before rsvp closes/i), {
       target: { value: "12" },
     });
-    fireEvent.change(screen.getByLabelText("Message template"), {
+    fireEvent.change(screen.getByLabelText("Message Template"), {
       target: { value: "Join {event}!" },
     });
-    fireEvent.click(screen.getByRole("button", { name: "Save rule" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save Rule" }));
 
     await waitFor(() => {
       const post = fetchMock.mock.calls.find(([, i]) => i?.method === "POST");
@@ -221,10 +221,10 @@ describe("admin reminders screen (S6.5b)", () => {
     // Edit existing rule via action sheet
     fireEvent.click(await screen.findByRole("button", { name: "Actions for Payment Due" }));
     fireEvent.click(await screen.findByRole("button", { name: "Edit" }));
-    fireEvent.change(screen.getByLabelText("Minimum balance owed (kr)"), {
+    fireEvent.change(screen.getByLabelText("Minimum Balance Owed (kr)"), {
       target: { value: "500" },
     });
-    fireEvent.click(screen.getByRole("button", { name: "Save rule" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save Rule" }));
 
     await waitFor(() => {
       const put = fetchMock.mock.calls.find(
@@ -284,7 +284,7 @@ describe("admin reminders screen (S6.5b)", () => {
       expect(put).toBeDefined();
       expect(JSON.parse(put![1]?.body as string)).toMatchObject({ enabled: false });
     });
-    expect(await screen.findByText("Disabled")).toBeTruthy();
+    expect(await screen.findByText("Paused")).toBeTruthy();
   });
 
   it("handles 409 rule_has_sends on delete by offering to disable instead", async () => {
@@ -320,6 +320,6 @@ describe("admin reminders screen (S6.5b)", () => {
       expect(put).toBeDefined();
       expect(JSON.parse(put![1]?.body as string)).toMatchObject({ enabled: false });
     });
-    expect(await screen.findByText("Disabled")).toBeTruthy();
+    expect(await screen.findByText("Paused")).toBeTruthy();
   });
 });

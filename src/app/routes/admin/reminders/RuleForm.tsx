@@ -1,7 +1,8 @@
-import { useRef, useState, type SyntheticEvent } from "react";
+import { useRef, useState } from "react";
 
 import { ApiError, newIdempotencyKey } from "../../../api/client";
-import { Button, useToast } from "../../../components/ui";
+import { BottomSheet, Button, useToast } from "../../../components/ui";
+import { cx } from "../../../lib/cx";
 import {
   createReminderRule,
   findUnknownPlaceholders,
@@ -17,6 +18,12 @@ import {
 const DEFAULT_INTERVAL: Record<RuleKind, string> = {
   payment_due: "90",
   event_unrsvped: "1",
+};
+
+const TEMPLATE_PLACEHOLDER: Record<RuleKind, string> = {
+  payment_due:
+    "Hi {name}, your current club balance is {balance} kr. Please pay using reference {paymentRef}.",
+  event_unrsvped: "Hi {name}, {event} starts {when} and RSVP closes {closes}.",
 };
 
 const MAX_TEMPLATE_LENGTH = 500;
@@ -188,8 +195,7 @@ export function RuleForm({
     el.focus();
   };
 
-  const handleSubmit = async (event: SyntheticEvent) => {
-    event.preventDefault();
+  const submitForm = async () => {
     setFormError(null);
     const validated = validateForm(form, knownPlaceholders);
     if (!validated.ok) {
@@ -229,178 +235,220 @@ export function RuleForm({
   };
 
   return (
-    <form
-      className="bcq-reminder-form"
-      aria-labelledby="rule-form-title"
-      onSubmit={(e) => void handleSubmit(e)}
-      noValidate
-    >
-      <h2 id="rule-form-title" className="bcq-reminder-form__title">
-        {initial ? "Edit reminder rule" : "New reminder rule"}
-      </h2>
-
-      <div className="bcq-reminder-field">
-        <label htmlFor="rule-kind">Rule kind</label>
-        <select
-          id="rule-kind"
-          value={form.kind}
-          onChange={(e) => {
-            handleKindChange(e.target.value as RuleKind);
-          }}
-        >
-          {(["payment_due", "event_unrsvped"] as const).map((kind) => (
-            <option key={kind} value={kind}>
-              {KIND_LABEL[kind]}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      <label className="bcq-reminder-check">
-        <input
-          type="checkbox"
-          checked={form.enabled}
-          onChange={(e) => {
-            setForm((prev) => ({ ...prev, enabled: e.target.checked }));
-          }}
-        />
-        Enabled
-      </label>
-
-      {form.kind === "payment_due" ? (
-        <div className="bcq-reminder-field">
-          <label htmlFor="rule-threshold">Minimum balance owed (kr)</label>
-          <input
-            id="rule-threshold"
-            inputMode="numeric"
-            value={form.thresholdSek}
-            aria-invalid={errors["params.thresholdSek"] ? "true" : undefined}
-            aria-describedby={errors["params.thresholdSek"] ? "rule-threshold-error" : undefined}
-            onChange={(e) => {
-              setForm((prev) => ({ ...prev, thresholdSek: e.target.value }));
-            }}
-          />
-          {errors["params.thresholdSek"] ? (
-            <p id="rule-threshold-error" className="bcq-reminder-field__error">
-              {errors["params.thresholdSek"]}
-            </p>
-          ) : null}
+    <BottomSheet
+      open
+      title={initial ? "Edit Reminder Rule" : "New Reminder Rule"}
+      onClose={onCancel}
+      footer={
+        <div className="bcq-reminder-sheet-footer">
+          <Button type="button" onClick={() => void submitForm()} disabled={saving}>
+            {saving ? "Saving…" : "Save Rule"}
+          </Button>
+          <Button type="button" variant="tonal" onClick={onCancel} disabled={saving}>
+            Cancel
+          </Button>
         </div>
-      ) : (
-        <>
-          <label className="bcq-reminder-check">
-            <input
-              type="checkbox"
-              checked={form.atPublish}
-              onChange={(e) => {
-                setForm((prev) => ({ ...prev, atPublish: e.target.checked }));
-              }}
-            />
-            Remind when event opens (within 7 days of start)
-          </label>
+      }
+    >
+      <form
+        className="bcq-reminder-form"
+        onSubmit={(e) => {
+          e.preventDefault();
+          void submitForm();
+        }}
+        noValidate
+      >
+        <div className="bcq-reminder-field">
+          <label htmlFor="rule-kind">Rule Kind</label>
+          <select
+            id="rule-kind"
+            value={form.kind}
+            onChange={(e) => {
+              handleKindChange(e.target.value as RuleKind);
+            }}
+          >
+            {(["payment_due", "event_unrsvped"] as const).map((kind) => (
+              <option key={kind} value={kind}>
+                {KIND_LABEL[kind]}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div className="bcq-reminder-switch-card">
+          <div className="bcq-reminder-switch__text">
+            <span id="rule-enabled-label" className="bcq-reminder-switch__label">
+              Enabled
+            </span>
+            <span id="rule-enabled-sub" className="bcq-reminder-switch__sub">
+              Send automatically when conditions match
+            </span>
+          </div>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={form.enabled}
+            aria-labelledby="rule-enabled-label"
+            aria-describedby="rule-enabled-sub"
+            className={cx("bcq-reminder-toggle", form.enabled && "is-on")}
+            onClick={() => {
+              setForm((prev) => ({ ...prev, enabled: !prev.enabled }));
+            }}
+          >
+            <span className="bcq-reminder-toggle__track" aria-hidden="true">
+              <span className="bcq-reminder-toggle__thumb" />
+            </span>
+          </button>
+        </div>
+
+        {form.kind === "payment_due" ? (
           <div className="bcq-reminder-field">
-            <label htmlFor="rule-hours">Hours before RSVP closes (optional)</label>
+            <label htmlFor="rule-threshold">Minimum Balance Owed (kr)</label>
             <input
-              id="rule-hours"
+              id="rule-threshold"
+              className="bcq-tabular-nums"
               inputMode="numeric"
-              value={form.hoursBeforeClose}
-              aria-invalid={errors["params.hoursBeforeClose"] ? "true" : undefined}
-              aria-describedby={
-                errors["params.hoursBeforeClose"] ? "rule-hours-error" : "rule-hours-hint"
-              }
+              placeholder="100"
+              value={form.thresholdSek}
+              aria-invalid={errors["params.thresholdSek"] ? "true" : undefined}
+              aria-describedby={errors["params.thresholdSek"] ? "rule-threshold-error" : undefined}
               onChange={(e) => {
-                setForm((prev) => ({ ...prev, hoursBeforeClose: e.target.value }));
+                setForm((prev) => ({ ...prev, thresholdSek: e.target.value }));
               }}
             />
-            <p id="rule-hours-hint" className="bcq-reminder-field__hint">
-              Leave blank to skip the pre-close reminder.
-            </p>
-            {errors["params.hoursBeforeClose"] ? (
-              <p id="rule-hours-error" className="bcq-reminder-field__error">
-                {errors["params.hoursBeforeClose"]}
+            {errors["params.thresholdSek"] ? (
+              <p id="rule-threshold-error" className="bcq-reminder-field__error">
+                {errors["params.thresholdSek"]}
               </p>
             ) : null}
           </div>
-          {errors.params ? (
-            <p role="alert" className="bcq-reminder-field__error">
-              {errors.params}
+        ) : (
+          <>
+            <div className="bcq-reminder-switch-card">
+              <div className="bcq-reminder-switch__text">
+                <span id="rule-at-publish-label" className="bcq-reminder-switch__label">
+                  Remind When Event Opens
+                </span>
+                <span id="rule-at-publish-sub" className="bcq-reminder-switch__sub">
+                  Within 7 days of start
+                </span>
+              </div>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={form.atPublish}
+                aria-labelledby="rule-at-publish-label"
+                aria-describedby="rule-at-publish-sub"
+                className={cx("bcq-reminder-toggle", form.atPublish && "is-on")}
+                onClick={() => {
+                  setForm((prev) => ({ ...prev, atPublish: !prev.atPublish }));
+                }}
+              >
+                <span className="bcq-reminder-toggle__track" aria-hidden="true">
+                  <span className="bcq-reminder-toggle__thumb" />
+                </span>
+              </button>
+            </div>
+            <div className="bcq-reminder-field">
+              <label htmlFor="rule-hours">Hours Before RSVP Closes (Optional)</label>
+              <input
+                id="rule-hours"
+                className="bcq-tabular-nums"
+                inputMode="numeric"
+                placeholder="24"
+                value={form.hoursBeforeClose}
+                aria-invalid={errors["params.hoursBeforeClose"] ? "true" : undefined}
+                aria-describedby={
+                  errors["params.hoursBeforeClose"] ? "rule-hours-error" : "rule-hours-hint"
+                }
+                onChange={(e) => {
+                  setForm((prev) => ({ ...prev, hoursBeforeClose: e.target.value }));
+                }}
+              />
+              <p id="rule-hours-hint" className="bcq-reminder-field__hint">
+                Leave blank to skip the pre-close reminder
+              </p>
+              {errors["params.hoursBeforeClose"] ? (
+                <p id="rule-hours-error" className="bcq-reminder-field__error">
+                  {errors["params.hoursBeforeClose"]}
+                </p>
+              ) : null}
+            </div>
+            {errors.params ? (
+              <p role="alert" className="bcq-reminder-field__error">
+                {errors.params}
+              </p>
+            ) : null}
+          </>
+        )}
+
+        <div className="bcq-reminder-field">
+          <label htmlFor="rule-interval">Minimum Days Between Reminders</label>
+          <input
+            id="rule-interval"
+            className="bcq-tabular-nums"
+            inputMode="numeric"
+            placeholder="90"
+            value={form.minIntervalDays}
+            aria-invalid={errors.minIntervalDays ? "true" : undefined}
+            aria-describedby={errors.minIntervalDays ? "rule-interval-error" : undefined}
+            onChange={(e) => {
+              setForm((prev) => ({ ...prev, minIntervalDays: e.target.value }));
+            }}
+          />
+          {errors.minIntervalDays ? (
+            <p id="rule-interval-error" className="bcq-reminder-field__error">
+              {errors.minIntervalDays}
             </p>
           ) : null}
-        </>
-      )}
-
-      <div className="bcq-reminder-field">
-        <label htmlFor="rule-interval">Minimum days between reminders</label>
-        <input
-          id="rule-interval"
-          inputMode="numeric"
-          value={form.minIntervalDays}
-          aria-invalid={errors.minIntervalDays ? "true" : undefined}
-          aria-describedby={errors.minIntervalDays ? "rule-interval-error" : undefined}
-          onChange={(e) => {
-            setForm((prev) => ({ ...prev, minIntervalDays: e.target.value }));
-          }}
-        />
-        {errors.minIntervalDays ? (
-          <p id="rule-interval-error" className="bcq-reminder-field__error">
-            {errors.minIntervalDays}
-          </p>
-        ) : null}
-      </div>
-
-      <div className="bcq-reminder-field">
-        <label htmlFor="rule-template">Message template</label>
-        <textarea
-          ref={templateRef}
-          id="rule-template"
-          rows={4}
-          maxLength={MAX_TEMPLATE_LENGTH}
-          value={form.template}
-          aria-invalid={errors.template ? "true" : undefined}
-          aria-describedby={errors.template ? "rule-template-error" : "rule-placeholders-help"}
-          onChange={(e) => {
-            setForm((prev) => ({ ...prev, template: e.target.value }));
-          }}
-        />
-        {errors.template ? (
-          <p id="rule-template-error" role="alert" className="bcq-reminder-field__error">
-            {errors.template}
-          </p>
-        ) : null}
-      </div>
-
-      <div className="bcq-placeholders" id="rule-placeholders-help">
-        <p className="bcq-placeholders__label">Available placeholders (tap to insert):</p>
-        <div className="bcq-placeholders__list">
-          {knownPlaceholders.map((name) => (
-            <button
-              key={name}
-              type="button"
-              className="bcq-placeholder-chip"
-              onClick={() => {
-                insertPlaceholder(name);
-              }}
-            >
-              {`{${name}}`}
-            </button>
-          ))}
         </div>
-      </div>
 
-      {formError ? (
-        <p role="alert" className="bcq-reminder-field__error">
-          {formError}
-        </p>
-      ) : null}
+        <div className="bcq-reminder-field">
+          <label htmlFor="rule-template">Message Template</label>
+          <textarea
+            ref={templateRef}
+            id="rule-template"
+            rows={4}
+            maxLength={MAX_TEMPLATE_LENGTH}
+            placeholder={TEMPLATE_PLACEHOLDER[form.kind]}
+            value={form.template}
+            aria-invalid={errors.template ? "true" : undefined}
+            aria-describedby={errors.template ? "rule-template-error" : "rule-placeholders-help"}
+            onChange={(e) => {
+              setForm((prev) => ({ ...prev, template: e.target.value }));
+            }}
+          />
+          {errors.template ? (
+            <p id="rule-template-error" role="alert" className="bcq-reminder-field__error">
+              {errors.template}
+            </p>
+          ) : null}
+        </div>
 
-      <div className="bcq-reminder-form__actions">
-        <Button type="submit" disabled={saving}>
-          {saving ? "Saving…" : "Save rule"}
-        </Button>
-        <Button variant="secondary" onClick={onCancel} disabled={saving}>
-          Cancel
-        </Button>
-      </div>
-    </form>
+        <div className="bcq-placeholders" id="rule-placeholders-help">
+          <p className="bcq-placeholders__label">Available Placeholders (Tap to Insert)</p>
+          <div className="bcq-placeholders__list">
+            {knownPlaceholders.map((name) => (
+              <button
+                key={name}
+                type="button"
+                className="bcq-placeholder-chip"
+                onClick={() => {
+                  insertPlaceholder(name);
+                }}
+              >
+                {`{${name}}`}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {formError ? (
+          <p role="alert" className="bcq-reminder-field__error">
+            {formError}
+          </p>
+        ) : null}
+      </form>
+    </BottomSheet>
   );
 }

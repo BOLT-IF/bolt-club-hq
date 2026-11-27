@@ -2,6 +2,7 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-li
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { configureApiClient } from "../../../api/client";
+import { ToastProvider } from "../../../components/ui";
 import { registeredFrontendRoutes } from "../../registry";
 import { AdminAudit, stockholmDayStartUtc } from "./AdminAudit";
 
@@ -43,7 +44,11 @@ function setup(answer: (path: string) => Response) {
     return Promise.resolve(answer(path));
   });
   configureApiClient({ fetch });
-  render(<AdminAudit />);
+  render(
+    <ToastProvider>
+      <AdminAudit />
+    </ToastProvider>,
+  );
   return paths;
 }
 
@@ -62,33 +67,49 @@ describe("admin audit page", () => {
     expect(registeredFrontendRoutes().map((r) => r.path)).toContain("/admin/audit");
   });
 
-  it("lists entries with who, what, which entity, Stockholm time and the change", async () => {
+  it("lists entries with humanized titles, who, entity, Stockholm time and Change Details sheet", async () => {
     setup(() =>
       json(200, {
-        entries: [entry("a1"), entry("a2", { actorId: null, actorName: null })],
+        entries: [
+          entry("a1", { entityId: "mem_466fd3aa1234d459" }),
+          entry("a2", { actorId: null, actorName: null }),
+        ],
         nextCursor: null,
       }),
     );
-    const item = await screen.findByRole("listitem", { name: /member.role_change by Ada Admin/ });
-    expect(within(item).getByText("member m2")).toBeTruthy();
+    const item = await screen.findByRole("listitem", {
+      name: /Member Role Changed by Ada Admin/,
+    });
+    expect(within(item).getByText("Member")).toBeTruthy();
+    expect(within(item).getByText("mem_466f…d459")).toBeTruthy();
     // 10:00 UTC is 11:00 in Stockholm in February.
     expect(within(item).getByText(/11:00/)).toBeTruthy();
-    expect(within(item).getByText(/"role": "admin"/)).toBeTruthy();
     expect(screen.getByRole("listitem", { name: /by System/ })).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Load more" })).toBeNull();
+
+    fireEvent.click(within(item).getByRole("button"));
+    const dialog = await screen.findByRole("dialog", { name: "Change Details" });
+    expect(within(dialog).getByText("member.role_change")).toBeTruthy();
+    expect(within(dialog).getByText("mem_466fd3aa1234d459")).toBeTruthy();
+    expect(within(dialog).getByText(/"role": "admin"/)).toBeTruthy();
+    expect(within(dialog).getByRole("button", { name: "Copy Entity ID" })).toBeTruthy();
   });
 
-  it("filters send actor, entity, action and a Stockholm date range", async () => {
+  it("filters send actor, entity, action and a Stockholm date range via filter sheet", async () => {
     const paths = setup(() => json(200, { entries: [], nextCursor: null }));
     await screen.findByText(/No audit entries/i);
-    await screen.findByRole("option", { name: "Bo Berg" });
-    fireEvent.change(screen.getByLabelText("Actor"), { target: { value: "m2" } });
-    fireEvent.change(screen.getByLabelText("Entity"), { target: { value: "event" } });
-    fireEvent.change(screen.getByLabelText("Entity ID"), { target: { value: "evt_1" } });
-    fireEvent.change(screen.getByLabelText("Action"), { target: { value: "event.create" } });
-    fireEvent.change(screen.getByLabelText("From"), { target: { value: "2027-02-01" } });
-    fireEvent.change(screen.getByLabelText("To"), { target: { value: "2027-02-28" } });
-    fireEvent.click(screen.getByRole("button", { name: "Apply Filters" }));
+    fireEvent.click(screen.getByRole("button", { name: "Filters" }));
+    const dialog = await screen.findByRole("dialog", { name: "Filter Audit Log" });
+    await within(dialog).findByRole("option", { name: "Bo Berg" });
+    fireEvent.change(within(dialog).getByLabelText("Actor"), { target: { value: "m2" } });
+    fireEvent.change(within(dialog).getByLabelText("Entity"), { target: { value: "event" } });
+    fireEvent.change(within(dialog).getByLabelText("Entity ID"), { target: { value: "evt_1" } });
+    fireEvent.change(within(dialog).getByLabelText("Action"), {
+      target: { value: "event.create" },
+    });
+    fireEvent.change(within(dialog).getByLabelText("From"), { target: { value: "2027-02-01" } });
+    fireEvent.change(within(dialog).getByLabelText("To"), { target: { value: "2027-02-28" } });
+    fireEvent.click(within(dialog).getByRole("button", { name: "Apply Filters" }));
     await waitFor(() => {
       expect(auditCalls(paths)).toHaveLength(2);
     });
@@ -101,6 +122,7 @@ describe("admin audit page", () => {
     // "To" is inclusive in the UI: the API gets the start of the next day.
     expect(q.get("to")).toBe("2027-02-28T23:00:00.000Z");
     expect(q.get("cursor")).toBeNull();
+    expect(await screen.findByRole("region", { name: "Active filters" })).toBeTruthy();
   });
 
   it("load more passes the cursor and appends the next page", async () => {
@@ -110,8 +132,8 @@ describe("admin audit page", () => {
         : json(200, { entries: [entry("a1")], nextCursor: "CUR1" }),
     );
     fireEvent.click(await screen.findByRole("button", { name: "Load more" }));
-    expect(await screen.findByRole("listitem", { name: /member.update/ })).toBeTruthy();
-    expect(screen.getByRole("listitem", { name: /member.role_change/ })).toBeTruthy();
+    expect(await screen.findByRole("listitem", { name: /Member Updated/ })).toBeTruthy();
+    expect(screen.getByRole("listitem", { name: /Member Role Changed/ })).toBeTruthy();
     expect(auditCalls(paths).at(-1)).toContain("cursor=CUR1");
     expect(screen.queryByRole("button", { name: "Load more" })).toBeNull();
   });

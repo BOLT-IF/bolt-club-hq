@@ -1,27 +1,23 @@
 .bcq-history {
   display: grid;
   gap: 1rem;
+  min-width: 0;
 }
 
 .bcq-history__header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
-  flex-wrap: wrap;
+  display: grid;
+  gap: 0.25rem;
 }
+
 .bcq-history__header .bcq-page__title {
   margin: 0;
 }
 
-.bcq-history__back {
-  display: inline-flex;
-  align-items: center;
-  min-height: var(--bcq-touch);
-  color: var(--bcq-brand-deep);
-  text-decoration: underline;
-  text-underline-offset: 2px;
-  font-weight: 600;
+.bcq-history__summary {
+  margin: 0;
+  font: 500 0.75rem/1.3 var(--bcq-font);
+  font-variant-numeric: tabular-nums;
+  color: var(--bcq-muted);
 }
 
 .bcq-history__list {
@@ -29,23 +25,48 @@
   margin: 0;
   padding: 0;
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 0.75rem;
+  min-width: 0;
 }
 
 .bcq-history__item {
+  position: relative;
   display: grid;
-  gap: 0.5rem;
+  gap: 0.625rem;
+  min-width: 0;
   padding: 1rem;
   background: var(--bcq-card);
-  border: 1px solid var(--bcq-line);
+  border: 1px solid rgb(226 232 240 / 0.7);
   border-radius: var(--bcq-radius);
   box-shadow: var(--bcq-card-shadow);
+  transition: background-color 140ms var(--bcq-ease);
+}
+
+.bcq-history__item:has(.bcq-history__title:hover),
+.bcq-history__item:has(.bcq-history__title:active) {
+  background: #f8fafc;
 }
 
 .bcq-history__item[data-highlighted="true"] {
   border-color: var(--bcq-brand);
-  border-left: 3px solid var(--bcq-brand);
   background: var(--bcq-brand-soft);
+}
+
+.bcq-history__card-main {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  min-width: 0;
+  min-height: var(--bcq-touch);
+}
+
+.bcq-history__card-body {
+  display: grid;
+  gap: 0.375rem;
+  min-width: 0;
+  flex: 1;
 }
 
 .bcq-history__row {
@@ -57,37 +78,63 @@
 }
 
 .bcq-history__title {
+  font: 600 0.9375rem/1.35 var(--bcq-font);
+  color: var(--bcq-ink);
+  text-decoration: none;
+}
+
+.bcq-history__title::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border-radius: var(--bcq-radius);
+}
+
+.bcq-history__title:focus-visible {
+  outline: 3px solid var(--bcq-focus);
+  outline-offset: 2px;
+  border-radius: var(--bcq-radius-xs);
+}
+
+.bcq-history__chevron {
   display: inline-flex;
   align-items: center;
-  min-height: var(--bcq-touch);
-  font-weight: 600;
-  color: inherit;
-  text-decoration: underline;
+  justify-content: center;
+  color: #94a3b8;
+  flex-shrink: 0;
 }
 
 .bcq-history__meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.25rem 0.75rem;
   color: var(--bcq-muted);
-  font-size: 0.9375rem;
+  font: 400 0.875rem/1.35 var(--bcq-font);
   font-variant-numeric: tabular-nums;
 }
 
-.bcq-history__why {
+.bcq-history__fee-line {
   margin: 0;
-  font-size: 0.9375rem;
+  color: #475569;
+  font: 400 0.75rem/1.4 var(--bcq-font);
+}
+
+.bcq-history__fee-amount {
+  font-weight: 600;
+  color: var(--bcq-ink);
+  font-variant-numeric: tabular-nums;
 }
 
 .bcq-history__guests,
 .bcq-history__ledger {
+  position: relative;
+  z-index: 2;
   list-style: none;
   margin: 0;
-  padding: 0.5rem 0 0;
-  border-top: 1px solid var(--bcq-line);
+  padding: 0.625rem 0 0;
+  border-top: 1px solid var(--bcq-divider);
   display: grid;
   gap: 0.25rem;
-  font-size: 0.875rem;
+  font-size: 0.8125rem;
+  color: #475569;
 }
 
 .bcq-history__ledger-row {
@@ -100,4 +147,19 @@
 .bcq-history__sum {
   font-variant-numeric: tabular-nums;
   font-weight: 600;
+  color: var(--bcq-ink);
+}
+
+.bcq-history__money-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.125rem;
+  min-height: var(--bcq-touch);
+  color: #c2410c;
+  font: 600 0.8125rem/1.2 var(--bcq-font);
+  text-decoration: none;
+}
+
+.bcq-history__money-link:hover {
+  color: #9a3412;
 }

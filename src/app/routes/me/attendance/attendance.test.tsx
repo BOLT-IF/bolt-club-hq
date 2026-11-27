@@ -148,9 +148,15 @@ describe("AttendanceHistoryPage (/history, S8.2)", () => {
     });
 
     expect(screen.getByText("Thursday XD")).toBeTruthy();
+    expect(screen.getByText("1 No Show")).toBeTruthy();
+    expect(screen.getByText("Spot Refilled")).toBeTruthy();
+    expect(screen.getByText("No Show")).toBeTruthy();
     expect(screen.getByText("Late-cancelled, spot refilled — charge reversed.")).toBeTruthy();
     expect(screen.getByText("Covered by season pass (marked no-show, no extra fee).")).toBeTruthy();
     expect(screen.getByText(/Sam Guest/)).toBeTruthy();
+    expect(screen.queryByText("Back to Money")).toBeNull();
+    expect(screen.queryByText(/Net:/)).toBeNull();
+    expect(container.querySelectorAll(".bcq-history__chevron")).toHaveLength(2);
 
     // Links to the event pages
     const thuLink = screen.getByRole("link", { name: "Thursday XD" });

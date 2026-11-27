@@ -44,6 +44,7 @@ export function MoreSheet({
               label={signOutItem.label}
               icon={signOutItem.icon ? <NavIcon name={signOutItem.icon} /> : undefined}
               iconTone="danger"
+              chevron={false}
               danger
               onClick={onClose}
             />

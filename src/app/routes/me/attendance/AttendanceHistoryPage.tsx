@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState, type MouseEvent } from "react";
 
 import { ApiError } from "../../../api/client";
 import {
+  ChevronRightIcon,
   EmptyState,
   ErrorState,
   Skeleton,
@@ -23,6 +24,7 @@ const eventDate = new Intl.DateTimeFormat("en-GB", {
   month: "short",
   hour: "2-digit",
   minute: "2-digit",
+  hourCycle: "h23",
   timeZone: TZ,
 });
 
@@ -41,35 +43,52 @@ const REASON_LABEL: Record<string, string> = {
 
 function statusBadge(item: MemberAttendanceItem): { tone: StatusTone; text: string } {
   if (item.eventStatus === "cancelled") {
-    return { tone: "neutral", text: "Event cancelled" };
+    return { tone: "neutral", text: "Event Cancelled" };
   }
   const r = item.rsvp;
   if (!r) {
-    return { tone: "neutral", text: "Ledger entry" };
+    return { tone: "neutral", text: "Ledger Entry" };
   }
   if (r.status === "confirmed") {
     if (r.effectiveAttendance === "no_show") {
-      return { tone: "danger", text: "No-show" };
+      return { tone: "danger", text: "No Show" };
     }
-    return {
-      tone: "success",
-      text: r.attendance === "attended" ? "Attended" : "Attended (default)",
-    };
+    return { tone: "success", text: "Attended" };
   }
   if (r.status === "late_cancelled") {
     return r.refilled
-      ? { tone: "info", text: "Late-cancelled (refilled)" }
-      : { tone: "warning", text: "Late-cancelled" };
+      ? { tone: "info", text: "Spot Refilled" }
+      : { tone: "warning", text: "Late Cancelled" };
   }
   if (r.status === "cancelled") {
     return { tone: "neutral", text: "Cancelled" };
   }
   if (r.status === "declined") {
-    return { tone: "neutral", text: "Not going" };
+    return { tone: "neutral", text: "Not Going" };
   }
   if (r.status === "waitlisted") return { tone: "info", text: "Waitlisted" };
-  if (r.status === "offered") return { tone: "info", text: "Spot offered" };
+  if (r.status === "offered") return { tone: "info", text: "Spot Offered" };
   return { tone: "neutral", text: "Requested" };
+}
+
+function summarizeHistory(items: readonly MemberAttendanceItem[]): string {
+  let attended = 0;
+  let cancelled = 0;
+  let noShow = 0;
+  for (const item of items) {
+    const label = statusBadge(item).text;
+    if (label === "Attended") attended += 1;
+    else if (label === "Event Cancelled" || label === "Cancelled") cancelled += 1;
+    else if (label === "No Show") noShow += 1;
+  }
+  const parts: string[] = [];
+  if (attended > 0) parts.push(`${String(attended)} Attended`);
+  if (cancelled > 0) parts.push(`${String(cancelled)} Cancelled`);
+  if (noShow > 0) parts.push(`${String(noShow)} No Show`);
+  if (parts.length === 0) {
+    parts.push(`${String(items.length)} ${items.length === 1 ? "Event" : "Events"}`);
+  }
+  return parts.join(" · ");
 }
 
 function spaLink(path: string) {
@@ -92,20 +111,31 @@ function HistoryCard({
 
   return (
     <li className="bcq-history__item" data-highlighted={highlighted ? "true" : undefined}>
-      <div className="bcq-history__row">
-        <a className="bcq-history__title" href={eventPath} onClick={spaLink(eventPath)}>
-          {item.title}
-        </a>
-        <StatusChip tone={badge.tone}>{badge.text}</StatusChip>
-      </div>
+      <div className="bcq-history__card-main">
+        <div className="bcq-history__card-body">
+          <div className="bcq-history__row">
+            <a className="bcq-history__title" href={eventPath} onClick={spaLink(eventPath)}>
+              {item.title}
+            </a>
+            <StatusChip tone={badge.tone}>{badge.text}</StatusChip>
+          </div>
 
-      <div className="bcq-history__meta">
-        <time dateTime={item.startsAt}>{eventDate.format(new Date(item.startsAt))}</time>
-        {item.location ? <span>{item.location}</span> : null}
-        <span className="bcq-history__sum">Net: {kr(item.netChargedSek)}</span>
-      </div>
+          <div className="bcq-history__meta">
+            <time dateTime={item.startsAt}>{eventDate.format(new Date(item.startsAt))}</time>
+            {item.location ? ` · ${item.location}` : null}
+          </div>
 
-      <p className="bcq-history__why">{item.why}</p>
+          <p className="bcq-history__fee-line">
+            <span className="bcq-history__fee-amount">{kr(item.netChargedSek)}</span>
+            {" · "}
+            <span>{item.why}</span>
+          </p>
+        </div>
+
+        <span className="bcq-history__chevron" aria-hidden="true">
+          <ChevronRightIcon />
+        </span>
+      </div>
 
       {item.guests.length > 0 ? (
         <ul className="bcq-history__guests" aria-label="Guests">
@@ -114,12 +144,12 @@ function HistoryCard({
               Guest: <strong>{g.name}</strong> —{" "}
               {g.status === "confirmed"
                 ? g.effectiveAttendance === "no_show"
-                  ? "No-show"
+                  ? "No Show"
                   : "Attended"
                 : g.status === "late_cancelled"
                   ? g.refilled
-                    ? "Late-cancelled (refilled)"
-                    : "Late-cancelled"
+                    ? "Spot Refilled"
+                    : "Late Cancelled"
                   : g.status}
             </li>
           ))}
@@ -141,8 +171,9 @@ function HistoryCard({
             );
           })}
           <li className="bcq-history__ledger-row">
-            <a className="bcq-history__back" href="/money" onClick={spaLink("/money")}>
-              View in Money
+            <a className="bcq-history__money-link" href="/money" onClick={spaLink("/money")}>
+              <span>View in Money</span>
+              <ChevronRightIcon />
             </a>
           </li>
         </ul>
@@ -192,9 +223,9 @@ export function AttendanceHistoryPage() {
         <h1 id="history-title" className="bcq-page__title">
           Attendance History
         </h1>
-        <a className="bcq-btn bcq-btn--tonal" href="/money" onClick={spaLink("/money")}>
-          Back to Money
-        </a>
+        {state.status === "ready" && state.history.items.length > 0 ? (
+          <p className="bcq-history__summary">{summarizeHistory(state.history.items)}</p>
+        ) : null}
       </div>
 
       {state.status === "loading" ? <Skeleton label="Loading your attendance history" /> : null}

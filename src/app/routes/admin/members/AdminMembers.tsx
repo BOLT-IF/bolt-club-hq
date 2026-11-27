@@ -5,7 +5,6 @@ import { navigate } from "../../../lib/navigate";
 import {
   BottomSheet,
   Button,
-  ConfirmDialog,
   EmptyState,
   ErrorState,
   Skeleton,
@@ -28,11 +27,99 @@ type State =
   | { readonly kind: "error" }
   | { readonly kind: "ready"; readonly members: readonly MemberRow[] };
 
+function MoreHorizontalIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <circle cx="5" cy="12" r="2" />
+      <circle cx="12" cy="12" r="2" />
+      <circle cx="19" cy="12" r="2" />
+    </svg>
+  );
+}
+
+function ShieldIcon() {
+  return (
+    <svg
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+    </svg>
+  );
+}
+
+function PencilIcon() {
+  return (
+    <svg
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
+      <path d="m15 5 4 4" />
+    </svg>
+  );
+}
+
+function UserXIcon() {
+  return (
+    <svg
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+      <circle cx="9" cy="7" r="4" />
+      <line x1="17" y1="8" x2="22" y2="13" />
+      <line x1="22" y1="8" x2="17" y2="13" />
+    </svg>
+  );
+}
+
+function UserCheckIcon() {
+  return (
+    <svg
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+      <circle cx="9" cy="7" r="4" />
+      <polyline points="16 11 18 13 22 9" />
+    </svg>
+  );
+}
+
 /** Admin member list: roles (last-admin protected), deactivate/reactivate, payment reference. */
 export function AdminMembers() {
   const toast = useToast();
   const [state, setState] = useState<State>({ kind: "loading" });
-  const [confirming, setConfirming] = useState<MemberRow | null>(null);
+  const [selected, setSelected] = useState<MemberRow | null>(null);
   const [editing, setEditing] = useState<MemberRow | null>(null);
 
   const load = useCallback(
@@ -113,18 +200,46 @@ export function AdminMembers() {
             const status = STATUS_LABEL[m.status];
             const switchable = m.status === "active" || m.status === "inactive";
             return (
-              <li key={m.id} className="bcq-member" aria-label={m.displayName}>
-                <div className="bcq-member__head">
+              <li
+                key={m.id}
+                className={switchable ? "bcq-member bcq-member--interactive" : "bcq-member"}
+                aria-label={m.displayName}
+                onClick={
+                  switchable
+                    ? () => {
+                        setSelected(m);
+                      }
+                    : undefined
+                }
+              >
+                <div className="bcq-member__top">
                   <h2 className="bcq-member__name">{m.displayName}</h2>
+                  {switchable ? (
+                    <button
+                      type="button"
+                      className="bcq-member__overflow"
+                      aria-label={`Actions for ${m.displayName}`}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelected(m);
+                      }}
+                    >
+                      <MoreHorizontalIcon />
+                    </button>
+                  ) : null}
+                </div>
+                <div className="bcq-member__badges">
                   <StatusChip tone={status.tone}>{status.label}</StatusChip>
                   <StatusChip tone={m.role === "admin" ? "info" : "neutral"}>
                     {m.role === "admin" ? "Admin" : "Member"}
                   </StatusChip>
                 </div>
-                <p className="bcq-member__meta">
-                  Payment reference <strong>{m.paymentRef}</strong>
-                  {m.email ? ` · ${m.email}` : ""}
-                </p>
+                <div className="bcq-member__meta-stack">
+                  <p className="bcq-member__meta">
+                    Payment reference: <strong>{m.paymentRef}</strong>
+                  </p>
+                  {m.email ? <p className="bcq-member__meta">{m.email}</p> : null}
+                </div>
                 {m.status === "pending" ? (
                   <div className="bcq-member__actions">
                     <Button
@@ -142,79 +257,49 @@ export function AdminMembers() {
                     </Button>
                   </div>
                 ) : null}
-                {switchable ? (
-                  <div className="bcq-member__actions">
-                    <Button
-                      variant="secondary"
-                      onClick={() =>
-                        void change(
-                          `/members/${m.id}/role`,
-                          { role: m.role === "admin" ? "member" : "admin" },
-                          "Role updated",
-                        )
-                      }
-                    >
-                      {m.role === "admin" ? "Make member" : "Make admin"}
-                    </Button>
-                    <Button
-                      variant="secondary"
-                      onClick={() => {
-                        setEditing(m);
-                      }}
-                    >
-                      Edit payment reference
-                    </Button>
-                    {m.status === "active" ? (
-                      <Button
-                        variant="danger"
-                        onClick={() => {
-                          setConfirming(m);
-                        }}
-                      >
-                        Deactivate
-                      </Button>
-                    ) : (
-                      <Button
-                        variant="secondary"
-                        onClick={() =>
-                          void change(
-                            `/members/${m.id}/status`,
-                            { status: "active" },
-                            "Member reactivated",
-                          )
-                        }
-                      >
-                        Reactivate
-                      </Button>
-                    )}
-                  </div>
-                ) : null}
               </li>
             );
           })}
         </ul>
       )}
 
-      <ConfirmDialog
-        open={confirming !== null}
-        title={`Deactivate ${confirming?.displayName ?? "member"}?`}
-        description="Their future RSVPs are cancelled (late-cancel rules apply). They keep access to Money and attendance only, and any balance stays due."
-        confirmLabel="Deactivate member"
-        destructive
-        onCancel={() => {
-          setConfirming(null);
-        }}
-        onConfirm={() => {
-          const target = confirming;
-          setConfirming(null);
-          if (target)
-            void change(
-              `/members/${target.id}/status`,
+      {selected ? (
+        <MemberActionSheet
+          member={selected}
+          onClose={() => {
+            setSelected(null);
+          }}
+          onToggleRole={async () => {
+            const ok = await change(
+              `/members/${selected.id}/role`,
+              { role: selected.role === "admin" ? "member" : "admin" },
+              "Role updated",
+            );
+            if (ok) setSelected(null);
+          }}
+          onEditPaymentRef={() => {
+            const target = selected;
+            setSelected(null);
+            setEditing(target);
+          }}
+          onDeactivate={async () => {
+            const ok = await change(
+              `/members/${selected.id}/status`,
               { status: "inactive" },
               "Member deactivated",
             );
-        }}
-      />
+            if (ok) setSelected(null);
+          }}
+          onReactivate={async () => {
+            const ok = await change(
+              `/members/${selected.id}/status`,
+              { status: "active" },
+              "Member reactivated",
+            );
+            if (ok) setSelected(null);
+          }}
+        />
+      ) : null}
 
       {editing ? (
         <PaymentRefSheet
@@ -228,6 +313,153 @@ export function AdminMembers() {
         />
       ) : null}
     </section>
+  );
+}
+
+function MemberActionSheet({
+  member,
+  onClose,
+  onToggleRole,
+  onEditPaymentRef,
+  onDeactivate,
+  onReactivate,
+}: {
+  readonly member: MemberRow;
+  readonly onClose: () => void;
+  readonly onToggleRole: () => Promise<void>;
+  readonly onEditPaymentRef: () => void;
+  readonly onDeactivate: () => Promise<void>;
+  readonly onReactivate: () => Promise<void>;
+}) {
+  const [confirmDeactivate, setConfirmDeactivate] = useState(false);
+  const [busy, setBusy] = useState(false);
+
+  const run = async (fn: () => Promise<void>) => {
+    setBusy(true);
+    try {
+      await fn();
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  if (confirmDeactivate) {
+    return (
+      <BottomSheet
+        open
+        title={`Deactivate ${member.displayName}?`}
+        onClose={() => {
+          if (!busy) onClose();
+        }}
+      >
+        <div className="bcq-action-sheet">
+          <p className="bcq-action-sheet__confirm-copy">
+            Their future RSVPs are cancelled (late-cancel rules apply). They keep access to Money
+            and attendance only, and any balance stays due.
+          </p>
+          <div className="bcq-action-sheet__list">
+            <button
+              type="button"
+              className="bcq-action-sheet__btn bcq-action-sheet__btn--danger-solid"
+              disabled={busy}
+              onClick={() => void run(onDeactivate)}
+            >
+              Deactivate
+            </button>
+            <button
+              type="button"
+              className="bcq-action-sheet__btn bcq-action-sheet__btn--tonal"
+              style={{ justifyContent: "center" }}
+              disabled={busy}
+              onClick={() => {
+                setConfirmDeactivate(false);
+              }}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      </BottomSheet>
+    );
+  }
+
+  return (
+    <BottomSheet
+      open
+      title={member.displayName}
+      onClose={() => {
+        if (!busy) onClose();
+      }}
+    >
+      <div className="bcq-action-sheet">
+        <div className="bcq-action-sheet__context">
+          <p className="bcq-action-sheet__sub">
+            {member.email ? `${member.email} · ` : ""}
+            {member.paymentRef}
+          </p>
+        </div>
+
+        <div className="bcq-action-sheet__list">
+          <button
+            type="button"
+            className="bcq-action-sheet__btn bcq-action-sheet__btn--tonal"
+            disabled={busy}
+            onClick={() => void run(onToggleRole)}
+          >
+            <ShieldIcon />
+            <span>{member.role === "admin" ? "Remove admin" : "Make admin"}</span>
+          </button>
+
+          <button
+            type="button"
+            className="bcq-action-sheet__btn bcq-action-sheet__btn--tonal"
+            disabled={busy}
+            onClick={onEditPaymentRef}
+          >
+            <PencilIcon />
+            <span>Edit payment reference</span>
+          </button>
+
+          {member.status === "inactive" ? (
+            <button
+              type="button"
+              className="bcq-action-sheet__btn bcq-action-sheet__btn--tonal"
+              disabled={busy}
+              onClick={() => void run(onReactivate)}
+            >
+              <UserCheckIcon />
+              <span>Reactivate</span>
+            </button>
+          ) : null}
+
+          {member.status === "active" ? (
+            <>
+              <hr className="bcq-action-sheet__divider" />
+              <button
+                type="button"
+                className="bcq-action-sheet__btn bcq-action-sheet__btn--danger-tonal"
+                disabled={busy}
+                onClick={() => {
+                  setConfirmDeactivate(true);
+                }}
+              >
+                <UserXIcon />
+                <span>Deactivate member</span>
+              </button>
+            </>
+          ) : null}
+
+          <button
+            type="button"
+            className="bcq-action-sheet__btn bcq-action-sheet__btn--cancel"
+            disabled={busy}
+            onClick={onClose}
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+    </BottomSheet>
   );
 }
 

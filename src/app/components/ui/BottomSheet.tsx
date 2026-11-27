@@ -24,6 +24,8 @@ export function BottomSheet({ open, title, onClose, children }: BottomSheetProps
 
   useEffect(() => {
     if (!open) return;
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
     const previous = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     const panel = panelRef.current;
     const first = panel?.querySelector<HTMLElement>(FOCUSABLE) ?? panel;
@@ -52,6 +54,7 @@ export function BottomSheet({ open, title, onClose, children }: BottomSheetProps
     document.addEventListener("keydown", onKey);
     return () => {
       document.removeEventListener("keydown", onKey);
+      document.body.style.overflow = prevOverflow;
       previous?.focus();
     };
   }, [open]);

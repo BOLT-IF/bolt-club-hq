@@ -76,12 +76,18 @@ describe("admin members page", () => {
     expect(registeredFrontendRoutes().map((r) => r.path)).toContain("/admin/members");
   });
 
-  it("lists members with role, status (as text) and payment reference", async () => {
+  it("lists members with compact cards (no inline action buttons) and overflow trigger", async () => {
     setup([ada, bo, cy]);
     const item = await screen.findByRole("listitem", { name: /Bo Berg/ });
     expect(within(item).getByText("BC-BO")).toBeTruthy();
     expect(within(item).getByText("Active")).toBeTruthy();
     expect(within(item).getByText("Member")).toBeTruthy();
+    expect(within(item).getByText("ada@example.com")).toBeTruthy();
+    expect(within(item).queryByRole("button", { name: "Make admin" })).toBeNull();
+    expect(within(item).queryByRole("button", { name: "Edit payment reference" })).toBeNull();
+    expect(within(item).queryByRole("button", { name: "Deactivate" })).toBeNull();
+    expect(within(item).getByRole("button", { name: "Actions for Bo Berg" })).toBeTruthy();
+
     const gone = screen.getByRole("listitem", { name: /Cy Dahl/ });
     expect(within(gone).getByText("Inactive")).toBeTruthy();
     expect(within(screen.getByRole("listitem", { name: /Ada/ })).getByText("Admin")).toBeTruthy();
@@ -101,10 +107,13 @@ describe("admin members page", () => {
     expect(screen.getByRole("button", { name: "Try again" })).toBeTruthy();
   });
 
-  it("promoting asks nothing but PATCHes the role and refreshes the list", async () => {
+  it("promoting via the action sheet PATCHes the role and refreshes the list", async () => {
     const calls = setup([ada, bo]);
     const item = await screen.findByRole("listitem", { name: /Bo Berg/ });
-    fireEvent.click(within(item).getByRole("button", { name: "Make admin" }));
+    fireEvent.click(within(item).getByRole("button", { name: "Actions for Bo Berg" }));
+    const dialog = await screen.findByRole("dialog");
+    expect(within(dialog).getByText(/BC-BO/)).toBeTruthy();
+    fireEvent.click(within(dialog).getByRole("button", { name: "Make admin" }));
     await waitFor(() => {
       expect(calls).toContainEqual({
         method: "PATCH",
@@ -117,14 +126,17 @@ describe("admin members page", () => {
     });
   });
 
-  it("deactivating goes through a confirmation that names the consequence", async () => {
+  it("deactivating transitions the sheet to a confirmation step that names the consequence", async () => {
     const calls = setup([ada, bo]);
     const item = await screen.findByRole("listitem", { name: /Bo Berg/ });
-    fireEvent.click(within(item).getByRole("button", { name: "Deactivate" }));
-    const dialog = await screen.findByRole("dialog");
-    expect(within(dialog).getByText(/future RSVPs/i)).toBeTruthy();
+    fireEvent.click(within(item).getByRole("button", { name: "Actions for Bo Berg" }));
+    const sheet = await screen.findByRole("dialog");
+    fireEvent.click(within(sheet).getByRole("button", { name: "Deactivate member" }));
     expect(calls.some((c) => c.method === "PATCH")).toBe(false);
-    fireEvent.click(within(dialog).getByRole("button", { name: "Deactivate member" }));
+
+    const confirm = await screen.findByRole("dialog", { name: /Deactivate Bo Berg\?/i });
+    expect(within(confirm).getByText(/future RSVPs/i)).toBeTruthy();
+    fireEvent.click(within(confirm).getByRole("button", { name: "Deactivate" }));
     await waitFor(() => {
       expect(calls).toContainEqual({
         method: "PATCH",
@@ -134,10 +146,12 @@ describe("admin members page", () => {
     });
   });
 
-  it("an inactive member can be reactivated", async () => {
+  it("an inactive member can be reactivated from the action sheet", async () => {
     const calls = setup([ada, cy]);
     const item = await screen.findByRole("listitem", { name: /Cy Dahl/ });
-    fireEvent.click(within(item).getByRole("button", { name: "Reactivate" }));
+    fireEvent.click(within(item).getByRole("button", { name: "Actions for Cy Dahl" }));
+    const dialog = await screen.findByRole("dialog");
+    fireEvent.click(within(dialog).getByRole("button", { name: "Reactivate" }));
     await waitFor(() => {
       expect(calls).toContainEqual({
         method: "PATCH",
@@ -150,18 +164,22 @@ describe("admin members page", () => {
   it("shows the server's last-admin refusal in plain words", async () => {
     setup([ada], () => json(409, { error: "last_admin" }));
     const item = await screen.findByRole("listitem", { name: /Ada/ });
-    fireEvent.click(within(item).getByRole("button", { name: "Make member" }));
+    fireEvent.click(within(item).getByRole("button", { name: "Actions for Ada Lovelace" }));
+    const dialog = await screen.findByRole("dialog");
+    fireEvent.click(within(dialog).getByRole("button", { name: "Remove admin" }));
     expect(await screen.findByText(/last admin/i)).toBeTruthy();
   });
 
-  it("edits the payment reference and explains a clash", async () => {
+  it("edits the payment reference from the action sheet and explains a clash", async () => {
     const calls = setup([ada, bo], (_path, body) =>
       (body as { paymentRef?: string }).paymentRef === "BC-ADA"
         ? json(409, { error: "payment_ref_taken" })
         : json(200, {}),
     );
     const item = await screen.findByRole("listitem", { name: /Bo Berg/ });
-    fireEvent.click(within(item).getByRole("button", { name: "Edit payment reference" }));
+    fireEvent.click(within(item).getByRole("button", { name: "Actions for Bo Berg" }));
+    const dialog = await screen.findByRole("dialog");
+    fireEvent.click(within(dialog).getByRole("button", { name: "Edit payment reference" }));
     const input = await screen.findByLabelText("Payment reference");
     fireEvent.change(input, { target: { value: "BC-ADA" } });
     fireEvent.click(screen.getByRole("button", { name: "Save" }));

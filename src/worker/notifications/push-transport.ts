@@ -1,14 +1,21 @@
 import { buildPushPayload } from "@block65/webcrypto-web-push";
 
+export type PushAction = {
+  action: string;
+  title: string;
+};
+
 /** What the service worker receives (src/sw/push.ts reads the same shape). */
-export interface PushPayload {
+export type PushPayload = {
   title: string;
   body: string;
   /** In-app path to open on tap. */
   url: string;
   /** Notification tag, so a re-delivery replaces instead of stacking. */
   tag: string;
-}
+  /** Optional quick-action buttons (rendered on platforms that support Notification.actions). */
+  actions?: PushAction[];
+};
 
 export interface StoredSubscription {
   endpoint: string;

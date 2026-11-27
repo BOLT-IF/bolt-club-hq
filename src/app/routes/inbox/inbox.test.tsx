@@ -130,4 +130,46 @@ describe("inbox screen", () => {
     expect(reads(fetchMock)).toEqual([{ all: true }]);
     expect(screen.queryByRole("button", { name: "Mark all read" })).toBeNull();
   });
+
+  it("shows RSVP and Not going quick actions on new_events reminders", async () => {
+    const calls: Array<{ method: string; url: string }> = [];
+    configureApiClient({
+      fetch: vi.fn((input: string, init?: RequestInit) => {
+        const method = init?.method ?? "GET";
+        calls.push({ method, url: input });
+        if (input === "/api/v1/notifications" && method === "GET") {
+          return Promise.resolve(
+            json({
+              items: [
+                item({
+                  id: "ev_rem",
+                  category: "new_events",
+                  title: "Thu XD open",
+                  link: "/events/thu-xd",
+                }),
+              ],
+              unreadCount: 1,
+            }),
+          );
+        }
+        if (input === "/api/v1/notifications/read") return Promise.resolve(json({ updated: 1 }));
+        if (input === "/api/v1/events/by-slug/thu-xd") {
+          return Promise.resolve(json({ event: { id: "evt_thu" } }));
+        }
+        if (input === "/api/v1/events/evt_thu/rsvp/decline" && method === "POST") {
+          return Promise.resolve(
+            json({ rsvp: { id: "r1", status: "declined", tier: 2, guests: [] } }),
+          );
+        }
+        return Promise.resolve(json({ error: "unexpected" }, 500));
+      }),
+    });
+
+    renderInbox();
+    fireEvent.click(await screen.findByRole("button", { name: "Not going" }));
+
+    expect(await screen.findByText("Not going")).toBeTruthy();
+    expect(calls.some((c) => c.url === "/api/v1/events/evt_thu/rsvp/decline")).toBe(true);
+    expect(calls.some((c) => c.url === "/api/v1/notifications/read")).toBe(true);
+  });
 });

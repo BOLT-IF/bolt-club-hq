@@ -39,3 +39,18 @@
   color: var(--bcq-muted);
   font-size: 0.8125rem;
 }
+.bcq-inbox__card {
+  display: grid;
+  gap: 0.4rem;
+}
+.bcq-inbox__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+.bcq-inbox__error {
+  margin: 0;
+  color: var(--bcq-danger);
+  font-size: 0.875rem;
+}

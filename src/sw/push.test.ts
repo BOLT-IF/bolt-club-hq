@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { focusOrOpen, notificationFor, showPush } from "./push";
+import { actionUrl, focusOrOpen, notificationFor, showPush } from "./push";
 
 const data = (text: string | null) =>
   text === null ? null : { text: () => text, json: () => JSON.parse(text) as unknown };
@@ -53,6 +53,35 @@ describe("SW push handler", () => {
   it("uses plain text as the body under a generic title", () => {
     const n = notificationFor(data("Practice moved"));
     expect(n.options.body).toBe("Practice moved");
+  });
+
+  it("preserves up to two valid quick-action buttons on push notifications", () => {
+    const n = notificationFor(
+      data(
+        JSON.stringify({
+          title: "Thu XD",
+          body: "RSVP open",
+          url: "/events/thu",
+          actions: [
+            { action: "going", title: "RSVP" },
+            { action: "decline", title: "Not going" },
+            { action: "extra", title: "Ignored" },
+          ],
+        }),
+      ),
+    );
+    expect(n.options.actions).toEqual([
+      { action: "going", title: "RSVP" },
+      { action: "decline", title: "Not going" },
+    ]);
+  });
+
+  it("builds quickRsvp action URLs only for going/decline actions", () => {
+    expect(actionUrl("/events/thu", "going")).toBe("/events/thu?quickRsvp=going");
+    expect(actionUrl("/events/thu", "decline")).toBe("/events/thu?quickRsvp=decline");
+    expect(actionUrl("/events/thu?src=push", "going")).toBe("/events/thu?src=push&quickRsvp=going");
+    expect(actionUrl("/events/thu", "")).toBe("/events/thu");
+    expect(actionUrl("https://evil.test/", "going")).toBe("/inbox?quickRsvp=going");
   });
 });
 

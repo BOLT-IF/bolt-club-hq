@@ -69,6 +69,7 @@ test("member submits a payment claim and sees rejected reason in their list", as
   });
 
   await page.goto("/money/claims");
+  await page.getByRole("button", { name: /Past Claims \(1\)/i }).click();
   await expect(page.getByText("No transfer found")).toBeVisible();
 
   await page.getByLabel("Amount (kr)").fill("300");

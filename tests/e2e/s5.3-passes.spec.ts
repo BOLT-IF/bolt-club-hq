@@ -191,7 +191,7 @@ test("admin filters revocable passes and revokes one", async ({ page }) => {
   await list.getByRole("button", { name: /revoke pass/i }).click();
   const dialog = page.getByRole("dialog");
   await dialog.getByRole("button", { name: /confirm revocation/i }).click();
-  await expect(page.getByText("No revocable passes")).toBeVisible();
+  await expect(page.getByText("No Revocable Passes")).toBeVisible();
 });
 
 test("passes screen has no serious or critical axe violations", async ({ page }) => {

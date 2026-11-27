@@ -21,7 +21,7 @@
   font: 600 0.75rem/1.2 var(--bcq-font);
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: #64748b;
+  color: var(--bcq-muted);
 }
 
 .bcq-approvals__list {
@@ -87,7 +87,7 @@
 .bcq-approvals__empty-sub {
   margin: 0;
   font: 400 0.875rem/1.35 var(--bcq-font);
-  color: #64748b;
+  color: var(--bcq-muted);
 }
 
 .bcq-approvals__grid2 {
@@ -181,7 +181,7 @@
 .bcq-approvals__meta {
   margin: 0;
   font: 400 0.875rem/1.35 var(--bcq-font);
-  color: #64748b;
+  color: var(--bcq-muted);
 }
 
 .bcq-approvals__meta--past {
@@ -270,7 +270,7 @@
   font: 600 0.75rem/1.2 var(--bcq-font);
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: #64748b;
+  color: var(--bcq-muted);
   cursor: pointer;
 }
 

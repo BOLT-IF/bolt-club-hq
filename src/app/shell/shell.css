@@ -240,7 +240,7 @@ body {
   font: 600 0.75rem/1.2 var(--bcq-font);
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: #64748b;
+  color: var(--bcq-muted);
 }
 .bcq-admin-group__card {
   list-style: none;
@@ -308,7 +308,7 @@ body {
 .bcq-admin-row__count {
   font: 500 0.875rem/1 var(--bcq-font);
   font-variant-numeric: tabular-nums;
-  color: #64748b;
+  color: var(--bcq-muted);
 }
 .bcq-admin-row__pill {
   display: inline-flex;

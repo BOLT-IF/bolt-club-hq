@@ -83,6 +83,66 @@ function CalendarIcon() {
   );
 }
 
+function CalendarClockIcon() {
+  return (
+    <svg
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M21 7.5V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h3.5" />
+      <path d="M16 2v4" />
+      <path d="M8 2v4" />
+      <path d="M3 10h5" />
+      <circle cx="16" cy="16" r="6" />
+      <path d="M16 14v2.2l1.6 1" />
+    </svg>
+  );
+}
+
+function CheckIcon() {
+  return (
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <polyline points="20 6 9 17 4 12" />
+    </svg>
+  );
+}
+
+function XIcon() {
+  return (
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M18 6 6 18" />
+      <path d="m6 6 12 12" />
+    </svg>
+  );
+}
+
 function WalletIcon({ size = 18 }: { readonly size?: number }) {
   return (
     <svg
@@ -140,6 +200,34 @@ function BarChartIcon() {
       <line x1="12" y1="20" x2="12" y2="4" />
       <line x1="6" y1="20" x2="6" y2="14" />
     </svg>
+  );
+}
+
+function HomeCardHeader({
+  id,
+  icon,
+  iconTone,
+  title,
+  trailing,
+}: {
+  readonly id: string;
+  readonly icon: ReactNode;
+  readonly iconTone: "emerald" | "neutral" | "amber" | "slate";
+  readonly title: string;
+  readonly trailing?: ReactNode;
+}) {
+  return (
+    <div className="bcq-home__card-head">
+      <div className="bcq-home__card-title-group">
+        <span className={`bcq-icon-badge bcq-icon-badge--${iconTone}`} aria-hidden="true">
+          {icon}
+        </span>
+        <h2 id={id} className="bcq-home__card-title">
+          {title}
+        </h2>
+      </div>
+      {trailing}
+    </div>
   );
 }
 
@@ -222,6 +310,8 @@ type LoadState =
   | { readonly kind: "ready"; readonly data: HomeData };
 
 const MAX_EVENT_LOOKUPS = 6;
+const MAX_HOME_RSVPS = 3;
+const MAX_HOME_UNANSWERED = 2;
 
 const RSVP_CHIP: Record<
   Exclude<RsvpStatus, "cancelled" | "late_cancelled" | "declined">,
@@ -504,40 +594,48 @@ export function HomePage() {
             />
           ) : (
             <section className="bcq-home__card" aria-labelledby="home-admin-title">
-              <div className="bcq-home__card-head">
-                <div className="bcq-home__card-title-group">
-                  <span className="bcq-icon-badge bcq-icon-badge--amber" aria-hidden="true">
-                    <ShieldIcon />
-                  </span>
-                  <h2 id="home-admin-title" className="bcq-home__card-title">
-                    Admin Tasks
-                  </h2>
-                </div>
-                <AppLink href="/admin" className="bcq-chevron-link">
-                  <span>Admin</span>
-                  <ChevronRightIcon />
-                </AppLink>
-              </div>
-              <ul className="bcq-home__list">
+              <HomeCardHeader
+                id="home-admin-title"
+                icon={<ShieldIcon />}
+                iconTone="amber"
+                title="Admin Tasks"
+                trailing={
+                  <AppLink href="/admin" className="bcq-chevron-link">
+                    <span>Admin</span>
+                    <ChevronRightIcon />
+                  </AppLink>
+                }
+              />
+              <ul className="bcq-home__divided-list">
                 {data.adminTasks.pendingJoinRequests > 0 ? (
                   <li>
-                    <AppLink href="/admin/approvals" className="bcq-home__row">
+                    <AppLink href="/admin/approvals" className="bcq-home__divided-row">
                       <span className="bcq-home__row-title">
                         {data.adminTasks.pendingJoinRequests} pending join{" "}
                         {data.adminTasks.pendingJoinRequests === 1 ? "request" : "requests"}
                       </span>
-                      <StatusChip tone="warning">Review</StatusChip>
+                      <span className="bcq-home__row-end">
+                        <StatusChip tone="warning">Review</StatusChip>
+                        <span className="bcq-home__row-chevron" aria-hidden="true">
+                          <ChevronRightIcon />
+                        </span>
+                      </span>
                     </AppLink>
                   </li>
                 ) : null}
                 {moneyOn && data.adminTasks.pendingPaymentClaims > 0 ? (
                   <li>
-                    <AppLink href="/admin/money/claims" className="bcq-home__row">
+                    <AppLink href="/admin/money/claims" className="bcq-home__divided-row">
                       <span className="bcq-home__row-title">
                         {data.adminTasks.pendingPaymentClaims} pending payment{" "}
                         {data.adminTasks.pendingPaymentClaims === 1 ? "claim" : "claims"}
                       </span>
-                      <StatusChip tone="warning">Review</StatusChip>
+                      <span className="bcq-home__row-end">
+                        <StatusChip tone="warning">Review</StatusChip>
+                        <span className="bcq-home__row-chevron" aria-hidden="true">
+                          <ChevronRightIcon />
+                        </span>
+                      </span>
                     </AppLink>
                   </li>
                 ) : null}
@@ -552,29 +650,27 @@ export function HomePage() {
               id="home-rsvps-title"
               href="/events"
               icon={<CalendarIcon />}
-              iconTone="neutral"
+              iconTone="slate"
               title="Next RSVPs"
-              subtitle="No upcoming RSVPs"
+              subtitle={data.unanswered.length > 0 ? "None confirmed yet" : "No upcoming RSVPs"}
               actionLabel="All Events"
             />
           ) : (
             <section className="bcq-home__card" aria-labelledby="home-rsvps-title">
-              <div className="bcq-home__card-head">
-                <div className="bcq-home__card-title-group">
-                  <span className="bcq-icon-badge bcq-icon-badge--neutral" aria-hidden="true">
-                    <CalendarIcon />
-                  </span>
-                  <h2 id="home-rsvps-title" className="bcq-home__card-title">
-                    Next RSVPs
-                  </h2>
-                </div>
-                <AppLink href="/events" className="bcq-chevron-link">
-                  <span>All Events</span>
-                  <ChevronRightIcon />
-                </AppLink>
-              </div>
-              <ul className="bcq-home__list">
-                {data.rsvps.map(({ event, rsvp }) => {
+              <HomeCardHeader
+                id="home-rsvps-title"
+                icon={<CalendarIcon />}
+                iconTone="slate"
+                title="Next RSVPs"
+                trailing={
+                  <AppLink href="/events" className="bcq-chevron-link">
+                    <span>All Events</span>
+                    <ChevronRightIcon />
+                  </AppLink>
+                }
+              />
+              <ul className="bcq-home__divided-list">
+                {data.rsvps.slice(0, MAX_HOME_RSVPS).map(({ event, rsvp }) => {
                   const chip =
                     rsvp &&
                     rsvp.status !== "cancelled" &&
@@ -584,7 +680,7 @@ export function HomePage() {
                       : null;
                   return (
                     <li key={event.id}>
-                      <AppLink href={`/events/${event.slug}`} className="bcq-home__row">
+                      <AppLink href={`/events/${event.slug}`} className="bcq-home__divided-row">
                         <span className="bcq-home__row-main">
                           <span className="bcq-home__row-title">{event.title}</span>
                           <span className="bcq-home__row-meta">
@@ -592,7 +688,12 @@ export function HomePage() {
                             {event.location ? ` · ${event.location}` : ""}
                           </span>
                         </span>
-                        {chip ? <StatusChip tone={chip.tone}>{chip.label}</StatusChip> : null}
+                        <span className="bcq-home__row-end">
+                          {chip ? <StatusChip tone={chip.tone}>{chip.label}</StatusChip> : null}
+                          <span className="bcq-home__row-chevron" aria-hidden="true">
+                            <ChevronRightIcon />
+                          </span>
+                        </span>
                       </AppLink>
                     </li>
                   );
@@ -602,105 +703,142 @@ export function HomePage() {
           )
         ) : null}
 
-        {eventsOn && isActive && data.unanswered.length > 0 ? (
-          <section className="bcq-home__card" aria-labelledby="home-unanswered-title">
-            <h2 id="home-unanswered-title" className="bcq-home__card-title">
-              Unanswered Events
-            </h2>
-            {quickError ? (
-              <p role="alert" className="bcq-home__muted">
-                {quickError}
-              </p>
-            ) : null}
-            <ul className="bcq-home__list">
-              {data.unanswered.map((event) => {
-                const isBusy = busyEventId === event.id;
-                const respond = (action: "going" | "decline") => {
-                  if (busyEventId !== null) return;
-                  setBusyEventId(event.id);
-                  setQuickError(null);
-                  const req = action === "going" ? putRsvp(event.id, []) : declineRsvp(event.id);
-                  void req
-                    .then((saved) => {
-                      setState((prev) => {
-                        if (prev.kind !== "ready") return prev;
-                        const remaining = prev.data.unanswered.filter((e) => e.id !== event.id);
-                        const nextRsvps =
-                          action === "going"
-                            ? [...prev.data.rsvps, { event, rsvp: saved }]
-                            : prev.data.rsvps;
-                        return {
-                          kind: "ready",
-                          data: { ...prev.data, unanswered: remaining, rsvps: nextRsvps },
-                        };
-                      });
-                    })
-                    .catch(() => {
-                      setQuickError("Couldn't save that RSVP. Open the event to try again.");
-                    })
-                    .finally(() => {
-                      setBusyEventId(null);
-                    });
-                };
-                return (
-                  <li key={event.id} className="bcq-home__unanswered-item">
-                    <AppLink href={`/events/${event.slug}`} className="bcq-home__row">
-                      <span className="bcq-home__row-main">
-                        <span className="bcq-home__row-title">{event.title}</span>
-                        <span className="bcq-home__row-meta">
-                          {formatWhen(event.startsAt, event.endsAt)}
-                        </span>
-                      </span>
-                      <StatusChip tone="info">RSVP Open</StatusChip>
+        {eventsOn && isActive && data.unanswered.length > 0
+          ? (() => {
+              const visibleUnanswered = data.unanswered.slice(0, MAX_HOME_UNANSWERED);
+              const remainingUnanswered = data.unanswered.length - visibleUnanswered.length;
+              return (
+                <section className="bcq-home__card" aria-labelledby="home-unanswered-title">
+                  <HomeCardHeader
+                    id="home-unanswered-title"
+                    icon={<CalendarClockIcon />}
+                    iconTone="amber"
+                    title="Unanswered Events"
+                    trailing={
+                      <AppLink href="/events" className="bcq-chevron-link">
+                        <span>All Events</span>
+                        <ChevronRightIcon />
+                      </AppLink>
+                    }
+                  />
+                  {quickError ? (
+                    <p role="alert" className="bcq-home__muted">
+                      {quickError}
+                    </p>
+                  ) : null}
+                  <ul className="bcq-home__divided-list">
+                    {visibleUnanswered.map((event, index) => {
+                      const isBusy = busyEventId === event.id;
+                      const respond = (action: "going" | "decline") => {
+                        if (busyEventId !== null) return;
+                        setBusyEventId(event.id);
+                        setQuickError(null);
+                        const req =
+                          action === "going" ? putRsvp(event.id, []) : declineRsvp(event.id);
+                        void req
+                          .then((saved) => {
+                            setState((prev) => {
+                              if (prev.kind !== "ready") return prev;
+                              const remaining = prev.data.unanswered.filter(
+                                (e) => e.id !== event.id,
+                              );
+                              const nextRsvps =
+                                action === "going"
+                                  ? [...prev.data.rsvps, { event, rsvp: saved }]
+                                  : prev.data.rsvps;
+                              return {
+                                kind: "ready",
+                                data: { ...prev.data, unanswered: remaining, rsvps: nextRsvps },
+                              };
+                            });
+                          })
+                          .catch(() => {
+                            setQuickError("Couldn't save that RSVP. Open the event to try again.");
+                          })
+                          .finally(() => {
+                            setBusyEventId(null);
+                          });
+                      };
+                      return (
+                        <li key={event.id} className="bcq-home__unanswered-item">
+                          <AppLink
+                            href={`/events/${event.slug}`}
+                            className="bcq-home__unanswered-link"
+                          >
+                            <span className="bcq-home__row-main">
+                              <span className="bcq-home__row-title-line">
+                                <span className="bcq-home__row-title">{event.title}</span>
+                                {index === 0 ? (
+                                  <span className="bcq-home__next-pill">Next Up</span>
+                                ) : null}
+                              </span>
+                              <span className="bcq-home__row-meta">
+                                {formatWhen(event.startsAt, event.endsAt)}
+                                {event.location ? ` · ${event.location}` : ""}
+                              </span>
+                            </span>
+                            <span className="bcq-home__row-chevron" aria-hidden="true">
+                              <ChevronRightIcon />
+                            </span>
+                          </AppLink>
+                          <div className="bcq-home__quick-actions">
+                            <Button
+                              className="bcq-home__quick-btn"
+                              disabled={isBusy}
+                              aria-label={`RSVP to ${event.title}`}
+                              onClick={() => {
+                                respond("going");
+                              }}
+                            >
+                              <CheckIcon />
+                              <span>RSVP</span>
+                            </Button>
+                            <Button
+                              variant="tonal"
+                              className="bcq-home__quick-btn"
+                              disabled={isBusy}
+                              aria-label={`Not Going to ${event.title}`}
+                              onClick={() => {
+                                respond("decline");
+                              }}
+                            >
+                              <XIcon />
+                              <span>Not Going</span>
+                            </Button>
+                          </div>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                  {remainingUnanswered > 0 ? (
+                    <AppLink href="/events" className="bcq-home__card-footer-link">
+                      <span>+{remainingUnanswered} More in Events</span>
+                      <ChevronRightIcon />
                     </AppLink>
-                    <div className="bcq-home__quick-actions">
-                      <Button
-                        disabled={isBusy}
-                        aria-label={`RSVP to ${event.title}`}
-                        onClick={() => {
-                          respond("going");
-                        }}
-                      >
-                        RSVP
-                      </Button>
-                      <Button
-                        variant="tonal"
-                        disabled={isBusy}
-                        aria-label={`Not Going to ${event.title}`}
-                        onClick={() => {
-                          respond("decline");
-                        }}
-                      >
-                        Not Going
-                      </Button>
-                    </div>
-                  </li>
-                );
-              })}
-            </ul>
-          </section>
-        ) : null}
+                  ) : null}
+                </section>
+              );
+            })()
+          : null}
 
         {moneyOn ? (
           <section className="bcq-home__card" aria-labelledby="home-money-title">
-            <div className="bcq-home__card-head">
-              <div className="bcq-home__card-title-group">
-                <span className="bcq-icon-badge bcq-icon-badge--slate" aria-hidden="true">
-                  <WalletIcon />
-                </span>
-                <h2 id="home-money-title" className="bcq-home__card-title">
-                  Money &amp; Passes
-                </h2>
-              </div>
-              {data.ledger ? (
-                <StatusChip tone={balanceSummary(data.ledger).tone}>
-                  {balanceSummary(data.ledger).text}
-                </StatusChip>
-              ) : null}
-            </div>
+            <HomeCardHeader
+              id="home-money-title"
+              icon={<WalletIcon />}
+              iconTone="slate"
+              title="Money & Passes"
+              trailing={
+                data.ledger ? (
+                  <StatusChip tone={balanceSummary(data.ledger).tone}>
+                    {balanceSummary(data.ledger).text}
+                  </StatusChip>
+                ) : null
+              }
+            />
 
             {data.pendingClaims.length > 0 ? (
-              <AppLink href="/money/claims" className="bcq-home__row">
+              <AppLink href="/money/claims" className="bcq-home__soft-row">
                 <span className="bcq-home__row-title">
                   {data.pendingClaims.length} pending{" "}
                   {data.pendingClaims.length === 1 ? "claim" : "claims"} ({pendingClaimTotal} kr)
@@ -711,10 +849,10 @@ export function HomePage() {
 
             {isActive ? (
               data.activePasses.length > 0 ? (
-                <ul className="bcq-home__list">
+                <ul className="bcq-home__soft-list">
                   {data.activePasses.map((pass) => (
                     <li key={pass.id}>
-                      <AppLink href="/money/passes" className="bcq-home__row">
+                      <AppLink href="/money/passes" className="bcq-home__soft-row">
                         <span className="bcq-home__row-main">
                           <span className="bcq-home__row-title">{pass.seriesName}</span>
                           <span className="bcq-home__row-meta">{pass.termName}</span>
@@ -763,35 +901,38 @@ export function HomePage() {
               id="home-polls-title"
               href="/polls"
               icon={<BarChartIcon />}
-              iconTone="neutral"
+              iconTone="slate"
               title="Open Polls"
               subtitle="No open polls"
               actionLabel="All Polls"
             />
           ) : (
             <section className="bcq-home__card" aria-labelledby="home-polls-title">
-              <div className="bcq-home__card-head">
-                <div className="bcq-home__card-title-group">
-                  <span className="bcq-icon-badge bcq-icon-badge--neutral" aria-hidden="true">
-                    <BarChartIcon />
-                  </span>
-                  <h2 id="home-polls-title" className="bcq-home__card-title">
-                    Open Polls
-                  </h2>
-                </div>
-                <AppLink href="/polls" className="bcq-chevron-link">
-                  <span>All Polls</span>
-                  <ChevronRightIcon />
-                </AppLink>
-              </div>
-              <ul className="bcq-home__list">
+              <HomeCardHeader
+                id="home-polls-title"
+                icon={<BarChartIcon />}
+                iconTone="slate"
+                title="Open Polls"
+                trailing={
+                  <AppLink href="/polls" className="bcq-chevron-link">
+                    <span>All Polls</span>
+                    <ChevronRightIcon />
+                  </AppLink>
+                }
+              />
+              <ul className="bcq-home__divided-list">
                 {data.openPolls.map((poll) => (
                   <li key={poll.id}>
-                    <AppLink href={`/polls/${poll.id}`} className="bcq-home__row">
+                    <AppLink href={`/polls/${poll.id}`} className="bcq-home__divided-row">
                       <span className="bcq-home__row-title">{poll.question}</span>
-                      <StatusChip tone={poll.myVote.length === 0 ? "info" : "success"}>
-                        {poll.myVote.length === 0 ? "Needs Your Vote" : "Voted"}
-                      </StatusChip>
+                      <span className="bcq-home__row-end">
+                        <StatusChip tone={poll.myVote.length === 0 ? "info" : "success"}>
+                          {poll.myVote.length === 0 ? "Needs Your Vote" : "Voted"}
+                        </StatusChip>
+                        <span className="bcq-home__row-chevron" aria-hidden="true">
+                          <ChevronRightIcon />
+                        </span>
+                      </span>
                     </AppLink>
                   </li>
                 ))}

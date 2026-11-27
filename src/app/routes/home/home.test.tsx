@@ -137,9 +137,12 @@ describe("HomePage", () => {
 
     renderHome();
 
-    expect(await screen.findByText("No upcoming RSVPs")).toBeTruthy();
+    expect(await screen.findByText("None confirmed yet")).toBeTruthy();
     const eventLink = screen.getByRole("link", { name: /Thu Mixed Doubles/ });
     expect(eventLink.getAttribute("href")).toBe("/events/k3f9xq2m");
+    expect(eventLink.textContent).toContain("Hall X");
+    expect(screen.getByText("Next Up")).toBeTruthy();
+    expect(screen.queryByText("RSVP Open")).toBeNull();
     expect(screen.getByText(/0 kr/)).toBeTruthy();
     expect(screen.getByText("No active pass")).toBeTruthy();
     expect(screen.getByRole("link", { name: /Pass Offers/i }).getAttribute("href")).toBe(
@@ -149,6 +152,53 @@ describe("HomePage", () => {
     expect(pollLink.getAttribute("href")).toBe("/polls/pol_1");
     expect(screen.getByText("Needs Your Vote")).toBeTruthy();
     expect(screen.queryByRole("heading", { name: "Admin Tasks" })).toBeNull();
+  });
+
+  it("caps Unanswered Events to 2 items with a footer link and caps Next RSVPs to 3", async () => {
+    const events = [
+      sampleEvent({ id: "e1", slug: "e1", title: "Session 1", location: "Sollentuna Rackethall" }),
+      sampleEvent({ id: "e2", slug: "e2", title: "Session 2", location: "Sollentuna Rackethall" }),
+      sampleEvent({ id: "e3", slug: "e3", title: "Session 3", location: "Sollentuna Rackethall" }),
+      sampleEvent({ id: "e4", slug: "e4", title: "Session 4", location: "Sollentuna Rackethall" }),
+    ];
+    stubApi({
+      "/me": { body: { id: "mem_cap", role: "member", status: "active", seriesIds: [] } },
+      "/events": { body: { events } },
+      "/events/e1/rsvp": { body: { rsvp: null } },
+      "/events/e2/rsvp": { body: { rsvp: null } },
+      "/events/e3/rsvp": { body: { rsvp: null } },
+      "/events/e4/rsvp": { body: { rsvp: null } },
+      "/me/ledger": { body: { balanceSek: 0, owedSek: 0, creditSek: 0, items: [] } },
+      "/me/payment-claims": { body: { claims: [] } },
+      "/passes/offers": { body: { offers: [], passes: [] } },
+      "/polls": { body: { polls: [] } },
+    });
+
+    renderHome();
+
+    expect(await screen.findByText("Session 1")).toBeTruthy();
+    expect(screen.getByText("Session 2")).toBeTruthy();
+    expect(screen.queryByText("Session 3")).toBeNull();
+    expect(screen.queryByText("Session 4")).toBeNull();
+    expect(screen.getAllByText("Next Up")).toHaveLength(1);
+    const moreLink = screen.getByRole("link", { name: /\+2 More in Events/ });
+    expect(moreLink.getAttribute("href")).toBe("/events");
+  });
+
+  it("shows 'No upcoming RSVPs' when both confirmed and unanswered lists are empty", async () => {
+    stubApi({
+      "/me": { body: { id: "mem_empty", role: "member", status: "active", seriesIds: [] } },
+      "/events": { body: { events: [] } },
+      "/me/ledger": { body: { balanceSek: 0, owedSek: 0, creditSek: 0, items: [] } },
+      "/me/payment-claims": { body: { claims: [] } },
+      "/passes/offers": { body: { offers: [], passes: [] } },
+      "/polls": { body: { polls: [] } },
+    });
+
+    renderHome();
+
+    expect(await screen.findByText("No upcoming RSVPs")).toBeTruthy();
+    expect(screen.queryByRole("heading", { name: "Unanswered Events" })).toBeNull();
   });
 
   it("renders dashboard for a prepaid member", async () => {
@@ -337,7 +387,7 @@ describe("HomePage", () => {
     fireEvent.click(await screen.findByRole("button", { name: "Not Going to Thu Mixed Doubles" }));
 
     await waitFor(() => {
-      expect(screen.queryByRole("heading", { name: "Unanswered events" })).toBeNull();
+      expect(screen.queryByRole("heading", { name: "Unanswered Events" })).toBeNull();
     });
     expect(calls).toContain("POST /api/v1/events/evt_1/rsvp/decline");
   });

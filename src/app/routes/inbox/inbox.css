@@ -12,14 +12,7 @@
   min-width: 0;
 }
 
-.bcq-inbox-page__title-group {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  min-width: 0;
-}
-
-.bcq-inbox-page__title-group .bcq-page__title {
+.bcq-inbox-page__head .bcq-page__title {
   margin: 0;
 }
 

@@ -370,6 +370,7 @@
   align-items: center;
   gap: 0.25rem 0.75rem;
   color: var(--bcq-ink-soft);
+  font-variant-numeric: tabular-nums;
 }
 
 .bcq-money__event-link {
@@ -379,4 +380,5 @@
 .bcq-money__when {
   color: var(--bcq-muted);
   font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
 }

@@ -68,6 +68,7 @@
 .bcq-events__meta,
 .bcq-event__where {
   color: var(--bcq-muted);
+  font-variant-numeric: tabular-nums;
 }
 .bcq-event {
   display: grid;
@@ -78,4 +79,5 @@
 }
 .bcq-event__when {
   font-weight: 600;
+  font-variant-numeric: tabular-nums;
 }

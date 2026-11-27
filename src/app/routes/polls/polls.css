@@ -59,6 +59,7 @@
 .bcq-poll__meta,
 .bcq-poll__note {
   color: var(--bcq-muted);
+  font-variant-numeric: tabular-nums;
 }
 .bcq-poll__subtitle {
   font-size: 1.0625rem;
@@ -445,12 +446,15 @@
   position: absolute;
   top: -5px;
   right: -5px;
-  width: 18px;
-  height: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  min-height: 18px;
   border-radius: 999px;
   background: var(--bcq-navy);
   color: #ffffff;
-  font: 700 0.75rem/18px var(--bcq-font);
+  font: 700 0.75rem/1 var(--bcq-font);
   text-align: center;
   box-shadow: 0 1px 2px rgb(15 23 42 / 0.25);
 }

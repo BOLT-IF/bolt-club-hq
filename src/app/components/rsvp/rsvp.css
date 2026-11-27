@@ -23,6 +23,7 @@
 .bcq-rsvp__hint,
 .bcq-rsvp__label {
   color: var(--bcq-muted);
+  font-variant-numeric: tabular-nums;
 }
 .bcq-rsvp__guests {
   list-style: none;

@@ -20,6 +20,9 @@ Visual Philosophy: Apple HIG clarity and restraint paired with BOLT HQ's navy-an
 ---
 
 ## 2. Typography & Capitalization
+* **Native System Typography:** Keep the native OS font stack (`system-ui` / `-apple-system`); do not import external Google Fonts or custom webfonts.
+* **Global Rendering Guardrails:** Ensure `html` sets `-webkit-text-size-adjust: 100%` (and `text-size-adjust: 100%`) and `body` uses `antialiased` (`-webkit-font-smoothing: antialiased`) so `SF Pro` (iOS) and `Roboto` (Android) maintain balanced visual weight without unpredictable Safari text inflation.
+* **Tabular Numbers:** Apply `tabular-nums` (`font-variant-numeric: tabular-nums`) to all currency figures (`0 kr`), dates, time ranges, vote counts, and roster badges.
 * **Title Case (Mandatory):** Use Title Case for all page headers, section titles, navigation rows, form labels, status badges, and button labels (e.g., `Terms & Series`, `Invites & Join Requests`, `Club Finances`, `Make Admin`, `Copy Link`, `Audit Log`).
 * **Sentence Case:** Use sentence case for subtitles, helper copy, empty-state explanations, and confirmation dialogs (e.g., `"New requests appear here and in your inbox."`).
 * **Empty-State Microcopy Punctuation:** Do not add trailing periods to short single-phrase empty states (e.g., `No upcoming RSVPs`, `No open polls`, `All caught up`).

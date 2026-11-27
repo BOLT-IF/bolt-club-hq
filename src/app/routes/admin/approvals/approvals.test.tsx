@@ -92,7 +92,7 @@ describe("admin approvals page", () => {
         body: undefined,
       });
     });
-    expect(await screen.findByText(/No one is waiting/i)).toBeTruthy();
+    expect(await screen.findByText(/No Pending Requests/i)).toBeTruthy();
   });
 
   it("reject asks for confirmation first", async () => {
@@ -100,7 +100,7 @@ describe("admin approvals page", () => {
     const item = await screen.findByRole("listitem", { name: /Nina New/ });
     fireEvent.click(within(item).getByRole("button", { name: "Reject Nina New" }));
     expect(calls.some((c) => c.path.endsWith("/reject"))).toBe(false);
-    fireEvent.click(await screen.findByRole("button", { name: "Reject request" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Reject Request" }));
     await waitFor(() => {
       expect(calls).toContainEqual({
         method: "POST",
@@ -117,9 +117,9 @@ describe("admin approvals page", () => {
         : json(200, {}),
     );
     await screen.findByRole("listitem", { name: /Nina New/ });
-    fireEvent.change(screen.getByLabelText("Valid for (days)"), { target: { value: "7" } });
-    fireEvent.change(screen.getByLabelText("Max uses"), { target: { value: "3" } });
-    fireEvent.click(screen.getByRole("button", { name: "Create invite link" }));
+    fireEvent.change(screen.getByLabelText("Valid For (Days)"), { target: { value: "7" } });
+    fireEvent.change(screen.getByLabelText("Max Uses"), { target: { value: "3" } });
+    fireEvent.click(screen.getByRole("button", { name: "Create Invite Link" }));
     await waitFor(() => {
       expect(calls).toContainEqual({
         method: "POST",
@@ -134,10 +134,54 @@ describe("admin approvals page", () => {
     const calls = setup();
     const row = await screen.findByRole("listitem", { name: /Invite used 2 of 10/ });
     fireEvent.click(within(row).getByRole("button", { name: /Revoke/ }));
-    fireEvent.click(await screen.findByRole("button", { name: "Revoke invite" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Revoke Link" }));
     await waitFor(() => {
       expect(calls).toContainEqual({ method: "DELETE", path: "/invites/inv1", body: undefined });
     });
+  });
+
+  it("groups active links first and collapses revoked/expired links under Past Links", async () => {
+    const pastRevoked = {
+      ...invite,
+      id: "inv_rev",
+      uses: 0,
+      revokedAt: null,
+      state: "revoked",
+    };
+    const pastExpired = {
+      ...invite,
+      id: "inv_exp",
+      uses: 1,
+      expiresAt: "2026-10-01T10:00:00.000Z",
+      revokedAt: null,
+      state: "expired",
+    };
+    configureApiClient({
+      onUnauthorized: () => undefined,
+      fetch: (input) => {
+        const path = input.replace("/api/v1", "");
+        if (path === "/admin/join-requests") return Promise.resolve(json(200, { requests: [] }));
+        if (path === "/invites") {
+          return Promise.resolve(json(200, { invites: [pastRevoked, invite, pastExpired] }));
+        }
+        if (path === "/admin/members") return Promise.resolve(json(200, { members: [] }));
+        return Promise.resolve(json(200, {}));
+      },
+    });
+    render(
+      <ToastProvider>
+        <AdminApprovals />
+      </ToastProvider>,
+    );
+
+    expect(await screen.findByText("No Pending Requests")).toBeTruthy();
+    expect(screen.getByText("Active (1)")).toBeTruthy();
+    expect(screen.getByRole("listitem", { name: /Invite used 2 of 10/ })).toBeTruthy();
+    expect(screen.queryByText("Link revoked")).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: /Past Links \(2\)/i }));
+    expect(await screen.findByText("Link revoked")).toBeTruthy();
+    expect(screen.getAllByText(/Expired/)).toHaveLength(2);
   });
 
   it("shows pending members who signed in without an invite and lets admin approve them", async () => {
@@ -182,6 +226,6 @@ describe("admin approvals page", () => {
     await waitFor(() => {
       expect(calls).toContainEqual({ method: "POST", path: "/members/m_direct/approve" });
     });
-    expect(await screen.findByText(/No one is waiting/i)).toBeTruthy();
+    expect(await screen.findByText(/No Pending Requests/i)).toBeTruthy();
   });
 });

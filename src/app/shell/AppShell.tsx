@@ -17,6 +17,9 @@ export interface AppShellProps {
   readonly isSignedIn?: boolean;
 }
 
+/** Primary bottom-nav root routes never render a top-bar Back button (PWA_UI_Rules.md §3). */
+const ROOT_NAV_PATHS = new Set(PRIMARY_NAV.flatMap((item) => ("path" in item ? [item.path] : [])));
+
 /** Determine contextual Back label and fallback target for the top bar. */
 function backTargetFor(path: string): { readonly label: string; readonly fallback: string } {
   if (/^\/admin\/[^/]+$/.test(path)) {
@@ -31,6 +34,9 @@ function backTargetFor(path: string): { readonly label: string; readonly fallbac
   if (path.startsWith("/admin/")) {
     return { label: "Admin", fallback: "/admin" };
   }
+  if (path.startsWith("/money/")) {
+    return { label: "Money", fallback: "/money" };
+  }
   return { label: "Back", fallback: "/" };
 }
 
@@ -44,7 +50,7 @@ export function AppShell({
 }: AppShellProps) {
   const [moreOpen, setMoreOpen] = useState(false);
   const outdated = useClientOutdated();
-  const showBack = path !== "/";
+  const showBack = !ROOT_NAV_PATHS.has(path);
   const backTarget = backTargetFor(path);
 
   return (

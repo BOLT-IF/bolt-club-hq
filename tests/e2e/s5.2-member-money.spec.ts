@@ -115,7 +115,9 @@ async function mockApi(page: Page, mock: Mock = {}): Promise<string[]> {
 test("a member sees only their own entries", async ({ page }) => {
   const ledgerUrls = await mockApi(page);
   await page.goto("/money");
-  await expect(page.getByText("You owe 90 kr")).toBeVisible();
+  await expect(page.getByText("90 kr", { exact: true })).toBeVisible();
+  await expect(page.getByText("Balance Due")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Back" })).toHaveCount(0);
   await expect(
     page.getByRole("list", { name: "Ledger entries" }).getByRole("listitem"),
   ).toHaveCount(3);
@@ -157,8 +159,9 @@ test("credit displays correctly", async ({ page }) => {
     },
   });
   await page.goto("/money");
-  await expect(page.getByText("Credit 100 kr")).toBeVisible();
-  await expect(page.getByText(/You owe/)).toHaveCount(0);
+  await expect(page.getByText("100 kr", { exact: true })).toBeVisible();
+  await expect(page.getByText("Credit", { exact: true })).toBeVisible();
+  await expect(page.getByText("Balance Due")).toHaveCount(0);
 });
 
 test("shows how to pay with the payment reference", async ({ page }) => {
@@ -180,7 +183,7 @@ test("a 403 from the ledger shows an error, not someone else's data", async ({ p
 test("the money screen has no serious or critical axe violations", async ({ page }) => {
   await mockApi(page);
   await page.goto("/money");
-  await expect(page.getByText("You owe 90 kr")).toBeVisible();
+  await expect(page.getByText("90 kr", { exact: true })).toBeVisible();
   await expect(page.getByText("BOLT-ALEX")).toBeVisible();
   const results = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa"]).analyze();
   const serious = results.violations.filter(

@@ -137,7 +137,8 @@ describe("member money screen", () => {
   it("asks only for the caller's own ledger (no member id is ever sent)", async () => {
     const fetchMock = stubApi(owing);
     renderMoney();
-    await screen.findByText("You owe 90 kr");
+    await screen.findByText("90 kr");
+    expect(screen.getByText("Balance Due")).toBeTruthy();
     const urls = fetchMock.mock.calls.map(([url]) => url as string);
     expect(urls).toContain("/api/v1/me/ledger");
     expect(urls.some((u) => u.includes("memberId"))).toBe(false);
@@ -146,7 +147,9 @@ describe("member money screen", () => {
   it("shows the balance and every item with its event date, guest name and FIFO status", async () => {
     stubApi(owing);
     renderMoney();
-    expect(await screen.findByText("You owe 90 kr")).toBeTruthy();
+    expect(await screen.findByText("90 kr")).toBeTruthy();
+    expect(screen.getByText("Balance Due")).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Activity" })).toBeTruthy();
 
     const list = screen.getByRole("list", { name: "Ledger entries" });
     const rows = within(list).getAllByRole("listitem");
@@ -171,7 +174,7 @@ describe("member money screen", () => {
   it("links to payment claims and passes", async () => {
     stubApi(owing);
     renderMoney();
-    await screen.findByText("You owe 90 kr");
+    await screen.findByText("90 kr");
     expect(screen.getByRole("link", { name: "Payment Claims" }).getAttribute("href")).toBe(
       "/money/claims",
     );
@@ -199,19 +202,31 @@ describe("member money screen", () => {
       ],
     });
     renderMoney();
-    expect(await screen.findByText("Credit 100 kr")).toBeTruthy();
-    expect(screen.queryByText(/You owe/)).toBeNull();
+    expect(await screen.findByText("100 kr")).toBeTruthy();
+    expect(screen.getByText("Credit")).toBeTruthy();
+    expect(screen.queryByText("Balance Due")).toBeNull();
     expect(screen.getByText("100 kr credit left")).toBeTruthy();
   });
 
-  it("shows a settled balance", async () => {
+  it("shows a settled balance with How to Pay collapsed by default and Activity empty state", async () => {
     stubApi({ balanceSek: 0, owedSek: 0, creditSek: 0, items: [] });
     renderMoney();
-    expect(await screen.findByText("You're all paid up")).toBeTruthy();
-    expect(screen.getByText(/No charges or payments yet/)).toBeTruthy();
+    expect(await screen.findByText("0 kr")).toBeTruthy();
+    expect(screen.getByText("All Paid")).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Activity" })).toBeTruthy();
+    expect(screen.getByText("No Activity Yet")).toBeTruthy();
+    expect(screen.getByText("Fees appear here after an event closes")).toBeTruthy();
+
+    const trigger = screen.getByRole("button", { name: /How to Pay/i });
+    expect(trigger.getAttribute("aria-expanded")).toBe("false");
+    expect(screen.queryByText("BOLT-ALEX")).toBeNull();
+
+    fireEvent.click(trigger);
+    expect(trigger.getAttribute("aria-expanded")).toBe("true");
+    expect(await screen.findByText("BOLT-ALEX")).toBeTruthy();
   });
 
-  it("shows how to pay: bank details, instructions and the payment reference with copy", async () => {
+  it("shows how to pay with independent Copy buttons and single consolidated note", async () => {
     stubApi(owing);
     const writeText = vi.fn(() => Promise.resolve());
     Object.defineProperty(navigator, "clipboard", { value: { writeText }, configurable: true });
@@ -224,15 +239,26 @@ describe("member money screen", () => {
     expect(within(howTo).getByText("SE4550000000058398257466")).toBeTruthy();
     expect(within(howTo).getByText("BOLT IF")).toBeTruthy();
     expect(within(howTo).getByText("Pay within 14 days.")).toBeTruthy();
+    expect(within(howTo).queryByText(/Include your payment reference/)).toBeNull();
 
-    fireEvent.click(within(howTo).getByRole("button", { name: "Copy payment reference" }));
+    const copyAccBtn = within(howTo).getByRole("button", { name: "Copy account number" });
+    const copyRefBtn = within(howTo).getByRole("button", { name: "Copy payment reference" });
+
+    fireEvent.click(copyAccBtn);
+    await waitFor(() => {
+      expect(writeText).toHaveBeenCalledWith("8327-9 123 456 789-0");
+    });
+    expect(within(copyAccBtn).getByText("Copied")).toBeTruthy();
+    expect(within(copyRefBtn).getByText("Copy")).toBeTruthy();
+
+    fireEvent.click(copyRefBtn);
     await waitFor(() => {
       expect(writeText).toHaveBeenCalledWith("BOLT-ALEX");
     });
     expect(await screen.findByText("Payment reference copied")).toBeTruthy();
   });
 
-  it("shows bank name and account number without IBAN or bankgiro", async () => {
+  it("shows default payment instruction when custom instructions are absent", async () => {
     stubApi(owing, {
       settings: {
         clubName: "BOLT IF",
@@ -250,6 +276,7 @@ describe("member money screen", () => {
     expect(within(howTo).getByText("BOLT IF")).toBeTruthy();
     expect(within(howTo).getByText("Handelsbanken")).toBeTruthy();
     expect(within(howTo).getByText("6101 123 456 789")).toBeTruthy();
+    expect(within(howTo).getByText(/Include your payment reference/)).toBeTruthy();
     expect(within(howTo).queryByText("Bankgiro")).toBeNull();
     expect(within(howTo).queryByText("IBAN")).toBeNull();
     expect(within(howTo).queryByText(/Ask the treasurer/)).toBeNull();
@@ -258,7 +285,7 @@ describe("member money screen", () => {
   it("still shows the ledger when settings or profile cannot be read", async () => {
     stubApi(owing, { settings: {}, profile: {} });
     renderMoney();
-    expect(await screen.findByText("You owe 90 kr")).toBeTruthy();
+    expect(await screen.findByText("90 kr")).toBeTruthy();
     const howTo = screen.getByRole("region", { name: "How to Pay" });
     expect(await within(howTo).findByText(/Ask the treasurer/)).toBeTruthy();
   });
@@ -269,7 +296,7 @@ describe("member money screen", () => {
     expect(await screen.findByRole("alert")).toBeTruthy();
     stubApi(owing);
     fireEvent.click(screen.getByRole("button", { name: "Try Again" }));
-    expect(await screen.findByText("You owe 90 kr")).toBeTruthy();
+    expect(await screen.findByText("90 kr")).toBeTruthy();
     expect(fetchMock).toHaveBeenCalled();
   });
 });

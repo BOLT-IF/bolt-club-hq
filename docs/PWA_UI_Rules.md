@@ -47,6 +47,7 @@ Avoid plain white buttons with `1px` dark borders—they read as text fields or 
   * For card-header actions: use non-underlined high-contrast orange text (`#c2410c` / `text-orange-700` for WCAG AA on white, `text-sm font-semibold`, `no-underline`) with a trailing `ChevronRight` (`16px`) and minimum `44px` tap height.
   * For navigable card titles: use bold dark slate (`text-slate-900`) and make the entire card tappable with a subtle trailing chevron (`›`).
 * **Consistent Page Header Action Pattern:** For primary creation/invite actions on directory screens, place a compact `+ Action` button (e.g., `+ New Term`, `+ Invite`) directly opposite the page title—never as an underlined helper sentence above the first card.
+* **No `< Back` Button on Root Navigation Tabs:** Never render `< Back` in the top header bar on primary bottom-navigation root routes (`Home`, `Events`, `Money`, `Inbox`, `More`). Only show `< Back` (or `< Parent Name`) on pushed sub-routes.
 * **No Redundant In-Page Back Links:** Never render a floating back/breadcrumb link (e.g., `Admin`) below a header bar that already has `< Back`. Label the top-bar back button `< Admin` on admin sub-screens instead.
 
 ---
@@ -63,6 +64,7 @@ Avoid plain white buttons with `1px` dark borders—they read as text fields or 
   * Left: `18px` icon inside a `32×32px` tinted rounded square (`rounded-lg bg-slate-100` or `bg-amber-50`).
   * Right: Optional glanceable count/badge + right chevron (`›`, `text-slate-400`). Only show chevrons on rows that navigate to a new screen.
 * **Badge Placement on Cards:** Place status pills below long titles or right-aligned cleanly so long names never collide with badges.
+* **Copyable Key-Value Rows (Bank & Reference Details):** For transferable codes or payment details, stack the muted label (`text-xs font-medium text-slate-500`) above the monospace value (`font-mono text-[15px] font-semibold text-slate-900`) on the left, with a filled tonal `[Copy]` button pinned cleanly on the right—never cram label, value, and button onto a single horizontal line. Provide a `Copy` button for **every** field a user must paste into another app (e.g., both Account Number and Payment Reference), with `✓ Copied` feedback for 2 seconds.
 * **Smart Sorting & Past States:** Always sort `Active` or `Pending` items above `Revoked`/`Expired`/`Inactive` items. Collapse historical items into a closed-by-default disclosure (e.g., `Past Links (N)` or `Past Terms (N)`). Never display future expiry timestamps on revoked items.
 
 ---
@@ -77,6 +79,7 @@ Avoid plain white buttons with `1px` dark borders—they read as text fields or 
 * **Bottom Sheets for Infrequent Creation Forms:** Move infrequent multi-field creation forms (like `New Term`) into a Bottom Sheet triggered by a `+ New ...` header button rather than pinning the form permanently onto a directory screen.
 * **Distinct Date Picker Inputs:** Pair `<input type="date">` fields with a leading `Calendar` icon (and muted placeholder cue when empty) so Android Chrome's native chevron never makes date pickers look identical to empty dropdown selects.
 * **Compact Empty States:** Use a single-row left-aligned card with a leading `36×36px` tinted icon container instead of tall, centered blank boxes.
+* **Labelled Empty Sections:** Always place an uppercase section subheader (e.g., `ACTIVITY`, `TRANSACTIONS`) above an empty-state card so the user immediately knows what is empty. Match the empty-state icon to the section's domain—never reuse an unrelated bottom-nav tab icon (such as the Inbox tray on a Money screen).
 * **Compact Empty Dashboard Cards:** On overview screens, collapse empty summary sections into a compact, single-row tappable card with a `36×36px` tinted leading icon container instead of a tall multi-line box. Reserve expanded cards for active items or direct action buttons.
 
 ---

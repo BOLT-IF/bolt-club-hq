@@ -220,12 +220,16 @@ describe("AdminPollsPage", () => {
     window.history.replaceState({}, "", "/admin/polls");
   });
 
-  it("creates a poll with its settings", async () => {
+  it("shows empty Active Polls state and creates a poll from the New Poll bottom sheet", async () => {
     const calls = stubApi({
       "GET /polls": { body: { polls: [] } },
       "POST /polls": { status: 201, body: { poll: poll() } },
     });
     render(withFlag(<AdminPollsPage />));
+    expect(await screen.findByText("No Active Polls")).toBeTruthy();
+    expect(screen.getByText("Tap + New Poll to ask members")).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: /New Poll/i }));
     fireEvent.change(await screen.findByLabelText(/question/i), {
       target: { value: "Kit colour?" },
     });
@@ -233,8 +237,15 @@ describe("AdminPollsPage", () => {
     fireEvent.change(screen.getByLabelText("Option 2"), { target: { value: "Blue" } });
     fireEvent.click(screen.getByRole("button", { name: /add option/i }));
     fireEvent.change(screen.getByLabelText("Option 3"), { target: { value: "Green" } });
-    fireEvent.click(screen.getByLabelText(/allow several choices/i));
-    fireEvent.click(screen.getByLabelText(/anonymous/i));
+
+    const multiSwitch = screen.getByRole("switch", { name: /Allow Multiple Choices/i });
+    const anonSwitch = screen.getByRole("switch", { name: /Anonymous Poll/i });
+    expect(multiSwitch.getAttribute("aria-checked")).toBe("false");
+    fireEvent.click(multiSwitch);
+    fireEvent.click(anonSwitch);
+    expect(multiSwitch.getAttribute("aria-checked")).toBe("true");
+    expect(anonSwitch.getAttribute("aria-checked")).toBe("true");
+
     fireEvent.change(screen.getByLabelText(/who sees results/i), {
       target: { value: "after_close" },
     });
@@ -251,14 +262,25 @@ describe("AdminPollsPage", () => {
     });
   });
 
-  it("closes a poll early after confirming", async () => {
+  it("closes a poll via the overflow action sheet after confirming, and collapses closed polls", async () => {
     const calls = stubApi({
-      "GET /polls": { body: { polls: [poll()] } },
+      "GET /polls": {
+        body: {
+          polls: [poll(), poll({ id: "pol_2", question: "Old venue?", closed: true })],
+        },
+      },
       "PATCH /polls/pol_1": { body: { poll: poll({ closed: true }) } },
     });
     render(withFlag(<AdminPollsPage />));
-    fireEvent.click(await screen.findByRole("button", { name: /close now/i }));
-    fireEvent.click(await screen.findByRole("button", { name: /^close poll$/i }));
+    expect(await screen.findByText("Kit colour?")).toBeTruthy();
+    expect(screen.getByText("Active")).toBeTruthy();
+    expect(screen.getByText(/3 Votes/)).toBeTruthy();
+    expect(screen.getByRole("button", { name: /Closed Polls \(1\)/i })).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: "Actions for Kit colour?" }));
+    fireEvent.click(await screen.findByRole("button", { name: /^Close Poll$/i }));
+    expect(await screen.findByText(/Members will no longer be able to vote/i)).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: /^Close Poll$/i }));
     await waitFor(() => {
       expect(calls.find((c) => c.method === "PATCH")?.body).toEqual({ close: true });
     });
@@ -267,6 +289,7 @@ describe("AdminPollsPage", () => {
   it("shows an admins-only state on 403", async () => {
     stubApi({ "GET /polls": { body: { polls: [] } }, "POST /polls": { status: 403, body: {} } });
     render(withFlag(<AdminPollsPage />));
+    fireEvent.click(await screen.findByRole("button", { name: /New Poll/i }));
     fireEvent.change(await screen.findByLabelText(/question/i), { target: { value: "Q" } });
     fireEvent.change(screen.getByLabelText("Option 1"), { target: { value: "a" } });
     fireEvent.change(screen.getByLabelText("Option 2"), { target: { value: "b" } });

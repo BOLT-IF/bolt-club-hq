@@ -37,6 +37,7 @@
 .bcq-card__meta {
   margin: 0;
   color: var(--bcq-muted);
+  font-variant-numeric: tabular-nums;
 }
 .bcq-list {
   display: grid;

@@ -42,6 +42,7 @@
 .bcq-inbox__time {
   color: var(--bcq-muted);
   font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
 }
 .bcq-inbox__card {
   display: grid;

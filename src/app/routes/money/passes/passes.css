@@ -49,6 +49,7 @@
   margin: 0;
   color: var(--bcq-ink-soft);
   font-size: 0.9375rem;
+  font-variant-numeric: tabular-nums;
 }
 
 .bcq-pass-card__price-row {
@@ -67,6 +68,7 @@
 .bcq-pass-card__proration {
   color: var(--bcq-muted);
   font-size: 0.875rem;
+  font-variant-numeric: tabular-nums;
 }
 
 .bcq-pass-terms {

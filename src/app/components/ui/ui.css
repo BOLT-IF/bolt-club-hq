@@ -237,24 +237,6 @@ textarea {
 .bcq-page-head .bcq-page__title {
   margin: 0;
 }
-.bcq-page-head__title-group {
-  display: inline-flex;
-  align-items: baseline;
-  gap: 0.5rem;
-  min-width: 0;
-}
-.bcq-count-pill {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0.125rem 0.5rem;
-  border-radius: 999px;
-  background: rgb(226 232 240 / 0.75);
-  color: var(--bcq-ink-soft);
-  font: 600 0.75rem/1.3 var(--bcq-font);
-  font-variant-numeric: tabular-nums;
-  flex-shrink: 0;
-}
 
 /* Non-underlined mobile chevron action link (WCAG AA orange-700 on white) */
 .bcq-chevron-link {

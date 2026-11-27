@@ -279,17 +279,9 @@ export function AdminMembers() {
   return (
     <section className="bcq-page bcq-members-page" aria-labelledby="admin-members-title">
       <div className="bcq-page-head">
-        <div className="bcq-page-head__title-group">
-          <h1 id="admin-members-title" className="bcq-page__title">
-            Members
-          </h1>
-          <span
-            className="bcq-count-pill"
-            aria-label={`${String(state.members.length)} total members`}
-          >
-            {state.members.length}
-          </span>
-        </div>
+        <h1 id="admin-members-title" className="bcq-page__title">
+          Members
+        </h1>
         <a
           href="/admin/approvals"
           className="bcq-btn bcq-btn--primary bcq-btn--compact"

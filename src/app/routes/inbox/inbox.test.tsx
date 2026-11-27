@@ -221,4 +221,116 @@ describe("inbox screen", () => {
     expect(calls.some((c) => c.url === "/api/v1/events/evt_thu/rsvp/decline")).toBe(true);
     expect(calls.some((c) => c.url === "/api/v1/notifications/read")).toBe(true);
   });
+
+  it("suppresses RSVP buttons on past or answered events and deduplicates repeat alerts", async () => {
+    configureApiClient({
+      fetch: vi.fn((input: string) => {
+        if (input === "/api/v1/notifications") {
+          return Promise.resolve(
+            json({
+              items: [
+                item({
+                  id: "ev_old",
+                  category: "new_events",
+                  title: "New event",
+                  body: "Older duplicate alert",
+                  link: "/events/past-evt",
+                  createdAt: "2026-10-01T10:00:00.000Z",
+                }),
+                item({
+                  id: "ev_new",
+                  category: "new_events",
+                  title: "New event",
+                  body: "Latest alert for past event",
+                  link: "/events/past-evt",
+                  createdAt: "2026-10-02T10:00:00.000Z",
+                }),
+                item({
+                  id: "ev_ans",
+                  category: "new_events",
+                  title: "New event",
+                  body: "Already answered event",
+                  link: "/events/ans-evt",
+                  createdAt: "2026-10-03T10:00:00.000Z",
+                }),
+              ],
+              unreadCount: 3,
+            }),
+          );
+        }
+        if (input === "/api/v1/events/by-slug/past-evt") {
+          return Promise.resolve(
+            json({
+              event: {
+                id: "evt_past",
+                startsAt: "2020-01-01T10:00:00.000Z",
+                rsvpCloseAt: "2020-01-01T09:00:00.000Z",
+                status: "completed",
+                readOnly: true,
+              },
+            }),
+          );
+        }
+        if (input === "/api/v1/events/by-slug/ans-evt") {
+          return Promise.resolve(
+            json({
+              event: {
+                id: "evt_ans",
+                startsAt: "2030-01-01T10:00:00.000Z",
+                rsvpCloseAt: "2030-01-01T09:00:00.000Z",
+                status: "scheduled",
+                readOnly: false,
+              },
+            }),
+          );
+        }
+        if (input === "/api/v1/events/evt_ans/rsvp") {
+          return Promise.resolve(
+            json({ rsvp: { id: "r1", status: "confirmed", tier: 1, guests: [] } }),
+          );
+        }
+        return Promise.resolve(json({ error: "unexpected" }, 500));
+      }),
+    });
+
+    renderInbox();
+
+    expect(await screen.findByText("Latest alert for past event")).toBeTruthy();
+    expect(screen.queryByText("Older duplicate alert")).toBeNull();
+    expect(await screen.findByText("Event Passed")).toBeTruthy();
+    expect(await screen.findByText("Responded · Confirmed")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "RSVP" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Not Going" })).toBeNull();
+  });
+
+  it("shows navigation chevrons on navigable cards and omits them on informational alerts", async () => {
+    stubApi([
+      item({
+        id: "att",
+        category: "admin_tasks",
+        title: "Attendance unmarked",
+        body: "Thursday Mixed XD",
+        link: "/events/thu-xd",
+      }),
+      item({
+        id: "pay",
+        category: "payment_status",
+        title: "Payment confirmed",
+        body: "120 kr settled",
+        link: "/money",
+        readAt: "2027-01-01T12:00:00.000Z",
+      }),
+    ]);
+
+    const { container } = render(
+      (() => {
+        const route = registeredFrontendRoutes().find((r) => r.path === "/inbox");
+        const Component = route!.component;
+        return <Component />;
+      })(),
+    );
+
+    expect(await screen.findByText("Attendance Unmarked")).toBeTruthy();
+    expect(container.querySelectorAll(".bcq-inbox__chevron")).toHaveLength(1);
+  });
 });

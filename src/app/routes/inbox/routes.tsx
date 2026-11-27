@@ -9,8 +9,15 @@ import {
   type InboxItem,
   type InboxPage,
 } from "../../api/notifications";
-import { declineRsvp, putRsvp, type RsvpStatus } from "../../components/rsvp/api";
-import { Button, EmptyState, ErrorState, Skeleton, StatusChip } from "../../components/ui";
+import { declineRsvp, getMyRsvp, putRsvp, type RsvpStatus } from "../../components/rsvp/api";
+import {
+  Button,
+  ChevronRightIcon,
+  EmptyState,
+  ErrorState,
+  Skeleton,
+  StatusChip,
+} from "../../components/ui";
 import { navigate } from "../../lib/navigate";
 import type { AppRoute } from "../registry";
 
@@ -328,6 +335,44 @@ function matchPendingJoinRequest(
   return requests.length === 1 ? (requests[0] ?? null) : null;
 }
 
+type EventActionMeta =
+  | { readonly state: "open" }
+  | { readonly state: "passed" }
+  | { readonly state: "responded"; readonly label: string };
+
+function deduplicateNewEvents(items: readonly InboxItem[]): InboxItem[] {
+  const sorted = [...items].sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt));
+  const seenSlugs = new Set<string>();
+  const result: InboxItem[] = [];
+  for (const item of sorted) {
+    if (item.category === "new_events") {
+      const slug = eventSlugFromLink(item.link);
+      if (slug) {
+        if (seenSlugs.has(slug)) continue;
+        seenSlugs.add(slug);
+      }
+    }
+    result.push(item);
+  }
+  return result;
+}
+
+function isNavigableCard(item: InboxItem, showsInlineButtons: boolean): boolean {
+  if (showsInlineButtons) return false;
+  if (item.link === null || !isInAppPath(item.link)) return false;
+  const title = item.title.toLowerCase();
+  if (
+    item.category === "payment_status" ||
+    item.category === "announcements" ||
+    title.includes("payment confirmed") ||
+    title.includes("event cancelled") ||
+    title.includes("event canceled")
+  ) {
+    return false;
+  }
+  return true;
+}
+
 function Inbox() {
   const [state, setState] = useState<
     | { status: "loading" }
@@ -335,6 +380,7 @@ function Inbox() {
     | { status: "ready"; items: readonly InboxItem[]; unreadCount: number }
   >({ status: "loading" });
   const [joinRequests, setJoinRequests] = useState<readonly PendingJoinRequest[]>([]);
+  const [eventMetaBySlug, setEventMetaBySlug] = useState<Record<string, EventActionMeta>>({});
   const [busyId, setBusyId] = useState<string | null>(null);
   const [responded, setResponded] = useState<Record<string, { label: string; positive: boolean }>>(
     {},
@@ -344,8 +390,11 @@ function Inbox() {
   const load = useCallback((signal?: AbortSignal) => {
     fetchNotifications(signal)
       .then((page: InboxPage) => {
-        setState({ status: "ready", ...page });
-        if (page.items.some(isJoinRequestNotification)) {
+        const dedupedItems = deduplicateNewEvents(page.items);
+        const unreadCount = dedupedItems.filter((i) => i.readAt === null).length;
+        setState({ status: "ready", items: dedupedItems, unreadCount });
+
+        if (dedupedItems.some(isJoinRequestNotification)) {
           apiFetch<{ requests: PendingJoinRequest[] }>("/admin/join-requests", {
             ...(signal ? { signal } : {}),
             redirectOnUnauthorized: false,
@@ -354,6 +403,50 @@ function Inbox() {
               if (!signal?.aborted) setJoinRequests(res.requests);
             })
             .catch(() => undefined);
+        }
+
+        const uniqueSlugs = Array.from(
+          new Set(
+            dedupedItems
+              .filter((i) => i.category === "new_events")
+              .map((i) => eventSlugFromLink(i.link))
+              .filter((s): s is string => s !== null),
+          ),
+        );
+        if (uniqueSlugs.length > 0) {
+          void Promise.allSettled(
+            uniqueSlugs.map(async (slug) => {
+              const detail = await getEventBySlug(slug);
+              const ev = detail.event;
+              const now = Date.now();
+              const startsMs = ev.startsAt ? Date.parse(ev.startsAt) : Number.NaN;
+              const closeMs = ev.rsvpCloseAt ? Date.parse(ev.rsvpCloseAt) : Number.NaN;
+              const isPast =
+                ev.readOnly ||
+                ev.status === "completed" ||
+                ev.status === "cancelled" ||
+                (!Number.isNaN(startsMs) && startsMs <= now) ||
+                (!Number.isNaN(closeMs) && closeMs <= now);
+              if (isPast) {
+                return [slug, { state: "passed" } satisfies EventActionMeta] as const;
+              }
+              const rsvp = await getMyRsvp(ev.id).catch(() => null);
+              if (rsvp && rsvp.status !== "cancelled" && rsvp.status !== "late_cancelled") {
+                const label = QUICK_STATUS_LABEL[rsvp.status] ?? "Responded";
+                return [slug, { state: "responded", label } satisfies EventActionMeta] as const;
+              }
+              return [slug, { state: "open" } satisfies EventActionMeta] as const;
+            }),
+          ).then((results) => {
+            if (signal?.aborted) return;
+            const next: Record<string, EventActionMeta> = {};
+            for (const res of results) {
+              if (res.status === "fulfilled") {
+                next[res.value[0]] = res.value[1];
+              }
+            }
+            setEventMetaBySlug(next);
+          });
         }
       })
       .catch(() => {
@@ -453,6 +546,8 @@ function Inbox() {
 
   const renderItem = (item: InboxItem) => {
     const eventSlug = item.category === "new_events" ? eventSlugFromLink(item.link) : null;
+    const eventMeta = eventSlug ? (eventMetaBySlug[eventSlug] ?? { state: "open" as const }) : null;
+    const canShowEventActions = Boolean(eventSlug && eventMeta?.state === "open");
     const pendingJoin = isJoinRequestNotification(item)
       ? matchPendingJoinRequest(item, joinRequests)
       : null;
@@ -461,7 +556,9 @@ function Inbox() {
     const isBusy = busyId === item.id;
     const isUnread = item.readAt === null;
     const visual = categoryVisual(item);
-    const hasActions = Boolean(eventSlug || pendingJoin || outcome);
+    const showsInlineButtons = Boolean(!outcome && (canShowEventActions || pendingJoin));
+    const showChevron = isNavigableCard(item, showsInlineButtons);
+    const hasFooter = Boolean(outcome || showsInlineButtons);
 
     return (
       <li
@@ -489,17 +586,27 @@ function Inbox() {
             <time className="bcq-inbox__time" dateTime={item.createdAt}>
               {formatInboxTime(item.createdAt)}
             </time>
+            {!outcome && eventMeta && eventMeta.state !== "open" ? (
+              <span className="bcq-inbox__status-note">
+                {eventMeta.state === "passed" ? "Event Passed" : `Responded · ${eventMeta.label}`}
+              </span>
+            ) : null}
           </span>
+          {showChevron ? (
+            <span className="bcq-inbox__chevron" aria-hidden="true">
+              <ChevronRightIcon />
+            </span>
+          ) : null}
         </button>
 
-        {hasActions ? (
+        {hasFooter ? (
           outcome ? (
             <div className="bcq-inbox__outcome">
               <StatusChip tone={outcome.positive ? "success" : "neutral"}>
                 {outcome.label}
               </StatusChip>
             </div>
-          ) : eventSlug ? (
+          ) : canShowEventActions && eventSlug ? (
             <div className="bcq-inbox__actions">
               <Button
                 className="bcq-inbox__action-btn"

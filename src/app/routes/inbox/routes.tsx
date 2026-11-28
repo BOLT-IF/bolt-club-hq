@@ -1,9 +1,10 @@
 import "./inbox.css";
-import { useCallback, useEffect, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 
 import { apiFetch } from "../../api/client";
 import { getEventBySlug } from "../../api/events";
 import {
+  emitInboxUnread,
   fetchNotifications,
   markNotificationsRead,
   type InboxItem,
@@ -330,14 +331,13 @@ function matchPendingJoinRequest(
   requests: readonly PendingJoinRequest[],
 ): PendingJoinRequest | null {
   if (requests.length === 0) return null;
-  const matched = requests.find((r) => item.body.startsWith(`${r.displayName} `));
-  if (matched) return matched;
-  return requests.length === 1 ? (requests[0] ?? null) : null;
+  return requests.find((r) => item.body.startsWith(`${r.displayName} `)) ?? null;
 }
 
 type EventActionMeta =
   | { readonly state: "open" }
   | { readonly state: "passed" }
+  | { readonly state: "unavailable" }
   | { readonly state: "responded"; readonly label: string };
 
 function deduplicateNewEvents(items: readonly InboxItem[]): InboxItem[] {
@@ -387,7 +387,14 @@ function Inbox() {
   );
   const [quickError, setQuickError] = useState<Record<string, string>>({});
 
-  const load = useCallback((signal?: AbortSignal) => {
+  const controllerRef = useRef<AbortController | null>(null);
+
+  const load = useCallback(() => {
+    controllerRef.current?.abort();
+    const controller = new AbortController();
+    controllerRef.current = controller;
+    const { signal } = controller;
+
     fetchNotifications(signal)
       .then(async (page: InboxPage) => {
         const dedupedItems = deduplicateNewEvents(page.items);
@@ -406,14 +413,14 @@ function Inbox() {
         const [joinRes, slugResults] = await Promise.all([
           hasJoinRequests
             ? apiFetch<{ requests: PendingJoinRequest[] }>("/admin/join-requests", {
-                ...(signal ? { signal } : {}),
+                signal,
                 redirectOnUnauthorized: false,
               }).catch(() => null)
             : Promise.resolve(null),
           uniqueSlugs.length > 0
             ? Promise.allSettled(
                 uniqueSlugs.map(async (slug) => {
-                  const detail = await getEventBySlug(slug);
+                  const detail = await getEventBySlug(slug, signal);
                   const ev = detail.event;
                   const now = Date.now();
                   const startsMs = ev.startsAt ? Date.parse(ev.startsAt) : Number.NaN;
@@ -427,7 +434,7 @@ function Inbox() {
                   if (isPast) {
                     return [slug, { state: "passed" } satisfies EventActionMeta] as const;
                   }
-                  const rsvp = await getMyRsvp(ev.id).catch(() => null);
+                  const rsvp = await getMyRsvp(ev.id, signal).catch(() => null);
                   if (rsvp && rsvp.status !== "cancelled" && rsvp.status !== "late_cancelled") {
                     const label = QUICK_STATUS_LABEL[rsvp.status] ?? "Responded";
                     return [slug, { state: "responded", label } satisfies EventActionMeta] as const;
@@ -438,32 +445,37 @@ function Inbox() {
             : Promise.resolve([]),
         ]);
 
-        if (signal?.aborted) return;
+        if (signal.aborted) return;
 
         if (joinRes) setJoinRequests(joinRes.requests);
         if (slugResults.length > 0) {
           const next: Record<string, EventActionMeta> = {};
-          for (const res of slugResults) {
-            if (res.status === "fulfilled") {
-              next[res.value[0]] = res.value[1];
-            }
-          }
+          slugResults.forEach((res, idx) => {
+            const slug = uniqueSlugs[idx];
+            if (!slug) return;
+            next[slug] = res.status === "fulfilled" ? res.value[1] : { state: "unavailable" };
+          });
           setEventMetaBySlug(next);
         }
         setState({ status: "ready", items: dedupedItems, unreadCount });
       })
       .catch(() => {
-        if (!signal?.aborted) setState({ status: "error" });
+        if (!signal.aborted) setState({ status: "error" });
       });
   }, []);
 
   useEffect(() => {
-    const controller = new AbortController();
-    load(controller.signal);
+    load();
     return () => {
-      controller.abort();
+      controllerRef.current?.abort();
     };
   }, [load]);
+
+  useEffect(() => {
+    if (state.status === "ready") {
+      emitInboxUnread(state.unreadCount);
+    }
+  }, [state]);
 
   const markRead = (ids: readonly string[], all = false) => {
     setState((s) => {
@@ -549,7 +561,7 @@ function Inbox() {
 
   const renderItem = (item: InboxItem) => {
     const eventSlug = item.category === "new_events" ? eventSlugFromLink(item.link) : null;
-    const eventMeta = eventSlug ? (eventMetaBySlug[eventSlug] ?? { state: "open" as const }) : null;
+    const eventMeta = eventSlug ? (eventMetaBySlug[eventSlug] ?? null) : null;
     const canShowEventActions = Boolean(eventSlug && eventMeta?.state === "open");
     const pendingJoin = isJoinRequestNotification(item)
       ? matchPendingJoinRequest(item, joinRequests)
@@ -589,7 +601,9 @@ function Inbox() {
             <time className="bcq-inbox__time" dateTime={item.createdAt}>
               {formatInboxTime(item.createdAt)}
             </time>
-            {!outcome && eventMeta && eventMeta.state !== "open" ? (
+            {!outcome &&
+            eventMeta &&
+            (eventMeta.state === "passed" || eventMeta.state === "responded") ? (
               <span className="bcq-inbox__status-note">
                 {eventMeta.state === "passed" ? "Event Passed" : `Responded · ${eventMeta.label}`}
               </span>
@@ -700,6 +714,7 @@ function Inbox() {
       {state.status === "error" ? (
         <ErrorState
           onRetry={() => {
+            setState({ status: "loading" });
             load();
           }}
         >

@@ -593,7 +593,7 @@ describe("club fees page", () => {
     expect(within(sheet).getByRole("button", { name: "Mark Fall Paid" })).toBeTruthy();
   });
 
-  it("batch charges Spring skipping Fall payers and marks selected members paid externally", async () => {
+  it("confirms bulk Spring charge via Select Not Charged -> Bulk Actions and marks selected paid externally", async () => {
     const calls = stub((path) => {
       if (path === "/admin/club-fees/charge") {
         return json(200, { chargedCount: 1, skippedCount: 3, chargedMemberIds: ["m4"] });
@@ -605,6 +605,7 @@ describe("club fees page", () => {
     });
     renderWith(<AdminClubFees />);
     await screen.findByRole("list", { name: /club fee members/i });
+    expect(screen.queryByRole("button", { name: "Charge All" })).toBeNull();
 
     // Select not charged -> selects Di Uncharged (m4), then open Bulk Actions -> Mark Paid Externally.
     fireEvent.click(screen.getByRole("button", { name: /Select Not Charged/ }));
@@ -622,15 +623,16 @@ describe("club fees page", () => {
       body: { clubYear: 2026, memberIds: ["m4"] },
     });
 
-    // Clear selection happened on reload; use Charge All sheet for year-wide Spring charge.
+    // Clear selection happened on reload; select Di Uncharged again -> Bulk Actions -> Charge Spring -> ConfirmDialog.
     await waitFor(() => {
       expect(screen.queryByRole("region", { name: "Selected actions" })).toBeNull();
     });
-    fireEvent.click(screen.getByRole("button", { name: "Charge All" }));
-    const batchSheet = await screen.findByRole("dialog", { name: /Charge All Eligible/ });
-    fireEvent.click(within(batchSheet).getByRole("button", { name: "Charge Spring Fee (85 kr)" }));
+    fireEvent.click(screen.getByRole("button", { name: /Select Not Charged/ }));
+    fireEvent.click(screen.getByRole("button", { name: "Bulk Actions" }));
+    const bulkSheet2 = await screen.findByRole("dialog", { name: /Selected \(1 Member\)/ });
+    fireEvent.click(within(bulkSheet2).getByRole("button", { name: "Charge Spring (85 kr)" }));
     const confirm = await screen.findByRole("dialog", {
-      name: /Charge Spring Fee \(85 kr\)/,
+      name: /Charge Spring Fee \(85 kr\) to 1 Selected Member\?/,
     });
     expect(within(confirm).getByText(/skipped automatically/i)).toBeTruthy();
     fireEvent.click(within(confirm).getByRole("button", { name: "Confirm & Charge (85 kr)" }));
@@ -640,7 +642,7 @@ describe("club fees page", () => {
     });
     expect(calls.find((c) => c.path === "/admin/club-fees/charge")).toMatchObject({
       method: "POST",
-      body: { clubYear: 2026, season: "spring" },
+      body: { clubYear: 2026, season: "spring", memberIds: ["m4"] },
     });
   });
 

@@ -1,10 +1,9 @@
 import { useCallback, useEffect, useId, useState } from "react";
 
 import { ApiError, apiFetch, newIdempotencyKey } from "../../api/client";
-import type { EventDetail } from "../../api/events";
 import { registerSlot, type SlotProps } from "../../routes/events/slots";
 import { Button, StatusChip } from "../ui";
-import type { RsvpView } from "./api";
+import { isClosedAndEditable, notifyRsvpUpdated, type RsvpView } from "./api";
 import "./rsvp.css";
 
 interface PostCloseState {
@@ -22,11 +21,6 @@ const ERRORS: Record<string, string> = {
   rsvp_not_closed: "RSVPs have not closed yet.",
   idempotency_key_in_progress: "Still claiming your spot. Try again in a moment.",
 };
-
-function isClosedAndEditable(e: EventDetail): boolean {
-  if (e.readOnly || e.status === "cancelled" || e.status === "completed") return false;
-  return e.status === "closed" || new Date(e.rsvpCloseAt).getTime() <= Date.now();
-}
 
 function errorText(error: unknown): string {
   if (error instanceof ApiError) {
@@ -97,6 +91,7 @@ export function ClaimSpotPanel({ event }: SlotProps) {
     try {
       const updated = await claimSpotRequest(event.id, guestId);
       setRsvp(updated);
+      notifyRsvpUpdated(event.id);
       setClaimedMessage(
         guestName ? `Spot claimed for ${guestName}.` : "Spot claimed! You're confirmed.",
       );

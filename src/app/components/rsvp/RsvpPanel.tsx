@@ -14,7 +14,15 @@ import {
   useToast,
   type StatusTone,
 } from "../ui";
-import { cancelRsvp, declineRsvp, getMyRsvp, putRsvp, type RsvpStatus, type RsvpView } from "./api";
+import {
+  cancelRsvp,
+  declineRsvp,
+  getMyRsvp,
+  isClosedAndEditable,
+  putRsvp,
+  type RsvpStatus,
+  type RsvpView,
+} from "./api";
 import "./rsvp.css";
 
 const LABEL: Record<RsvpStatus, string> = {
@@ -90,7 +98,10 @@ export function RsvpPanel({ event }: SlotProps) {
     setNames(isActive(next) ? next.guests.map((g) => g.name) : []);
   };
 
+  const closedEditable = isClosedAndEditable(event);
+
   useEffect(() => {
+    if (closedEditable) return;
     let cancelled = false;
     const isCancelled = () => cancelled;
     getMyRsvp(event.id)
@@ -147,12 +158,9 @@ export function RsvpPanel({ event }: SlotProps) {
     return () => {
       cancelled = true;
     };
-  }, [event]);
+  }, [closedEditable, event]);
 
-  if (load === "hidden") return null;
-  if (event.status === "closed" && event.allocationMode === "instant" && !event.readOnly) {
-    return null;
-  }
+  if (closedEditable || load === "hidden") return null;
   if (load === "loading") return <Skeleton lines={2} label="Loading your RSVP" />;
 
   const run = async (action: () => Promise<RsvpView>) => {

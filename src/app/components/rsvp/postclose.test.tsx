@@ -4,8 +4,10 @@ import { afterEach, describe, expect, it } from "vitest";
 import { configureApiClient } from "../../api/client";
 import type { EventDetail, EventViewer } from "../../api/events";
 import { Slot } from "../../routes/events/slots";
+import { ToastProvider } from "../ui";
 import type { RsvpView } from "./api";
 import { PostCloseRsvpPanel } from "./postclose";
+import "./register";
 
 const closedEvent = (over: Partial<EventDetail> = {}): EventDetail => ({
   id: "evt_1",
@@ -89,7 +91,11 @@ afterEach(() => {
 describe("PostCloseRsvpPanel (S4.4a)", () => {
   it("is registered in RsvpSlot and renders when event is closed", async () => {
     stub({ rsvp: null, freeSpots: 2, waitlistCount: 0 });
-    render(<Slot name="RsvpSlot" event={closedEvent()} viewer={viewer} />);
+    render(
+      <ToastProvider>
+        <Slot name="RsvpSlot" event={closedEvent()} viewer={viewer} />
+      </ToastProvider>,
+    );
     expect(await screen.findByRole("button", { name: "Join late" })).toBeTruthy();
   });
 
@@ -140,5 +146,32 @@ describe("PostCloseRsvpPanel (S4.4a)", () => {
       expect(post?.path).toBe("/events/evt_1/rsvp/late-cancel");
       expect(post?.key).toBeTruthy();
     });
+  });
+
+  it("does not render duplicate RsvpPanel alongside PostCloseRsvpPanel for closed tiered or past-close scheduled events", async () => {
+    const calls = stub({ rsvp: view({ status: "confirmed" }), freeSpots: 0, waitlistCount: 0 });
+    const { container } = render(
+      <ToastProvider>
+        <Slot name="RsvpSlot" event={closedEvent({ allocationMode: "tiered" })} viewer={viewer} />
+      </ToastProvider>,
+    );
+    expect(await screen.findByRole("button", { name: "Late cancel" })).toBeTruthy();
+    expect(container.querySelectorAll(".bcq-rsvp")).toHaveLength(1);
+    expect(calls.some((c) => c.path === "/events/evt_1/rsvp")).toBe(false);
+
+    cleanup();
+    const calls2 = stub({ rsvp: view({ status: "confirmed" }), freeSpots: 0, waitlistCount: 0 });
+    const { container: c2 } = render(
+      <ToastProvider>
+        <Slot
+          name="RsvpSlot"
+          event={closedEvent({ status: "scheduled", rsvpCloseAt: "2020-03-10T18:00:00.000Z" })}
+          viewer={viewer}
+        />
+      </ToastProvider>,
+    );
+    expect(await screen.findByRole("button", { name: "Late cancel" })).toBeTruthy();
+    expect(c2.querySelectorAll(".bcq-rsvp")).toHaveLength(1);
+    expect(calls2.some((c) => c.path === "/events/evt_1/rsvp")).toBe(false);
   });
 });

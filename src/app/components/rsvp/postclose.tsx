@@ -1,10 +1,9 @@
 import { useCallback, useEffect, useId, useState } from "react";
 
 import { ApiError, apiFetch, newIdempotencyKey } from "../../api/client";
-import type { EventDetail } from "../../api/events";
 import { registerSlot, type SlotProps } from "../../routes/events/slots";
 import { Button, ConfirmDialog, Skeleton, StatusChip, Stepper, type StatusTone } from "../ui";
-import type { RsvpStatus, RsvpView } from "./api";
+import { isClosedAndEditable, RSVP_UPDATED_EVENT, type RsvpStatus, type RsvpView } from "./api";
 import "./rsvp.css";
 
 interface PostCloseState {
@@ -48,11 +47,6 @@ const isActive = (r: RsvpView | null): r is RsvpView =>
   r.status !== "cancelled" &&
   r.status !== "late_cancelled" &&
   r.status !== "declined";
-
-function isClosedAndEditable(e: EventDetail): boolean {
-  if (e.readOnly || e.status === "cancelled" || e.status === "completed") return false;
-  return e.status === "closed" || new Date(e.rsvpCloseAt).getTime() <= Date.now();
-}
 
 function errorText(error: unknown): string {
   if (error instanceof ApiError) {
@@ -136,8 +130,22 @@ export function PostCloseRsvpPanel({ event }: SlotProps) {
     };
   }, [apply, closed, event.id]);
 
+  useEffect(() => {
+    if (!closed) return;
+    const onUpdated = (e: Event) => {
+      const detail = (e as CustomEvent<{ eventId?: string } | undefined>).detail;
+      if (detail?.eventId === event.id) void refresh().catch(() => {});
+    };
+    window.addEventListener(RSVP_UPDATED_EVENT, onUpdated);
+    return () => {
+      window.removeEventListener(RSVP_UPDATED_EVENT, onUpdated);
+    };
+  }, [closed, event.id, refresh]);
+
   if (!closed || load === "hidden") return null;
   if (load === "loading") return <Skeleton lines={2} label="Loading late RSVP options" />;
+  // ClaimSpotPanel renders the sole card while the member's own spot is offered.
+  if (state?.rsvp?.status === "offered") return null;
 
   const run = async (action: () => Promise<unknown>) => {
     setBusy(true);

@@ -1,4 +1,16 @@
 import { apiFetch, newIdempotencyKey } from "../../api/client";
+import type { EventDetail } from "../../api/events";
+
+export const RSVP_UPDATED_EVENT = "bcq:rsvp-updated";
+
+export function isClosedAndEditable(e: EventDetail): boolean {
+  if (e.readOnly || e.status === "cancelled" || e.status === "completed") return false;
+  return e.status === "closed" || new Date(e.rsvpCloseAt).getTime() <= Date.now();
+}
+
+export function notifyRsvpUpdated(eventId: string): void {
+  window.dispatchEvent(new CustomEvent(RSVP_UPDATED_EVENT, { detail: { eventId } }));
+}
 
 export type RsvpStatus =
   | "requested"

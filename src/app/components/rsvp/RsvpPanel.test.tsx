@@ -167,9 +167,9 @@ describe("RsvpPanel (S4.2)", () => {
     expect(within(list).getByText(/Kim/)).toBeTruthy();
   });
 
-  it("after close it shows the status but no RSVP controls", async () => {
+  it("after close (readOnly) it shows the status but no RSVP controls", async () => {
     stub(view({ status: "confirmed" }));
-    render(<RsvpPanel event={event({ status: "closed" })} viewer={viewer} />);
+    render(<RsvpPanel event={event({ status: "closed", readOnly: true })} viewer={viewer} />);
     expect(await screen.findByText("Confirmed")).toBeTruthy();
     expect(screen.getByText(/RSVPs are closed/i)).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Cancel RSVP" })).toBeNull();

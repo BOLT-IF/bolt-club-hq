@@ -100,7 +100,7 @@ describe("/events/new", () => {
     expect(JSON.parse(post.init!.body as string)).toEqual({
       title: "Friday hit",
       location: null,
-      format: "Open",
+      format: "Men's Doubles",
       // 19:00 Stockholm in March (CET, UTC+1) is 18:00 UTC.
       startsAt: "2027-03-12T18:00:00.000Z",
       endsAt: "2027-03-12T19:30:00.000Z",

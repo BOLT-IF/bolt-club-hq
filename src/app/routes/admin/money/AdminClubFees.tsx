@@ -265,9 +265,8 @@ export function AdminClubFees() {
   const [query, setQuery] = useState("");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
   const [busy, setBusy] = useState(false);
-  const [batchSheetOpen, setBatchSheetOpen] = useState(false);
   const [bulkSheetOpen, setBulkSheetOpen] = useState(false);
-  const [confirmBatchSeason, setConfirmBatchSeason] = useState<TermSeason | null>(null);
+  const [confirmBulkSeason, setConfirmBulkSeason] = useState<TermSeason | null>(null);
   const [memberActionRow, setMemberActionRow] = useState<ClubFeeMemberRow | null>(null);
   const [pendingClear, setPendingClear] = useState<ClubFeeMemberRow | null>(null);
 
@@ -318,7 +317,9 @@ export function AdminClubFees() {
   const visible = [...data.members]
     .filter((m) => matchesFilter(m, filter) && matchesSearch(m, query))
     .sort(compareClubFeeRows);
-  const notChargedVisible = visible.filter((m) => m.status === "not_charged");
+  const notChargedVisible = visible.filter(
+    (m) => m.status === "not_charged" && m.memberStatus === "active",
+  );
   const selectedList = [...selectedIds];
 
   function toggleMember(memberId: string) {
@@ -360,7 +361,7 @@ export function AdminClubFees() {
       toast.show(describeError(error), "danger");
     } finally {
       setBusy(false);
-      setConfirmBatchSeason(null);
+      setConfirmBulkSeason(null);
     }
   }
 
@@ -433,19 +434,6 @@ export function AdminClubFees() {
         <h1 id="admin-club-fees-title" className="bcq-page__title">
           Club Fees
         </h1>
-        <button
-          type="button"
-          className="bcq-club-fees-charge-all"
-          disabled={busy}
-          onClick={() => {
-            setBatchSheetOpen(true);
-          }}
-        >
-          <span className="bcq-club-fees-charge-all__icon" aria-hidden="true">
-            <CoinsIcon size={16} />
-          </span>
-          <span>Charge All</span>
-        </button>
       </div>
 
       <div className="bcq-card bcq-money-search-card">
@@ -709,7 +697,8 @@ export function AdminClubFees() {
               type="button"
               disabled={busy}
               onClick={() => {
-                void runCharge("fall", selectedList);
+                setBulkSheetOpen(false);
+                setConfirmBulkSeason("fall");
               }}
             >
               {`Charge Fall (${String(data.fallFeeSek)} kr)`}
@@ -719,7 +708,8 @@ export function AdminClubFees() {
               variant="tonal"
               disabled={busy}
               onClick={() => {
-                void runCharge("spring", selectedList);
+                setBulkSheetOpen(false);
+                setConfirmBulkSeason("spring");
               }}
             >
               {`Charge Spring (${String(data.springFeeSek)} kr)`}
@@ -739,61 +729,6 @@ export function AdminClubFees() {
           <p className="bcq-club-fees-sheet__note">
             Fall payers and already-covered members are skipped automatically when charging Spring.
           </p>
-        </div>
-      </BottomSheet>
-
-      <BottomSheet
-        open={batchSheetOpen}
-        title={`Charge All Eligible (${data.label})`}
-        onClose={() => {
-          if (!busy) setBatchSheetOpen(false);
-        }}
-        footer={
-          <div className="bcq-club-fees-sheet-footer">
-            <Button
-              type="button"
-              variant="tonal"
-              block
-              disabled={busy}
-              onClick={() => {
-                if (!busy) setBatchSheetOpen(false);
-              }}
-            >
-              Cancel
-            </Button>
-          </div>
-        }
-      >
-        <div className="bcq-club-fees-sheet">
-          <p className="bcq-club-fees-sheet__note">
-            Applies to all active members not already covered for {data.label}.
-          </p>
-          <div className="bcq-club-fees-option-list">
-            <button
-              type="button"
-              className="bcq-club-fees-option-card"
-              disabled={busy}
-              onClick={() => {
-                setBatchSheetOpen(false);
-                setConfirmBatchSeason("fall");
-              }}
-            >
-              <CoinsIcon size={18} />
-              <span>{`Charge Fall Fee (${String(data.fallFeeSek)} kr)`}</span>
-            </button>
-            <button
-              type="button"
-              className="bcq-club-fees-option-card"
-              disabled={busy}
-              onClick={() => {
-                setBatchSheetOpen(false);
-                setConfirmBatchSeason("spring");
-              }}
-            >
-              <CoinsIcon size={18} />
-              <span>{`Charge Spring Fee (${String(data.springFeeSek)} kr)`}</span>
-            </button>
-          </div>
         </div>
       </BottomSheet>
 
@@ -863,29 +798,29 @@ export function AdminClubFees() {
       </ActionSheet.Root>
 
       <ConfirmDialog
-        open={confirmBatchSeason !== null}
+        open={confirmBulkSeason !== null && selectedList.length > 0}
         title={
-          confirmBatchSeason === "fall"
-            ? `Charge Fall Fee (${String(data.fallFeeSek)} kr) to All Active Members?`
-            : `Charge Spring Fee (${String(data.springFeeSek)} kr) to All Active Members?`
+          confirmBulkSeason === "fall"
+            ? `Charge Fall Fee (${String(data.fallFeeSek)} kr) to ${String(selectedList.length)} Selected ${selectedList.length === 1 ? "Member" : "Members"}?`
+            : `Charge Spring Fee (${String(data.springFeeSek)} kr) to ${String(selectedList.length)} Selected ${selectedList.length === 1 ? "Member" : "Members"}?`
         }
         description={
-          confirmBatchSeason === "spring"
+          confirmBulkSeason === "spring"
             ? `Members who already paid or were charged in Fall ${data.label} are skipped automatically.`
             : `Already-covered members for ${data.label} are skipped automatically.`
         }
         confirmLabel={
           busy
             ? "Charging…"
-            : confirmBatchSeason === "fall"
+            : confirmBulkSeason === "fall"
               ? `Confirm & Charge (${String(data.fallFeeSek)} kr)`
               : `Confirm & Charge (${String(data.springFeeSek)} kr)`
         }
         onCancel={() => {
-          if (!busy) setConfirmBatchSeason(null);
+          if (!busy) setConfirmBulkSeason(null);
         }}
         onConfirm={() => {
-          if (confirmBatchSeason) void runCharge(confirmBatchSeason);
+          if (confirmBulkSeason) void runCharge(confirmBulkSeason, selectedList);
         }}
       />
 

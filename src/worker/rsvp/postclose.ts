@@ -232,7 +232,13 @@ async function chargeConfirmedCandidate(
   });
 }
 
-async function processRefills(tx: Tx, clock: Clock, e: EventRow): Promise<void> {
+async function processRefills(
+  tx: Tx,
+  clock: Clock,
+  e: EventRow,
+  spotsFilled: number,
+): Promise<void> {
+  if (spotsFilled <= 0) return;
   const { roster } = await loadRoster(tx, e);
   const freeSpots = Math.max(0, e.capacity - roster.confirmed.length);
 
@@ -278,7 +284,7 @@ async function processRefills(tx: Tx, clock: Clock, e: EventRow): Promise<void> 
     return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
   });
 
-  const toRefill = Math.max(0, targets.length - freeSpots);
+  const toRefill = Math.min(spotsFilled, Math.max(0, targets.length - freeSpots));
   if (toRefill === 0) return;
 
   const now = clock.now();
@@ -327,6 +333,7 @@ async function runPromotionAndRefill(
   clock: Clock,
   e: EventRow,
   actorRsvpId?: string,
+  newlyConfirmed = 0,
 ): Promise<void> {
   const now = clock.now();
   const cutoffMinutes = await getCutoffMinutes(tx);
@@ -404,7 +411,7 @@ async function runPromotionAndRefill(
       }
     }
 
-    await processRefills(tx, clock, e);
+    await processRefills(tx, clock, e, newlyConfirmed + result.promoted.length);
     return;
   }
 
@@ -559,7 +566,7 @@ export async function putLateRsvp(
       );
     }
 
-    await runPromotionAndRefill(tx, clock, e, row.id);
+    await runPromotionAndRefill(tx, clock, e, row.id, canImmediateConfirm ? 1 : 0);
     row = (await findRsvp(tx, e.id, input.memberId)) ?? row;
 
     const after = toView(row, await guestsOf(tx, row.id));

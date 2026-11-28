@@ -177,7 +177,7 @@ async function processRefills(
     return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
   });
 
-  const toRefill = Math.max(0, targets.length - freeSpots);
+  const toRefill = Math.min(1, Math.max(0, targets.length - freeSpots));
   if (toRefill === 0) return;
 
   const now = clock.now();

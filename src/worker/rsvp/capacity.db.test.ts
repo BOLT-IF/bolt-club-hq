@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   clubSettings,
   event,
+  guest,
   ledgerEntry,
   notification,
   rsvp,
@@ -239,5 +240,93 @@ describe("event capacity changes (S4.4b)", () => {
 
     const m2Notes = await t.db.select().from(notification).where(eq(notification.memberId, m2.id));
     expect(m2Notes.some((n) => n.title === "You're in")).toBe(true);
+  });
+
+  it("lowering capacity to confirmedCount resets offered RSVPs and guests back to waitlisted", async () => {
+    const { admin, event: e } = await addEvent({ capacity: 3 });
+    const m1 = await makeMember(t.db);
+    const m2 = await makeMember(t.db);
+
+    await send("PUT", `/events/${e.id}/rsvp`, m1.clerkUserId, { body: { guests: [] } });
+    clock.set(at(25));
+    await closeEvent(t.db, clock, e.id);
+
+    // Seed an offered RSVP and an offered guest on m1.
+    await t.db.insert(rsvp).values({
+      id: "rsv_offered_1",
+      eventId: e.id,
+      memberId: m2.id,
+      status: "offered",
+      tier: 2,
+      requestedAt: at(26),
+    });
+    const [m1Rsvp] = await t.db.select().from(rsvp).where(eq(rsvp.memberId, m1.id));
+    await t.db.insert(guest).values({
+      id: "gst_offered_1",
+      rsvpId: m1Rsvp!.id,
+      name: "Offered Guest",
+      status: "offered",
+      tier: 3,
+      requestedAt: at(26),
+    });
+
+    // Lower capacity from 3 to 1 (equal to confirmedCount = 1).
+    const res = await send("PATCH", `/events/${e.id}/capacity`, admin.clerkUserId, {
+      body: { capacity: 1 },
+    });
+    expect(res.status).toBe(200);
+
+    const [m2Row] = await t.db.select().from(rsvp).where(eq(rsvp.id, "rsv_offered_1"));
+    const [gRow] = await t.db.select().from(guest).where(eq(guest.id, "gst_offered_1"));
+    expect(m2Row?.status).toBe("waitlisted");
+    expect(gRow?.status).toBe("waitlisted");
+  });
+
+  it("reducing capacity after late-cancel and later raising it does not falsely refill prior late-cancel", async () => {
+    const { admin, event: e } = await addEvent({ capacity: 3 });
+    const m1 = await makeMember(t.db);
+    const m2 = await makeMember(t.db);
+    const m3 = await makeMember(t.db);
+
+    await send("PUT", `/events/${e.id}/rsvp`, m1.clerkUserId, { body: { guests: [] } });
+    clock.advance(1000);
+    await send("PUT", `/events/${e.id}/rsvp`, m2.clerkUserId, { body: { guests: [] } });
+    clock.advance(1000);
+    await send("PUT", `/events/${e.id}/rsvp`, m3.clerkUserId, { body: { guests: [] } });
+
+    clock.set(at(25));
+    await closeEvent(t.db, clock, e.id);
+
+    // m1 late-cancels (no waitlist -> charge stands, 120 kr).
+    clock.set(at(26));
+    await t.db
+      .update(rsvp)
+      .set({ status: "late_cancelled", cancelledAt: at(26) })
+      .where(eq(rsvp.memberId, m1.id));
+
+    // Admin lowers capacity from 3 -> 1 (bumping m3 to waitlist), then raises 1 -> 2 (re-promoting m3).
+    clock.set(at(27));
+    expect(
+      (
+        await send("PATCH", `/events/${e.id}/capacity`, admin.clerkUserId, {
+          body: { capacity: 1, override: true },
+        })
+      ).status,
+    ).toBe(200);
+
+    clock.set(at(28));
+    expect(
+      (
+        await send("PATCH", `/events/${e.id}/capacity`, admin.clerkUserId, {
+          body: { capacity: 2 },
+        })
+      ).status,
+    ).toBe(200);
+
+    // m1's prior late-cancel must NOT be refilled/reversed by re-promoting bumped m3 into net capacity 2 (< 3).
+    const [m1Row] = await t.db.select().from(rsvp).where(eq(rsvp.memberId, m1.id));
+    expect(m1Row?.refilled).toBe(false);
+    const m1Entries = await t.db.select().from(ledgerEntry).where(eq(ledgerEntry.memberId, m1.id));
+    expect(m1Entries.reduce((s, x) => s + x.amountSek, 0)).toBe(120);
   });
 });

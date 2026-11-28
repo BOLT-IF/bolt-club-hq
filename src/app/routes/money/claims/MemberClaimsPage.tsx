@@ -6,6 +6,7 @@ import { useCallback, useEffect, useRef, useState, type SyntheticEvent } from "r
 import { ApiError, apiFetch, newIdempotencyKey } from "../../../api/client";
 import {
   Button,
+  ChevronRightIcon,
   DisclosureSection,
   EmptyState,
   ErrorState,
@@ -80,6 +81,71 @@ function describeClaimSubmitError(error: unknown): string {
     if (error.status === 403) return "Your account can't submit a payment claim right now.";
   }
   return "Couldn't submit your claim. Check your connection and try again.";
+}
+
+function LandmarkIcon() {
+  return (
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <line x1="3" x2="21" y1="22" y2="22" />
+      <line x1="6" x2="6" y1="18" y2="11" />
+      <line x1="10" x2="10" y1="18" y2="11" />
+      <line x1="14" x2="14" y1="18" y2="11" />
+      <line x1="18" x2="18" y1="18" y2="11" />
+      <polygon points="12 2 20 7 4 7" />
+    </svg>
+  );
+}
+
+function CalendarIcon() {
+  return (
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <rect width="18" height="18" x="3" y="4" rx="2" ry="2" />
+      <line x1="16" x2="16" y1="2" y2="6" />
+      <line x1="8" x2="8" y1="2" y2="6" />
+      <line x1="3" x2="21" y1="10" y2="10" />
+    </svg>
+  );
+}
+
+function ReceiptIcon() {
+  return (
+    <svg
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z" />
+      <path d="M8 7h8" />
+      <path d="M8 11h8" />
+      <path d="M8 15h5" />
+    </svg>
+  );
 }
 
 function claimStatus(status: PaymentClaim["status"]): { tone: StatusTone; text: string } {
@@ -193,10 +259,12 @@ export function MemberClaimsPage() {
     return (
       <li key={claim.id} className="bcq-money__item">
         <div className="bcq-money__row">
-          <strong className="bcq-money__sum">{claim.amountSek} kr</strong>
-          <StatusChip tone={chip.tone}>{chip.text}</StatusChip>
+          <strong className="bcq-money__sum bcq-tabular-nums">{claim.amountSek} kr</strong>
+          <span className="bcq-claims__badge">
+            <StatusChip tone={chip.tone}>{chip.text}</StatusChip>
+          </span>
         </div>
-        <p className="bcq-money__when">
+        <p className="bcq-money__when bcq-tabular-nums">
           Paid <time dateTime={claim.paidOn}>{formatDay(claim.paidOn)}</time>
         </p>
         {claim.note ? <p className="bcq-claims__note">{claim.note}</p> : null}
@@ -208,32 +276,38 @@ export function MemberClaimsPage() {
   };
 
   return (
-    <section aria-labelledby="claims-title" className="bcq-money">
+    <section aria-labelledby="claims-title" className="bcq-money bcq-claims-page">
       <h1 id="claims-title" className="bcq-page__title">
         Payment Claims
       </h1>
       <div>
         <a
-          className="bcq-btn bcq-btn--tonal"
+          className="bcq-claims-nav-pill"
           href="/money"
           onClick={(e) => {
             e.preventDefault();
             navigate("/money");
           }}
         >
-          Balance &amp; Bank Details
+          <span className="bcq-claims-nav-pill__icon">
+            <LandmarkIcon />
+          </span>
+          <span>Balance &amp; Bank Details</span>
+          <span className="bcq-claims-nav-pill__chevron">
+            <ChevronRightIcon />
+          </span>
         </a>
       </div>
 
-      <section aria-labelledby="claim-form-title" className="bcq-money__card">
-        <h2 id="claim-form-title" className="bcq-money__heading">
+      <section aria-labelledby="claim-form-title" className="bcq-card bcq-claims-form-card">
+        <h2 id="claim-form-title" className="bcq-claims-form-card__title">
           I&apos;ve Paid
         </h2>
-        <p className="bcq-field__hint" style={{ marginBottom: "1rem" }}>
+        <p className="bcq-claims-form-card__hint">
           Let the club know after you transfer money. Your balance updates once an admin confirms
           it.
         </p>
-        <form className="bcq-form" noValidate onSubmit={(e) => void onSubmit(e)}>
+        <form className="bcq-form bcq-claims-form" noValidate onSubmit={(e) => void onSubmit(e)}>
           <div className="bcq-form-grid-2">
             <div className="bcq-field">
               <label className="bcq-field__label" htmlFor="claim-amount">
@@ -241,9 +315,10 @@ export function MemberClaimsPage() {
               </label>
               <input
                 id="claim-amount"
-                className="bcq-input"
+                className="bcq-input bcq-tabular-nums"
                 inputMode="numeric"
                 autoComplete="off"
+                placeholder="e.g., 1350"
                 value={amount}
                 onChange={(e) => {
                   setAmount(e.target.value);
@@ -254,16 +329,21 @@ export function MemberClaimsPage() {
               <label className="bcq-field__label" htmlFor="claim-paid-on">
                 Date Paid
               </label>
-              <input
-                id="claim-paid-on"
-                className="bcq-input"
-                type="date"
-                max={today}
-                value={paidOn}
-                onChange={(e) => {
-                  setPaidOn(e.target.value);
-                }}
-              />
+              <div className="bcq-claims-date-wrap">
+                <span className="bcq-claims-date-wrap__icon" aria-hidden="true">
+                  <CalendarIcon />
+                </span>
+                <input
+                  id="claim-paid-on"
+                  className="bcq-input bcq-tabular-nums bcq-claims-date-input"
+                  type="date"
+                  max={today}
+                  value={paidOn}
+                  onChange={(e) => {
+                    setPaidOn(e.target.value);
+                  }}
+                />
+              </div>
             </div>
           </div>
           <div className="bcq-field">
@@ -272,8 +352,10 @@ export function MemberClaimsPage() {
             </label>
             <textarea
               id="claim-note"
-              className="bcq-input bcq-textarea"
+              className="bcq-input bcq-textarea bcq-claims__textarea"
+              rows={2}
               maxLength={500}
+              placeholder="Swish or bank transfer reference..."
               value={note}
               onChange={(e) => {
                 setNote(e.target.value);
@@ -291,8 +373,8 @@ export function MemberClaimsPage() {
         </form>
       </section>
 
-      <section aria-labelledby="my-claims-heading">
-        <h2 id="my-claims-heading" className="bcq-money__heading">
+      <section aria-labelledby="my-claims-heading" className="bcq-claims-list-section">
+        <h2 id="my-claims-heading" className="bcq-claims-subheader">
           Your Claims
         </h2>
         {state.status === "loading" ? <Skeleton label="Loading payment claims" /> : null}
@@ -311,7 +393,7 @@ export function MemberClaimsPage() {
         ) : null}
         {state.status === "ready" ? (
           state.claims.length === 0 ? (
-            <EmptyState title="No Payment Claims Yet">
+            <EmptyState title="No Payment Claims Yet" icon={<ReceiptIcon />}>
               Claims you submit appear here while an admin reviews them.
             </EmptyState>
           ) : (

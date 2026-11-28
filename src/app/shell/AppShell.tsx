@@ -55,6 +55,9 @@ const ROOT_NAV_PATHS = new Set(PRIMARY_NAV.flatMap((item) => ("path" in item ? [
 
 /** Determine contextual Back label and fallback target for the top bar. */
 function backTargetFor(path: string): { readonly label: string; readonly fallback: string } {
+  if (path === "/events/new") {
+    return { label: "Events", fallback: "/events" };
+  }
   if (/^\/admin\/[^/]+$/.test(path)) {
     return { label: "Admin", fallback: "/admin" };
   }

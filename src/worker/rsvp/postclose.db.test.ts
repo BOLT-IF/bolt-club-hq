@@ -498,5 +498,76 @@ describe("post-close RSVP, cancel, promotion, refill (S4.4a)", () => {
       expect(await balanceOf(exiting.id)).toBe(0);
       expect(await balanceOf(waitlisted.id)).toBe(120);
     });
+
+    it("late-cancel then re-joining via putLateRsvp does not double-charge, and subsequent refill reverses cleanly", async () => {
+      const ev = await addEvent({ capacity: 1, adhocFee: 120 });
+      const m1 = await makeMember(t.db);
+      const m2 = await makeMember(t.db);
+
+      await putPre(ev.id, m1.clerkUserId);
+      clock.set(at(25));
+      await closeEvent(t.db, clock, ev.id);
+      expect(await balanceOf(m1.id)).toBe(120);
+
+      // Late-cancel with no waitlist -> charge stands.
+      clock.advance(1000);
+      const lc1 = await lateCancel(ev.id, m1.clerkUserId);
+      expect(lc1.status).toBe(200);
+      expect(await balanceOf(m1.id)).toBe(120);
+
+      // Re-join before anyone else takes the spot -> confirmed without a second charge.
+      clock.advance(1000);
+      const rejoin = await putLate(ev.id, m1.clerkUserId);
+      expect(rejoin.status).toBe(200);
+      const rejoinBody = await rejoin.json<{ rsvp: { status: string } }>();
+      expect(rejoinBody.rsvp.status).toBe("confirmed");
+      expect(await balanceOf(m1.id)).toBe(120);
+
+      const m1Entries = await t.db
+        .select()
+        .from(ledgerEntry)
+        .where(eq(ledgerEntry.memberId, m1.id));
+      expect(m1Entries).toHaveLength(1);
+
+      // Late-cancel again, then m2 takes the spot -> m1's single charge is reversed cleanly.
+      clock.advance(1000);
+      const lc2 = await lateCancel(ev.id, m1.clerkUserId);
+      expect(lc2.status).toBe(200);
+
+      clock.advance(1000);
+      const joinM2 = await putLate(ev.id, m2.clerkUserId);
+      expect(joinM2.status).toBe(200);
+      expect(await balanceOf(m2.id)).toBe(120);
+      expect(await balanceOf(m1.id)).toBe(0);
+    });
+
+    it("late-cancel refilled by another member, then re-joining when a spot opens charges once", async () => {
+      const ev = await addEvent({ capacity: 2, adhocFee: 120 });
+      const m1 = await makeMember(t.db);
+      const m2 = await makeMember(t.db);
+      const m3 = await makeMember(t.db);
+
+      await putPre(ev.id, m1.clerkUserId);
+      await putPre(ev.id, m2.clerkUserId);
+      clock.set(at(25));
+      await closeEvent(t.db, clock, ev.id);
+      expect(await balanceOf(m1.id)).toBe(120);
+      expect(await balanceOf(m2.id)).toBe(120);
+
+      // m1 late-cancels, then m3 takes the spot -> m1 is refilled and reversed (balance 0).
+      clock.advance(1000);
+      await lateCancel(ev.id, m1.clerkUserId);
+      clock.advance(1000);
+      await putLate(ev.id, m3.clerkUserId);
+      expect(await balanceOf(m1.id)).toBe(0);
+
+      // m2 late-cancels, freeing a spot; m1 re-joins -> m1 is charged once (balance 120).
+      clock.advance(1000);
+      await lateCancel(ev.id, m2.clerkUserId);
+      clock.advance(1000);
+      const rejoin = await putLate(ev.id, m1.clerkUserId);
+      expect(rejoin.status).toBe(200);
+      expect(await balanceOf(m1.id)).toBe(120);
+    });
   });
 });

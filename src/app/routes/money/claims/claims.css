@@ -2,46 +2,6 @@
   padding-bottom: calc(6rem + env(safe-area-inset-bottom, 0px));
 }
 
-.bcq-claims-nav-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  min-height: var(--bcq-touch);
-  padding: 0 0.875rem;
-  border-radius: 0.75rem;
-  border: 1px solid rgba(226, 232, 240, 0.8);
-  background: var(--bcq-card);
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
-  color: var(--bcq-ink);
-  font: 600 0.875rem/1.2 var(--bcq-font);
-  text-decoration: none;
-  transition:
-    background-color 140ms var(--bcq-ease),
-    transform 120ms var(--bcq-ease);
-}
-
-.bcq-claims-nav-pill:hover {
-  background: #f8fafc;
-}
-
-.bcq-claims-nav-pill:active {
-  transform: scale(0.98);
-}
-
-.bcq-claims-nav-pill__icon {
-  display: inline-flex;
-  align-items: center;
-  color: #475569;
-  flex-shrink: 0;
-}
-
-.bcq-claims-nav-pill__chevron {
-  display: inline-flex;
-  align-items: center;
-  color: #94a3b8;
-  flex-shrink: 0;
-}
-
 .bcq-claims-form-card {
   display: grid;
   gap: 0.875rem;

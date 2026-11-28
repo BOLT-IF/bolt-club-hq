@@ -6,7 +6,6 @@ import { useCallback, useEffect, useRef, useState, type SyntheticEvent } from "r
 import { ApiError, apiFetch, newIdempotencyKey } from "../../../api/client";
 import {
   Button,
-  ChevronRightIcon,
   DisclosureSection,
   EmptyState,
   ErrorState,
@@ -16,7 +15,6 @@ import {
   type StatusTone,
 } from "../../../components/ui";
 import { useFeatureFlag } from "../../../lib/flags";
-import { navigate } from "../../../lib/navigate";
 
 export interface PaymentClaim {
   readonly id: string;
@@ -81,29 +79,6 @@ function describeClaimSubmitError(error: unknown): string {
     if (error.status === 403) return "Your account can't submit a payment claim right now.";
   }
   return "Couldn't submit your claim. Check your connection and try again.";
-}
-
-function LandmarkIcon() {
-  return (
-    <svg
-      width="16"
-      height="16"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <line x1="3" x2="21" y1="22" y2="22" />
-      <line x1="6" x2="6" y1="18" y2="11" />
-      <line x1="10" x2="10" y1="18" y2="11" />
-      <line x1="14" x2="14" y1="18" y2="11" />
-      <line x1="18" x2="18" y1="18" y2="11" />
-      <polygon points="12 2 20 7 4 7" />
-    </svg>
-  );
 }
 
 function CalendarIcon() {
@@ -280,24 +255,6 @@ export function MemberClaimsPage() {
       <h1 id="claims-title" className="bcq-page__title">
         Payment Claims
       </h1>
-      <div>
-        <a
-          className="bcq-claims-nav-pill"
-          href="/money"
-          onClick={(e) => {
-            e.preventDefault();
-            navigate("/money");
-          }}
-        >
-          <span className="bcq-claims-nav-pill__icon">
-            <LandmarkIcon />
-          </span>
-          <span>Balance &amp; Bank Details</span>
-          <span className="bcq-claims-nav-pill__chevron">
-            <ChevronRightIcon />
-          </span>
-        </a>
-      </div>
 
       <section aria-labelledby="claim-form-title" className="bcq-card bcq-claims-form-card">
         <h2 id="claim-form-title" className="bcq-claims-form-card__title">

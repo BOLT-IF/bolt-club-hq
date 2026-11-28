@@ -5,6 +5,7 @@ import { createApp } from "../app";
 import { eventsDeps } from "../events/deps";
 import { eventOgKey, ogSnapshot } from "../events/rules";
 import { configureShareDeps } from "./deps";
+import { injectOgIntoHtml } from "./og";
 
 function makeKv(): KVNamespace {
   const store = new Map<string, string>();
@@ -176,5 +177,90 @@ describe("share OG and edge routes (S7.1)", () => {
     });
     await port.publishOg({ key: eventOgKey("real1234"), html: snapshot });
     expect(await kv.get("og:event:real1234")).toBe(snapshot);
+  });
+
+  it("does not expand $ replacement patterns in title, description, url, or bodyFallback", () => {
+    const html = injectOgIntoHtml(
+      null,
+      {
+        title: "Match $' $& $$ $`",
+        description: "Desc $' $& $$ $`",
+        url: "https://club.example/e/dollar$'$$$&",
+      },
+      "Fallback $' $& $$ $`",
+    );
+
+    // Must not duplicate <body> or <script type="module" inside <head>.
+    const headEndIdx = html.indexOf("</head>");
+    expect(headEndIdx).toBeGreaterThan(-1);
+    const headSection = html.slice(0, headEndIdx);
+    expect(headSection).not.toContain("<body>");
+    expect(headSection).not.toContain('<script type="module"');
+
+    // Literal $ sequences must be preserved intact.
+    expect(html).toContain("<title>Match $&#39; $&amp; $$ $`</title>");
+    expect(html).toContain('content="Desc $&#39; $&amp; $$ $`"');
+    expect(html).toContain('content="https://club.example/e/dollar$&#39;$$$&amp;"');
+    expect(html).toContain('<div id="root"><p>Fallback $&#39; $&amp; $$ $`</p></div>');
+    expect(html.match(/<body>/gi)?.length).toBe(1);
+    expect(html.match(/<script type="module"/gi)?.length).toBe(1);
+  });
+
+  it("canonicalizes og:url without query strings and resists query-string $-pattern injection on /e/:slug and /s/:slug", async () => {
+    const kv = makeKv();
+    configureShareDeps({
+      findEventBySlug: () => Promise.resolve(null),
+      findSeriesNextBySlug: () => Promise.resolve({ exists: false, event: null }),
+    });
+
+    try {
+      const app = createApp();
+      const cleanRes = await app.request("https://club.example/e/nonexistent", undefined, {
+        ...env,
+        KV: kv,
+      });
+      const cleanHtml = await cleanRes.text();
+      const cleanScriptCount = cleanHtml.match(/<script type="module"/gi)?.length ?? 0;
+
+      const resEvent = await app.request(
+        "https://club.example/e/nonexistent?x=$'&utm=1",
+        undefined,
+        {
+          ...env,
+          KV: kv,
+        },
+      );
+      expect(resEvent.status).toBe(404);
+      const eventHtml = await resEvent.text();
+      expect(eventHtml).toContain(
+        '<meta property="og:url" content="https://club.example/e/nonexistent" />',
+      );
+      expect(eventHtml).not.toContain("?x=");
+      expect(eventHtml.match(/<\/head>/gi)?.length).toBe(1);
+      expect(eventHtml.match(/<body>/gi)?.length).toBe(1);
+      expect(eventHtml.slice(0, eventHtml.indexOf("</head>"))).not.toContain("<body>");
+      expect(eventHtml.match(/<script type="module"/gi)?.length).toBe(cleanScriptCount);
+
+      const resSeries = await app.request(
+        "https://club.example/s/nonexistent?x=$'&foo=bar",
+        undefined,
+        {
+          ...env,
+          KV: kv,
+        },
+      );
+      expect(resSeries.status).toBe(404);
+      const seriesHtml = await resSeries.text();
+      expect(seriesHtml).toContain(
+        '<meta property="og:url" content="https://club.example/s/nonexistent" />',
+      );
+      expect(seriesHtml).not.toContain("?x=");
+      expect(seriesHtml.match(/<\/head>/gi)?.length).toBe(1);
+      expect(seriesHtml.match(/<body>/gi)?.length).toBe(1);
+      expect(seriesHtml.slice(0, seriesHtml.indexOf("</head>"))).not.toContain("<body>");
+      expect(seriesHtml.match(/<script type="module"/gi)?.length).toBe(cleanScriptCount);
+    } finally {
+      configureShareDeps({});
+    }
   });
 });

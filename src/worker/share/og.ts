@@ -136,16 +136,19 @@ export function injectOgIntoHtml(
   const tags = buildOgHeadTags(meta);
 
   let out = /<title>[\s\S]*?<\/title>/i.test(html)
-    ? html.replace(/<title>[\s\S]*?<\/title>/i, `<title>${escapedTitle}</title>`)
-    : html.replace(/<\/head>/i, `<title>${escapedTitle}</title>\n  </head>`);
+    ? html.replace(/<title>[\s\S]*?<\/title>/i, () => `<title>${escapedTitle}</title>`)
+    : html.replace(/<\/head>/i, () => `<title>${escapedTitle}</title>\n  </head>`);
 
   out = /<\/head>/i.test(out)
-    ? out.replace(/<\/head>/i, `    ${tags}\n  </head>`)
+    ? out.replace(/<\/head>/i, () => `    ${tags}\n  </head>`)
     : `${tags}\n${out}`;
 
   if (bodyFallback) {
     const escapedBody = escapeHtml(bodyFallback);
-    out = out.replace(/<div id="root"><\/div>/i, `<div id="root"><p>${escapedBody}</p></div>`);
+    out = out.replace(
+      /<div id="root"><\/div>/i,
+      () => `<div id="root"><p>${escapedBody}</p></div>`,
+    );
   }
   return out;
 }

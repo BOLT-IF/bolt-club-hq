@@ -137,6 +137,7 @@ export async function exportMemberData(db: Db, clock: Clock, memberId: string) {
         status: guest.status,
         tier: guest.tier,
         requestedAt: guest.requestedAt,
+        cancelledAt: guest.cancelledAt,
         refilled: guest.refilled,
         attendance: guest.attendance,
       })

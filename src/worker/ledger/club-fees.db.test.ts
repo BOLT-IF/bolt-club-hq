@@ -11,6 +11,7 @@ import { createTestDatabase, type TestDatabase } from "../test-support/database"
 import { makeMember } from "../test-support/factories";
 import type { AppEnv } from "../types";
 import ledgerRoutes from "./routes";
+import { ensureClubFeeForMember } from "./club-fees";
 import { createLedgerService } from "./service";
 
 const NOW = "2026-09-15T10:00:00Z"; // Fall 2026 -> clubYear 2026
@@ -346,5 +347,85 @@ describe("admin club fees routes", () => {
     expect(audits.map((a) => a.action)).toContain("club_fee.clear");
     expect(audits.map((a) => a.action)).toContain("club_fee.mark_external_fall");
     expect(audits.map((a) => a.action)).toContain("club_fee.charge");
+  });
+
+  it("treats waiver-reversed club fees as covered/exempt in GET, ensureClubFeeForMember, and batch charge, while allowing re-charge after correction", async () => {
+    const waived = await makeMember(t.db, { displayName: "Waived Member" });
+    const corrected = await makeMember(t.db, { displayName: "Corrected Member" });
+
+    const charge = await call(admin, "POST", "/admin/club-fees/charge", {
+      body: { clubYear: 2026, season: "fall", memberIds: [waived.id, corrected.id] },
+    });
+    expect(charge.status).toBe(200);
+    expect(charge.body.chargedCount).toBe(2);
+
+    const listBefore = await call(admin, "GET", "/admin/club-fees?clubYear=2026");
+    const waivedRow = (
+      listBefore.body.members as Array<{ memberId: string; ledgerEntryId: string }>
+    ).find((m) => m.memberId === waived.id)!;
+    const correctedRow = (
+      listBefore.body.members as Array<{ memberId: string; ledgerEntryId: string }>
+    ).find((m) => m.memberId === corrected.id)!;
+
+    const ledger = createLedgerService({ db: t.db, clock });
+    await ledger.reverse({
+      entryId: waivedRow.ledgerEntryId,
+      reason: "waiver",
+      note: "Board waiver",
+      actor: { ...admin, seriesIds: [] },
+      idempotencyKey: "waive-cf-1",
+    });
+    await ledger.reverse({
+      entryId: correctedRow.ledgerEntryId,
+      reason: "manual",
+      note: "Charged by mistake",
+      actor: { ...admin, seriesIds: [] },
+      idempotencyKey: "correct-cf-1",
+    });
+
+    // GET /admin/club-fees: waived -> exempt (oweAmountSek 0), corrected -> not_charged.
+    const listAfter = await call(admin, "GET", "/admin/club-fees?clubYear=2026");
+    const membersAfter = listAfter.body.members as Array<{
+      memberId: string;
+      status: string;
+      oweAmountSek: number;
+    }>;
+    expect(membersAfter.find((m) => m.memberId === waived.id)).toMatchObject({
+      status: "exempt",
+      oweAmountSek: 0,
+    });
+    expect(membersAfter.find((m) => m.memberId === corrected.id)).toMatchObject({
+      status: "not_charged",
+      oweAmountSek: 0,
+    });
+    expect(listAfter.body.summary.exemptCount).toBe(1);
+
+    // ensureClubFeeForMember (used by issuePass): skips waived member.
+    const ensuredWaived = await t.db.transaction((tx) =>
+      ensureClubFeeForMember(tx, clock, {
+        memberId: waived.id,
+        clubYear: 2026,
+        season: "fall",
+      }),
+    );
+    expect(ensuredWaived).toEqual({ charged: false, skippedReason: "already_covered" });
+
+    // Batch charge: skips waived member, re-charges corrected member (:v2).
+    const recharge = await call(admin, "POST", "/admin/club-fees/charge", {
+      body: { clubYear: 2026, season: "spring", memberIds: [waived.id, corrected.id] },
+    });
+    expect(recharge.status).toBe(200);
+    expect(recharge.body).toEqual({
+      chargedCount: 1,
+      skippedCount: 1,
+      chargedMemberIds: [corrected.id],
+    });
+
+    const waivedEntries = await t.db
+      .select()
+      .from(ledgerEntry)
+      .where(eq(ledgerEntry.memberId, waived.id));
+    expect(waivedEntries).toHaveLength(2); // original charge + waiver reversal, no :v2
+    expect(await ledger.balance(waived.id)).toBe(0);
   });
 });

@@ -60,7 +60,7 @@ async function loadClubFeeSettings(tx: Tx): Promise<{ fallSek: number; springSek
 
 /**
  * Loads `clubFee` rows for `(memberId, clubYear)` and returns both all rows and the subset
- * that are currently active (non-reversed).
+ * that are currently active (non-reversed, or reversed via `"waiver"`).
  */
 async function loadMemberYearClubFees(tx: Tx, memberId: string, clubYear: number) {
   const rows = await tx
@@ -70,20 +70,22 @@ async function loadMemberYearClubFees(tx: Tx, memberId: string, clubYear: number
     .orderBy(asc(clubFee.createdAt), asc(clubFee.id));
 
   const entryIds = rows.flatMap((r) => (r.ledgerEntryId ? [r.ledgerEntryId] : []));
-  const reversedIds = new Set<string>();
+  const reversedReasonByEntryId = new Map<string, string>();
   if (entryIds.length > 0) {
     const reversals = await tx
-      .select({ reversesEntryId: ledgerEntry.reversesEntryId })
+      .select({ reversesEntryId: ledgerEntry.reversesEntryId, reason: ledgerEntry.reason })
       .from(ledgerEntry)
       .where(inArray(ledgerEntry.reversesEntryId, entryIds));
     for (const rev of reversals) {
-      if (rev.reversesEntryId) reversedIds.add(rev.reversesEntryId);
+      if (rev.reversesEntryId) reversedReasonByEntryId.set(rev.reversesEntryId, rev.reason);
     }
   }
 
-  const active = rows.filter(
-    (r) => r.kind !== "charged" || r.ledgerEntryId === null || !reversedIds.has(r.ledgerEntryId),
-  );
+  const active = rows.filter((r) => {
+    if (r.kind !== "charged" || r.ledgerEntryId === null) return true;
+    const revReason = reversedReasonByEntryId.get(r.ledgerEntryId);
+    return revReason === undefined || revReason === "waiver";
+  });
   return { all: rows, active };
 }
 
@@ -282,13 +284,22 @@ clubFeeRoutes.get("/admin/club-fees", context, admin, async (c) => {
   }
 
   const members = memberRows.map((m): ClubFeeMemberRow => {
-    const itemized = itemize(ledgerByMember.get(m.id) ?? []);
+    const memberLedger = ledgerByMember.get(m.id) ?? [];
+    const itemized = itemize(memberLedger);
     const itemById = new Map(itemized.items.map((item) => [item.entry.id, item]));
+    const waivedEntryIds = new Set(
+      memberLedger.flatMap((row) =>
+        row.kind === "reversal" && row.reason === "waiver" && row.reversesEntryId
+          ? [row.reversesEntryId]
+          : [],
+      ),
+    );
     const activeFees = (feesByMember.get(m.id) ?? []).filter(
       (f) =>
         f.kind !== "charged" ||
         f.ledgerEntryId === null ||
-        itemById.get(f.ledgerEntryId)?.status !== "reversed",
+        itemById.get(f.ledgerEntryId)?.status !== "reversed" ||
+        waivedEntryIds.has(f.ledgerEntryId),
     );
     const active = activeFees.at(-1) ?? null;
 
@@ -330,7 +341,10 @@ clubFeeRoutes.get("/admin/club-fees", context, admin, async (c) => {
       };
     }
 
-    if (active.kind === "exempt") {
+    if (
+      active.kind === "exempt" ||
+      (active.ledgerEntryId !== null && waivedEntryIds.has(active.ledgerEntryId))
+    ) {
       return {
         memberId: m.id,
         displayName: m.displayName,
@@ -340,7 +354,7 @@ clubFeeRoutes.get("/admin/club-fees", context, admin, async (c) => {
         season: active.season,
         kind: active.kind,
         paidInFall: false,
-        ledgerEntryId: null,
+        ledgerEntryId: active.ledgerEntryId,
         clubFeeId: active.id,
         amountSek: 0,
         oweAmountSek: 0,

@@ -316,4 +316,38 @@ describe("event cancellation + material changes (S4.4c)", () => {
     const doubleCancel = await send("POST", `/events/${ev.id}/cancel`, admin.clerkUserId);
     expect(doubleCancel.status).toBe(409);
   });
+
+  it("cancelEvent and updateEventDetails emit notifications with category 'event_changes'", async () => {
+    const admin = await makeMember(t.db, { role: "admin" });
+    const alice = await makeMember(t.db);
+    const ev1 = await seedSeries(admin.id);
+    const ev2 = await seedSeries(admin.id);
+
+    await send("PUT", `/events/${ev1.id}/rsvp`, alice.clerkUserId, { body: { guests: [] } });
+    await send("PUT", `/events/${ev2.id}/rsvp`, alice.clerkUserId, { body: { guests: [] } });
+
+    clock.set(at(24));
+    await closeEvent(t.db, clock, ev1.id);
+    await closeEvent(t.db, clock, ev2.id);
+
+    clock.set(at(25));
+    expect(
+      (
+        await send("PATCH", `/events/${ev1.id}/details`, admin.clerkUserId, {
+          body: { location: "New Court" },
+        })
+      ).status,
+    ).toBe(200);
+    expect((await send("POST", `/events/${ev2.id}/cancel`, admin.clerkUserId)).status).toBe(200);
+
+    const notifs = await t.db
+      .select()
+      .from(notification)
+      .where(eq(notification.memberId, alice.id));
+    const changeNotifs = notifs.filter(
+      (n) => n.title === "Event updated" || n.title === "Event cancelled",
+    );
+    expect(changeNotifs).toHaveLength(2);
+    expect(changeNotifs.every((n) => n.category === "event_changes")).toBe(true);
+  });
 });

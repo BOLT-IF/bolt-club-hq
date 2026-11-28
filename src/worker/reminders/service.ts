@@ -18,6 +18,7 @@ import {
 } from "../../domain/reminders";
 import type { Clock } from "../core/clock";
 import type { Db, Tx } from "../core/db/client";
+import { resolveEventAudience } from "../events/audience";
 import { createNotifyPort } from "../notifications/notify";
 import type { NotificationPolicy } from "../notifications/policy";
 
@@ -88,6 +89,9 @@ async function loadOpenEvents(db: Db | Tx, now: Date) {
       slug: event.shareSlug,
       startsAt: event.startsAt,
       rsvpCloseAt: event.rsvpCloseAt,
+      createdBy: event.createdBy,
+      audienceKind: event.audienceKind,
+      audienceSeriesId: event.audienceSeriesId,
     })
     .from(event)
     .where(and(eq(event.status, "scheduled"), gt(event.rsvpCloseAt, now)));
@@ -116,14 +120,27 @@ async function planEvents(
       .from(notificationSendLog)
       .where(eq(notificationSendLog.ruleId, rule.id)),
   ]);
-  return {
-    sends: planEventUnrsvped(rule, {
-      now,
-      events,
-      members,
-      responded: new Set(responses.map((r) => `${r.eventId}:${r.memberId}`)),
-      sentKeys: new Set(sent.map((s) => s.id)),
+  const memberById = new Map(members.map((m) => [m.id, m]));
+  const responded = new Set(responses.map((r) => `${r.eventId}:${r.memberId}`));
+  const sentKeys = new Set(sent.map((s) => s.id));
+  const sendsByEvent = await Promise.all(
+    events.map(async (e) => {
+      const eligibleIds = await resolveEventAudience(db, e);
+      const eligibleMembers = eligibleIds.flatMap((id) => {
+        const m = memberById.get(id);
+        return m ? [m] : [];
+      });
+      return planEventUnrsvped(rule, {
+        now,
+        events: [e],
+        members: eligibleMembers,
+        responded,
+        sentKeys,
+      });
     }),
+  );
+  return {
+    sends: sendsByEvent.flat(),
     wakeUp: nextEventWakeUp(rule, events, now),
   };
 }

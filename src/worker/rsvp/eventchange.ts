@@ -181,7 +181,7 @@ export async function cancelEvent(
     for (const memberId of notifyMemberIds) {
       await notify.notify({
         memberId,
-        category: "rsvp_status",
+        category: "event_changes",
         title: "Event cancelled",
         body:
           unreversed.length > 0
@@ -356,7 +356,7 @@ export async function updateEventDetails(
       for (const memberId of new Set(activeRsvps.map((r) => r.memberId))) {
         await notify.notify({
           memberId,
-          category: "rsvp_status",
+          category: "event_changes",
           title: "Event updated",
           body: `${updated.title} details changed (date, time, or location). You can cancel for free within 24 hours.`,
           link: `/events/${updated.shareSlug}`,

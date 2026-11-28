@@ -418,6 +418,65 @@ describe("balances page", () => {
     expect(within(list).getByText("Di Ek")).toBeTruthy();
     expect(within(list).queryByText("Bo Berg")).toBeNull();
   });
+
+  it("revokes an unpaid pass from AdminBalances Pass Holders with an object body", async () => {
+    const calls: Call[] = [];
+    configureApiClient({
+      fetch: vi.fn((input: string, init?: RequestInit) => {
+        const path = input.replace("/api/v1", "");
+        const method = init?.method ?? "GET";
+        const body: unknown = typeof init?.body === "string" ? JSON.parse(init.body) : undefined;
+        const key = new Headers(init?.headers).get("Idempotency-Key");
+        calls.push({ method, path, body, key });
+        if (path === "/admin/balances")
+          return Promise.resolve(json(200, { members: [bo, cy, di] }));
+        if (path === "/admin/payment-claims") return Promise.resolve(json(200, { claims: [] }));
+        if (path === "/admin/passes") {
+          return Promise.resolve(
+            json(200, {
+              passes: [
+                {
+                  id: "pas_unpaid",
+                  memberId: "m2",
+                  memberName: "Bo Berg",
+                  paymentRef: "BC-BO",
+                  seriesId: "ser_mon",
+                  seriesName: "Monday MD",
+                  termName: "Spring 2027",
+                  priceCharged: 900,
+                  eventsCovered: 10,
+                  purchasedAt: "2027-01-02T10:00:00.000Z",
+                  chargeStatus: "unpaid",
+                  unpaidSek: 900,
+                  daysElapsed: 3,
+                  revocable: true,
+                },
+              ],
+            }),
+          );
+        }
+        return Promise.resolve(json(200, { pass: { id: "pas_unpaid", status: "revoked" } }));
+      }),
+    });
+
+    renderWith(<AdminBalances />);
+    await screen.findByText("Bo Berg");
+    fireEvent.click(screen.getByRole("radio", { name: "Pass Holders" }));
+
+    const list = await screen.findByRole("list", { name: "Pass Holders" });
+    fireEvent.click(within(list).getByRole("button", { name: "Revoke Pass" }));
+    const dialog = await screen.findByRole("dialog", { name: /revoke pass\?/i });
+    fireEvent.click(within(dialog).getByRole("button", { name: /confirm revocation/i }));
+
+    await waitFor(() => {
+      const revokeCall = calls.find(
+        (c) => c.method === "POST" && c.path === "/admin/passes/pas_unpaid/revoke",
+      );
+      expect(revokeCall).toBeTruthy();
+      expect(revokeCall?.body).toEqual({});
+      expect(revokeCall?.key).toBeTruthy();
+    });
+  });
 });
 
 describe("member ledger page", () => {

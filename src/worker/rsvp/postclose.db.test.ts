@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import {
   clubSettings,
+  event,
   guest,
   ledgerEntry,
   notification,
@@ -592,6 +593,66 @@ describe("post-close RSVP, cancel, promotion, refill (S4.4a)", () => {
       const body = await res.json<{ rsvp: { tier: number; status: string } }>();
       expect(body.rsvp).toMatchObject({ tier: 1, status: "confirmed" });
       expect(await balanceOf(m.id)).toBe(0);
+    });
+
+    it("putLateRsvp guest removal inside 24h material-change window cancels guest and reverses charge immediately", async () => {
+      const ev = await addEvent({ capacity: 3, adhocFee: 120 });
+      const host = await makeMember(t.db);
+
+      await putPre(ev.id, host.clerkUserId, ["Guest One"]);
+      clock.set(at(25));
+      await closeEvent(t.db, clock, ev.id);
+      expect(await balanceOf(host.id)).toBe(240);
+
+      // Simulate a material change at at(30); at(35) is within the 24h free-cancel window.
+      await t.db
+        .update(event)
+        .set({ materialChangeAt: at(30) })
+        .where(eq(event.id, ev.id));
+      clock.set(at(35));
+
+      const res = await putLate(ev.id, host.clerkUserId, []);
+      expect(res.status).toBe(200);
+
+      const [gRow] = await t.db.select().from(guest);
+      expect(gRow!.status).toBe("cancelled");
+      expect(await balanceOf(host.id)).toBe(120);
+    });
+
+    it("putLateRsvp guest removal outside 24h window marks late_cancelled with cancelledAt and preserves fair FIFO refill order", async () => {
+      const ev = await addEvent({ capacity: 3, adhocFee: 120 });
+      const m1 = await makeMember(t.db);
+      const m2 = await makeMember(t.db);
+      const m3 = await makeMember(t.db);
+
+      // m1 + Guest G1 requested at t=0; m2 requested later at t=+1s.
+      await putPre(ev.id, m1.clerkUserId, ["Guest One"]);
+      clock.advance(1000);
+      await putPre(ev.id, m2.clerkUserId);
+
+      clock.set(at(25));
+      await closeEvent(t.db, clock, ev.id);
+      expect(await balanceOf(m1.id)).toBe(240);
+      expect(await balanceOf(m2.id)).toBe(120);
+
+      // m2 late-cancels first.
+      clock.set(at(26));
+      await lateCancel(ev.id, m2.clerkUserId);
+
+      // m1 removes Guest One later via putLateRsvp (outside any material-change window).
+      clock.set(at(27));
+      const res = await putLate(ev.id, m1.clerkUserId, []);
+      expect(res.status).toBe(200);
+
+      const [gRow] = await t.db.select().from(guest);
+      expect(gRow!.status).toBe("late_cancelled");
+      expect(gRow!.cancelledAt).toEqual(at(27));
+
+      // m3 takes 1 spot -> earliest late-cancel (m2 at at(26)) must be refilled before G1 (at(27)).
+      clock.set(at(28));
+      await putLate(ev.id, m3.clerkUserId);
+      expect(await balanceOf(m2.id)).toBe(0);
+      expect(await balanceOf(m1.id)).toBe(240);
     });
   });
 });

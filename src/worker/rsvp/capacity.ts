@@ -156,112 +156,6 @@ async function chargeConfirmedCandidate(
   });
 }
 
-async function processRefills(tx: Tx, clock: Clock, e: EventRow): Promise<void> {
-  const { roster } = await loadRoster(tx, e);
-  const freeSpots = Math.max(0, e.capacity - roster.confirmed.length);
-
-  const cancelledRsvps = await tx
-    .select()
-    .from(rsvp)
-    .where(
-      and(eq(rsvp.eventId, e.id), eq(rsvp.status, "late_cancelled"), eq(rsvp.refilled, false)),
-    );
-
-  const cancelledGuests = await tx
-    .select({
-      guest,
-      memberId: rsvp.memberId,
-      hostCancelledAt: rsvp.cancelledAt,
-    })
-    .from(guest)
-    .innerJoin(rsvp, eq(guest.rsvpId, rsvp.id))
-    .where(
-      and(eq(rsvp.eventId, e.id), eq(guest.status, "late_cancelled"), eq(guest.refilled, false)),
-    );
-
-  type RefillTarget =
-    | { kind: "member"; id: string; memberId: string; at: number }
-    | { kind: "guest"; id: string; memberId: string; at: number };
-
-  const targets: RefillTarget[] = [
-    ...cancelledRsvps.map((r) => ({
-      kind: "member" as const,
-      id: r.id,
-      memberId: r.memberId,
-      at: (r.cancelledAt ?? r.requestedAt).getTime(),
-    })),
-    ...cancelledGuests.map(({ guest: g, memberId, hostCancelledAt }) => ({
-      kind: "guest" as const,
-      id: g.id,
-      memberId,
-      at: (hostCancelledAt ?? g.requestedAt).getTime(),
-    })),
-  ].sort((a, b) => {
-    if (a.at !== b.at) return a.at - b.at;
-    if (a.kind !== b.kind) return a.kind === "member" ? -1 : 1;
-    return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
-  });
-
-  const toRefill = Math.max(0, targets.length - freeSpots);
-  if (toRefill === 0) return;
-
-  const now = clock.now();
-  const ledger = createLedgerService({ db: tx, clock });
-  const notify = createNotifyPort({ db: tx, clock });
-  const reversal = alias(ledgerEntry, "reversal");
-
-  for (let i = 0; i < toRefill; i++) {
-    const target = targets[i];
-    if (!target) break;
-
-    if (target.kind === "member") {
-      await tx.update(rsvp).set({ refilled: true }).where(eq(rsvp.id, target.id));
-    } else {
-      await tx.update(guest).set({ refilled: true }).where(eq(guest.id, target.id));
-    }
-
-    const [unreversedCharge] = await tx
-      .select({ id: ledgerEntry.id })
-      .from(ledgerEntry)
-      .where(
-        and(
-          eq(ledgerEntry.memberId, target.memberId),
-          eq(ledgerEntry.eventId, e.id),
-          eq(ledgerEntry.kind, "charge"),
-          target.kind === "guest"
-            ? eq(ledgerEntry.guestId, target.id)
-            : isNull(ledgerEntry.guestId),
-          notExists(
-            tx
-              .select({ id: reversal.id })
-              .from(reversal)
-              .where(eq(reversal.reversesEntryId, ledgerEntry.id)),
-          ),
-        ),
-      )
-      .orderBy(asc(ledgerEntry.createdAt), asc(ledgerEntry.id))
-      .limit(1);
-
-    if (unreversedCharge) {
-      await ledger.reverse({
-        entryId: unreversedCharge.id,
-        idempotencyKey: `refill:${unreversedCharge.id}`,
-      });
-    }
-
-    await notify.notify({
-      memberId: target.memberId,
-      category: "rsvp_status",
-      title: "Spot refilled",
-      body: unreversedCharge
-        ? `Your cancelled spot for ${e.title} was refilled and your ${String(e.adhocFee)} kr charge was reversed.`
-        : `Your cancelled spot for ${e.title} was refilled.`,
-      link: `/events/${e.shareSlug}`,
-      idempotencyKey: `refill-notify:${e.id}:${target.kind}:${target.id}:${String(now.getTime())}`,
-    });
-  }
-}
-
 async function applyPromoted(
   tx: Tx,
   clock: Clock,
@@ -494,6 +388,21 @@ export async function changeEventCapacity(
         }
       }
 
+      if (confirmedCount >= input.capacity) {
+        // No free spots remain: any pending "offered" spots can no longer be claimed.
+        await tx
+          .update(rsvp)
+          .set({ status: "waitlisted" })
+          .where(and(eq(rsvp.eventId, e.id), eq(rsvp.status, "offered")));
+        const eventRsvpIds = [...memberById.keys()];
+        if (eventRsvpIds.length > 0) {
+          await tx
+            .update(guest)
+            .set({ status: "waitlisted" })
+            .where(and(inArray(guest.rsvpId, eventRsvpIds), eq(guest.status, "offered")));
+        }
+      }
+
       await tx.update(event).set({ capacity: input.capacity }).where(eq(event.id, e.id));
       await audit(
         tx,
@@ -551,7 +460,6 @@ export async function changeEventCapacity(
           guests,
           true,
         );
-        await processRefills(tx, clock, updatedEvent);
       } else {
         const notify = createNotifyPort({ db: tx, clock });
         for (const candidate of promo.offeredTo) {

@@ -1,0 +1,1 @@
+ALTER TABLE "club_settings" DROP COLUMN "pass_unpaid_revoke_days";

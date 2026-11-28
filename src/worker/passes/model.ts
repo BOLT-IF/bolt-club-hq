@@ -2,7 +2,6 @@ import { and, asc, count, desc, eq, gt, inArray, notInArray } from "drizzle-orm"
 import type { ContentfulStatusCode } from "hono/utils/http-status";
 
 import {
-  clubSettings,
   event,
   guest,
   ledgerEntry,
@@ -25,7 +24,6 @@ import type { CurrentMember } from "../core/ports";
 import { ensureClubFeeForMember } from "../ledger/club-fees";
 import { createLedgerService } from "../ledger/service";
 import { createNotifyPort } from "../notifications/notify";
-import { DEFAULT_SETTINGS } from "../settings/model";
 
 const DAY_MS = 86_400_000;
 const SALE_TERM_STATUSES = ["open_for_passes", "active"] as const;
@@ -94,7 +92,6 @@ export interface AdminPassView {
   purchasedAt: string;
   chargeStatus: "unpaid" | "partly_paid" | "paid" | "none";
   unpaidSek: number;
-  revocableAt: string;
   daysElapsed: number;
   revocable: boolean;
 }
@@ -149,14 +146,6 @@ function calculateOffer(
     effectivePassPrice,
     discounted,
   };
-}
-
-async function loadRevokeDays(q: Db | Tx): Promise<number> {
-  const [row] = await q
-    .select({ days: clubSettings.passUnpaidRevokeDays })
-    .from(clubSettings)
-    .limit(1);
-  return row?.days ?? DEFAULT_SETTINGS.passUnpaidRevokeDays;
 }
 
 async function countActiveGuests(tx: Tx, rsvpId: string): Promise<number> {
@@ -528,12 +517,8 @@ export async function issuePass(
   });
 }
 
-export async function listAdminPasses(
-  db: Db,
-  clock: Clock,
-): Promise<{ revokeAfterDays: number; passes: AdminPassView[] }> {
+export async function listAdminPasses(db: Db, clock: Clock): Promise<{ passes: AdminPassView[] }> {
   const now = clock.now();
-  const revokeAfterDays = await loadRevokeDays(db);
 
   const rows = await db
     .select({
@@ -599,12 +584,11 @@ export async function listAdminPasses(
               ? "partly_paid"
               : "unpaid";
 
-      const revocableAt = new Date(p.purchasedAt.getTime() + revokeAfterDays * DAY_MS);
       const daysElapsed = Math.max(
         0,
         Math.floor((now.getTime() - p.purchasedAt.getTime()) / DAY_MS),
       );
-      const revocable = unpaidSek > 0 && now.getTime() >= revocableAt.getTime();
+      const revocable = unpaidSek > 0;
 
       return {
         id: p.id,
@@ -619,14 +603,13 @@ export async function listAdminPasses(
         purchasedAt: p.purchasedAt.toISOString(),
         chargeStatus,
         unpaidSek,
-        revocableAt: revocableAt.toISOString(),
         daysElapsed,
         revocable,
       };
     },
   );
 
-  return { revokeAfterDays, passes };
+  return { passes };
 }
 
 export async function revokePass(
@@ -654,15 +637,6 @@ export async function revokePass(
     if (!p || !s) return fail(404, "pass_not_found");
     if (p.status === "revoked") return fail(409, "pass_already_revoked");
 
-    const revokeDays = await loadRevokeDays(tx);
-    const revocableAt = new Date(p.purchasedAt.getTime() + revokeDays * DAY_MS);
-    if (now.getTime() < revocableAt.getTime()) {
-      return fail(409, "revoke_too_early", {
-        revocableAt: revocableAt.toISOString(),
-        revokeAfterDays: revokeDays,
-      });
-    }
-
     const ledger = createLedgerService({ db: tx, clock });
     const itemized = await ledger.itemize(p.memberId);
     const chargeItem = itemized.items.find(
@@ -672,7 +646,7 @@ export async function revokePass(
       return fail(409, "pass_already_paid");
     }
 
-    const note = input.note?.trim() || `Pass revoked (unpaid after ${String(revokeDays)} days)`;
+    const note = input.note?.trim() || "Pass revoked (unpaid)";
     const { entryId: reversalEntryId } = await ledger.reverse({
       entryId: chargeItem.entry.id,
       actor: input.actor,

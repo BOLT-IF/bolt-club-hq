@@ -115,7 +115,6 @@ describe("S11.1 club-week full term scenario", () => {
         bank: { accountHolder: "BOLT IF", bankgiro: "5402-9681", swish: "1234567890" },
         paymentInstructions: "Pay with your ref",
         quietHours: { start: "22:00", end: "08:00" },
-        passUnpaidRevokeDays: 21,
         autoPromoteCutoffMin: 120,
         defaults: { capacity: 12, passPrice: 400, adhocFee: 120 },
         accountCodes: { pass: "3010", adhoc: "3020" },

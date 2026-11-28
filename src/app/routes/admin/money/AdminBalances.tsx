@@ -276,7 +276,7 @@ export function AdminBalances() {
     setRevoking(true);
     apiFetch(`/admin/passes/${pendingRevoke.id}/revoke`, {
       method: "POST",
-      body: JSON.stringify({}),
+      body: {},
       idempotencyKey: revokeKey,
     })
       .then(() => {
@@ -437,9 +437,7 @@ export function AdminBalances() {
       {isRevocableView ? (
         <>
           {revocablePasses.length === 0 ? (
-            <EmptyState title="No Revocable Passes">
-              No unpaid passes are past the revocation window.
-            </EmptyState>
+            <EmptyState title="No Revocable Passes">No unpaid active passes to revoke.</EmptyState>
           ) : null}
           <ul className="bcq-members" aria-label="Balances">
             {revocablePasses.map((p) => (

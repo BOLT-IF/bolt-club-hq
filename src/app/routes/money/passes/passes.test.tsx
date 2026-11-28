@@ -54,7 +54,6 @@ const revocableAdminPass = {
   purchasedAt: "2027-01-01T10:00:00.000Z",
   chargeStatus: "unpaid" as const,
   unpaidSek: 1800,
-  revocableAt: "2027-01-22T10:00:00.000Z",
   daysElapsed: 25,
   revocable: true,
 };
@@ -115,7 +114,7 @@ function stubApi(
         return Promise.resolve(json(200, { members: balanceMembers }));
       }
       if (method === "GET" && path === "/admin/passes") {
-        return Promise.resolve(json(200, { revokeAfterDays: 21, passes: [revocableAdminPass] }));
+        return Promise.resolve(json(200, { passes: [revocableAdminPass] }));
       }
       return Promise.resolve(postHandler(path, body));
     }),

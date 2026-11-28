@@ -26,7 +26,6 @@ export interface AdminPassRow {
   readonly purchasedAt: string;
   readonly chargeStatus: "unpaid" | "partly_paid" | "paid" | "none";
   readonly unpaidSek: number;
-  readonly revocableAt: string;
   readonly daysElapsed: number;
   readonly revocable: boolean;
 }
@@ -68,6 +67,8 @@ export interface LedgerItem {
   readonly eventTitle: string | null;
   readonly eventStartsAt: string | null;
   readonly guestName?: string | null;
+  readonly passId?: string | null;
+  readonly passRevocable?: boolean;
   readonly waivable: boolean;
   readonly reversible: boolean;
 }
@@ -134,11 +135,12 @@ const MESSAGES: Record<string, string> = {
   entry_not_found: "That entry no longer exists. Reload the page.",
   already_reversed: "That entry has already been reversed or waived.",
   cannot_reverse_reversal: "A reversal can't be reversed. Add a charge instead.",
+  cannot_reverse_pass: "Use Revoke Pass instead of reversing a pass charge.",
   not_waivable: "Only charges can be waived.",
   pass_not_found: "That pass no longer exists. Reload the page.",
   pass_already_revoked: "That pass has already been revoked.",
   pass_paid: "This pass has been paid and cannot be revoked.",
-  revoke_too_early: "This pass cannot be revoked yet.",
+  pass_already_paid: "This pass has been paid and cannot be revoked.",
   series_not_found: "That series no longer exists.",
   term_not_open: "Pass sales for this term are closed.",
   already_has_pass: "This member already holds an active pass for that series.",

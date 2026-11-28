@@ -24,7 +24,6 @@ const body = {
   },
   paymentInstructions: "Use your payment reference.",
   quietHours: { start: "21:30", end: "07:30" },
-  passUnpaidRevokeDays: 14,
   autoPromoteCutoffMin: 120,
   clubFeeFallSek: 180,
   clubFeeSpringSek: 95,
@@ -84,7 +83,6 @@ describe("club settings routes", () => {
     expect(res.status).toBe(200);
     const settings = await res.json<Record<string, unknown>>();
     expect(settings).toMatchObject({
-      passUnpaidRevokeDays: 21,
       autoPromoteCutoffMin: 180,
       clubFeeFallSek: 160,
       clubFeeSpringSek: 85,
@@ -104,7 +102,6 @@ describe("club settings routes", () => {
     ).json<typeof body & { rosterAppUrl: string }>();
     expect(saved).toMatchObject({
       clubName: "BOLT IF Badminton",
-      passUnpaidRevokeDays: 14,
       autoPromoteCutoffMin: 120,
       clubFeeFallSek: 180,
       clubFeeSpringSek: 95,
@@ -142,7 +139,6 @@ describe("club settings routes", () => {
     ["bankgiro", { bank: { bankgiro: "5402-9682" } }, "bank.bankgiro"],
     ["roster URL", { rosterAppUrl: "javascript:alert(1)" }, "rosterAppUrl"],
     ["http roster URL", { rosterAppUrl: "http://roster.example.se" }, "rosterAppUrl"],
-    ["revoke days", { passUnpaidRevokeDays: 0 }, "passUnpaidRevokeDays"],
   ])("rejects an invalid %s with 400 and saves nothing", async (_name, patch, field) => {
     const admin = await makeMember(t.db, { role: "admin" });
     const res = await put({ ...body, ...patch }, admin.clerkUserId);
@@ -224,13 +220,7 @@ describe("club settings routes", () => {
       rosterAppUrl: "https://roster.example.se",
     });
     const text = JSON.stringify(pub);
-    for (const secret of [
-      "3010",
-      "accountCodes",
-      "passUnpaidRevokeDays",
-      "autoPromoteCutoffMin",
-      "defaults",
-    ]) {
+    for (const secret of ["3010", "accountCodes", "autoPromoteCutoffMin", "defaults"]) {
       expect(text).not.toContain(secret);
     }
   });
@@ -249,7 +239,6 @@ describe("club settings routes", () => {
       "Swedbank",
       "3010",
       "BOLT IF",
-      "passUnpaidRevokeDays",
     ]) {
       expect(text).not.toContain(secret);
     }

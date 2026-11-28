@@ -43,6 +43,13 @@
       "when": 1795753791055,
       "tag": "0005_rsvp_declined",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1795853093635,
+      "tag": "0006_drop_pass_revoke_days",
+      "breakpoints": true
     }
   ]
 }

@@ -185,6 +185,7 @@ routes.patch(
     try {
       return await guarded(c, async (tx) => {
         const before = await lockMember(tx, id);
+        if (before.status === "erased") return refuse(409, "member_erased");
         const changed = (Object.keys(changes) as Array<keyof typeof changes>).filter(
           (k) => changes[k] !== before[k],
         );
@@ -225,6 +226,7 @@ routes.patch("/members/:id/role", context, requireGuard("admin"), async (c) => {
   return guarded(c, async (tx) => {
     const admins = await lockActiveAdmins(tx);
     const before = await lockMember(tx, id);
+    if (before.status === "erased") return refuse(409, "member_erased");
     if (before.role === role) return c.json(adminView(before));
     if (role === "member" && isLastAdmin(admins, before)) return refuse(409, "last_admin");
     const after = only(await tx.update(member).set({ role }).where(eq(member.id, id)).returning());

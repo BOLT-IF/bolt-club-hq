@@ -425,5 +425,26 @@ describe("members (S2.1)", () => {
       );
       expect(await auditFor(me.id)).toEqual([]);
     });
+
+    it("refuses PATCH /members/:id and PATCH /members/:id/role on an erased member (409)", async () => {
+      const admin = await makeMember(t.db, { role: "admin" });
+      const erased = await makeMember(t.db, {
+        status: "erased",
+        role: "member",
+        displayName: "Former member #erased",
+      });
+
+      const patchProfile = await call(admin, "PATCH", `/members/${erased.id}`, {
+        displayName: "Overwritten Name",
+      });
+      expect(patchProfile.status).toBe(409);
+      expect((await reload(erased)).displayName).toBe("Former member #erased");
+
+      const patchRole = await call(admin, "PATCH", `/members/${erased.id}/role`, {
+        role: "admin",
+      });
+      expect(patchRole.status).toBe(409);
+      expect((await reload(erased)).role).toBe("member");
+    });
   });
 });

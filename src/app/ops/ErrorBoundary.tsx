@@ -31,17 +31,22 @@ export class AppErrorBoundary extends Component<Props, State> {
       return this.props.children;
     }
     return (
-      <div data-testid="error-boundary-fallback" role="alert">
-        <p>Something went wrong.</p>
+      <section
+        className="bcq-state bcq-state--error"
+        data-testid="error-boundary-fallback"
+        role="alert"
+      >
+        <p className="bcq-state__title">Something went wrong.</p>
         <button
           type="button"
+          className="bcq-btn bcq-btn--primary bcq-state__action"
           onClick={() => {
             window.location.reload();
           }}
         >
           Reload
         </button>
-      </div>
+      </section>
     );
   }
 }

@@ -2,7 +2,7 @@ import { getTableColumns, is } from "drizzle-orm";
 import { getTableConfig, PgTable } from "drizzle-orm/pg-core";
 import { eq, sql } from "drizzle-orm";
 import { Hono } from "hono";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import * as schema from "../../../db/schema";
 import {
@@ -43,12 +43,7 @@ import { createTestDatabase, type TestDatabase } from "../test-support/database"
 import { makeLedgerEntry, makeMember } from "../test-support/factories";
 import type { AppEnv } from "../types";
 import { configureClerkErase, createClerkUserDeleter } from "./clerk";
-import {
-  POLL_IMAGE_RETENTION_DAYS,
-  PRIVACY_RETENTION_HOOK,
-  SEND_LOG_RETENTION_DAYS,
-  runRetentionPurge,
-} from "./retention";
+import { PRIVACY_RETENTION_HOOK, SEND_LOG_RETENTION_DAYS, runRetentionPurge } from "./retention";
 
 const NOW = "2027-06-01T12:00:00.000Z";
 const DAY_MS = 86_400_000;
@@ -744,12 +739,11 @@ describe("privacy: export, erasure, retention (S2.5)", () => {
       expect(tickHooks().has(PRIVACY_RETENTION_HOOK)).toBe(true);
     });
 
-    it("deletes only notification_send_log and poll images past their retention windows", async () => {
+    it("deletes notification_send_log past 365 days without touching poll_option images (owned by media/purge)", async () => {
       const admin = await makeMember(t.db, { role: "admin" });
       const m = await makeMember(t.db);
       const now = clock.now();
       const sendCutoff = now.getTime() - SEND_LOG_RETENTION_DAYS * DAY_MS;
-      const pollCutoff = now.getTime() - POLL_IMAGE_RETENTION_DAYS * DAY_MS;
 
       await t.db.insert(notificationSendLog).values([
         {
@@ -772,66 +766,27 @@ describe("privacy: export, erasure, retention (S2.5)", () => {
         },
       ]);
 
-      await t.db.insert(poll).values([
-        {
-          id: "poll_old",
-          question: "Old poll",
-          createdBy: admin.id,
-          closesAt: new Date(pollCutoff - 1000),
-        },
-        {
-          id: "poll_boundary",
-          question: "Boundary poll",
-          createdBy: admin.id,
-          closesAt: new Date(pollCutoff),
-        },
-        {
-          id: "poll_recent",
-          question: "Recent poll",
-          createdBy: admin.id,
-          closesAt: new Date(pollCutoff + DAY_MS),
-        },
-        {
-          id: "poll_open",
-          question: "Never closes",
-          createdBy: admin.id,
-          closesAt: null,
-        },
-      ]);
+      await t.db.insert(poll).values({
+        id: "poll_old",
+        question: "Old poll",
+        createdBy: admin.id,
+        closesAt: new Date(now.getTime() - 181 * DAY_MS),
+      });
+      await t.db.insert(pollOption).values({
+        id: "opt_old_img",
+        pollId: "poll_old",
+        label: "A",
+        imageKey: "polls/old.webp",
+      });
 
-      await t.db.insert(pollOption).values([
-        { id: "opt_old_img", pollId: "poll_old", label: "A", imageKey: "polls/old.webp" },
-        { id: "opt_old_noimg", pollId: "poll_old", label: "B", imageKey: null },
-        {
-          id: "opt_boundary_img",
-          pollId: "poll_boundary",
-          label: "C",
-          imageKey: "polls/boundary.webp",
-        },
-        { id: "opt_recent_img", pollId: "poll_recent", label: "D", imageKey: "polls/recent.webp" },
-        { id: "opt_open_img", pollId: "poll_open", label: "E", imageKey: "polls/open.webp" },
-      ]);
-
-      const deleteMedia = vi.fn(() => Promise.resolve());
-      const result = await runRetentionPurge(
-        { db: t.db, clock, now },
-        { media: { delete: deleteMedia } },
-      );
-
-      expect(result).toEqual({ sendLogsDeleted: 1, pollImagesDeleted: 1 });
+      const result = await runRetentionPurge({ db: t.db, clock, now });
+      expect(result).toEqual({ sendLogsDeleted: 1 });
 
       const remainingLogs = (await t.db.select().from(notificationSendLog)).map((r) => r.id).sort();
       expect(remainingLogs).toEqual(["log_boundary", "log_recent"]);
 
-      expect(deleteMedia).toHaveBeenCalledTimes(1);
-      expect(deleteMedia).toHaveBeenCalledWith("polls/old.webp");
-
-      const options = await t.db.select().from(pollOption);
-      const imageOf = (id: string) => options.find((o) => o.id === id)?.imageKey;
-      expect(imageOf("opt_old_img")).toBeNull();
-      expect(imageOf("opt_boundary_img")).toBe("polls/boundary.webp");
-      expect(imageOf("opt_recent_img")).toBe("polls/recent.webp");
-      expect(imageOf("opt_open_img")).toBe("polls/open.webp");
+      const [opt] = await t.db.select().from(pollOption).where(eq(pollOption.id, "opt_old_img"));
+      expect(opt?.imageKey).toBe("polls/old.webp");
     });
   });
 });

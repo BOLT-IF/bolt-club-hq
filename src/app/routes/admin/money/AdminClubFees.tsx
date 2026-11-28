@@ -10,7 +10,7 @@ import {
   ConfirmDialog,
   EmptyState,
   ErrorState,
-  OverflowButton,
+  MoreHorizontalIcon,
   Skeleton,
   StatusChip,
   useToast,
@@ -79,8 +79,68 @@ const FILTERS: ReadonlyArray<{ value: Filter; label: string }> = [
   { value: "not_charged", label: "Not Charged" },
   { value: "owes", label: "Owes Club Fee" },
   { value: "paid_fall", label: "Paid in Fall" },
-  { value: "spring", label: "Spring" },
+  { value: "spring", label: "Paid in Spring" },
 ];
+
+function CoinsIcon({ size = 16 }: { readonly size?: number }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <circle cx="8" cy="8" r="6" />
+      <path d="M18.09 10.37A6 6 0 1 1 10.34 18" />
+      <path d="M7 6h1v4" />
+      <path d="m16.71 13.88.7.71-2.82 2.82" />
+    </svg>
+  );
+}
+
+function CheckCircleIcon() {
+  return (
+    <svg
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <circle cx="12" cy="12" r="10" />
+      <path d="m9 12 2 2 4-4" />
+    </svg>
+  );
+}
+
+function TrashIcon() {
+  return (
+    <svg
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M3 6h18" />
+      <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
+      <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+    </svg>
+  );
+}
 
 function SearchIcon() {
   return (
@@ -371,19 +431,21 @@ export function AdminClubFees() {
     >
       <div className="bcq-page-head">
         <h1 id="admin-club-fees-title" className="bcq-page__title">
-          Club Fees (<span className="bcq-tabular-nums">{data.label}</span>)
+          Club Fees
         </h1>
-        <Button
+        <button
           type="button"
-          variant="tonal"
-          className="bcq-btn--compact"
+          className="bcq-club-fees-charge-all"
           disabled={busy}
           onClick={() => {
             setBatchSheetOpen(true);
           }}
         >
-          Charge All
-        </Button>
+          <span className="bcq-club-fees-charge-all__icon" aria-hidden="true">
+            <CoinsIcon size={16} />
+          </span>
+          <span>Charge All</span>
+        </button>
       </div>
 
       <div className="bcq-card bcq-money-search-card">
@@ -445,7 +507,7 @@ export function AdminClubFees() {
 
         <fieldset className="bcq-money-filterset">
           <legend className="bcq-money-filterset__legend">Show</legend>
-          <div className="bcq-filter-row">
+          <div className="bcq-filter-row bcq-club-fees-filter-row">
             {FILTERS.map((f) => {
               const active = filter === f.value;
               const count = filterCount(data.summary, f.value);
@@ -509,7 +571,6 @@ export function AdminClubFees() {
             const checked = selectedIds.has(m.memberId);
             const canClearMark =
               (m.status === "paid_fall_external" || m.status === "exempt") && m.clubFeeId !== null;
-            const showActions = m.status === "not_charged" || canClearMark;
             return (
               <li key={m.memberId} className="bcq-member bcq-club-fees-card">
                 <div className="bcq-club-fees__row-head">
@@ -553,54 +614,44 @@ export function AdminClubFees() {
                       </span>
                     </span>
                   </a>
+                  {canClearMark ? (
+                    <button
+                      type="button"
+                      className="bcq-club-fees-overflow-btn"
+                      aria-label={`More actions for ${m.displayName}`}
+                      disabled={busy}
+                      onClick={() => {
+                        setMemberActionRow(m);
+                      }}
+                    >
+                      <MoreHorizontalIcon />
+                    </button>
+                  ) : null}
                 </div>
 
-                {showActions ? (
+                {m.status === "not_charged" ? (
                   <div className="bcq-club-fees-card__actions">
-                    {m.status === "not_charged" ? (
-                      <div className="bcq-club-fees-card__not-charged-row">
-                        <div className="bcq-club-fees-card__pair">
-                          <Button
-                            type="button"
-                            variant="tonal"
-                            disabled={busy}
-                            onClick={() => {
-                              void runCharge("fall", [m.memberId]);
-                            }}
-                          >
-                            Charge Fall
-                          </Button>
-                          <Button
-                            type="button"
-                            variant="tonal"
-                            disabled={busy}
-                            onClick={() => {
-                              void runMarkExternalFall([m.memberId]);
-                            }}
-                          >
-                            Mark Fall Paid
-                          </Button>
-                        </div>
-                        <OverflowButton
-                          label={`More actions for ${m.displayName}`}
-                          onClick={() => {
-                            setMemberActionRow(m);
-                          }}
-                        />
-                      </div>
-                    ) : canClearMark ? (
-                      <Button
-                        type="button"
-                        variant="destructive-tonal"
-                        block
-                        disabled={busy}
-                        onClick={() => {
-                          setPendingClear(m);
-                        }}
-                      >
-                        {m.status === "exempt" ? "Clear Exempt Mark" : "Clear External Mark"}
-                      </Button>
-                    ) : null}
+                    <button
+                      type="button"
+                      className="bcq-club-fees-charge-fall-btn"
+                      disabled={busy}
+                      onClick={() => {
+                        void runCharge("fall", [m.memberId]);
+                      }}
+                    >
+                      {`Charge Fall (${String(data.fallFeeSek)} kr)`}
+                    </button>
+                    <button
+                      type="button"
+                      className="bcq-club-fees-overflow-btn"
+                      aria-label={`More actions for ${m.displayName}`}
+                      disabled={busy}
+                      onClick={() => {
+                        setMemberActionRow(m);
+                      }}
+                    >
+                      <MoreHorizontalIcon />
+                    </button>
                   </div>
                 ) : null}
               </li>
@@ -717,28 +768,31 @@ export function AdminClubFees() {
           <p className="bcq-club-fees-sheet__note">
             Applies to all active members not already covered for {data.label}.
           </p>
-          <div className="bcq-club-fees-card__pair">
-            <Button
+          <div className="bcq-club-fees-option-list">
+            <button
               type="button"
+              className="bcq-club-fees-option-card"
               disabled={busy}
               onClick={() => {
                 setBatchSheetOpen(false);
                 setConfirmBatchSeason("fall");
               }}
             >
-              {`Charge Fall Fee (${String(data.fallFeeSek)} kr)`}
-            </Button>
-            <Button
+              <CoinsIcon size={18} />
+              <span>{`Charge Fall Fee (${String(data.fallFeeSek)} kr)`}</span>
+            </button>
+            <button
               type="button"
-              variant="tonal"
+              className="bcq-club-fees-option-card"
               disabled={busy}
               onClick={() => {
                 setBatchSheetOpen(false);
                 setConfirmBatchSeason("spring");
               }}
             >
-              {`Charge Spring Fee (${String(data.springFeeSek)} kr)`}
-            </Button>
+              <CoinsIcon size={18} />
+              <span>{`Charge Spring Fee (${String(data.springFeeSek)} kr)`}</span>
+            </button>
           </div>
         </div>
       </BottomSheet>
@@ -751,49 +805,60 @@ export function AdminClubFees() {
         }}
       >
         {memberActionRow ? (
-          <>
+          <div className="bcq-club-fees-actionsheet">
             <ActionSheet.Header
               title={memberActionRow.displayName}
               subtitle={`Ref ${memberActionRow.paymentRef}`}
             />
-            <ActionSheet.Group>
-              <ActionSheet.Item
-                disabled={busy}
-                onClick={() => {
-                  const id = memberActionRow.memberId;
-                  setMemberActionRow(null);
-                  void runCharge("spring", [id]);
-                }}
-              >
-                {`Charge Spring (${String(data.springFeeSek)} kr)`}
-              </ActionSheet.Item>
-              <ActionSheet.Item
-                disabled={busy}
-                onClick={() => {
-                  const id = memberActionRow.memberId;
-                  setMemberActionRow(null);
-                  void runCharge("fall", [id]);
-                }}
-              >
-                {`Charge Fall (${String(data.fallFeeSek)} kr)`}
-              </ActionSheet.Item>
-              <ActionSheet.Item
-                disabled={busy}
-                onClick={() => {
-                  const id = memberActionRow.memberId;
-                  setMemberActionRow(null);
-                  void runMarkExternalFall([id]);
-                }}
-              >
-                Mark Fall Paid
-              </ActionSheet.Item>
-            </ActionSheet.Group>
+            {memberActionRow.status === "not_charged" ? (
+              <ActionSheet.Group>
+                <ActionSheet.Item
+                  icon={<CoinsIcon size={18} />}
+                  disabled={busy}
+                  onClick={() => {
+                    const id = memberActionRow.memberId;
+                    setMemberActionRow(null);
+                    void runCharge("spring", [id]);
+                  }}
+                >
+                  {`Charge Spring (${String(data.springFeeSek)} kr)`}
+                </ActionSheet.Item>
+                <ActionSheet.Item
+                  icon={<CheckCircleIcon />}
+                  disabled={busy}
+                  onClick={() => {
+                    const id = memberActionRow.memberId;
+                    setMemberActionRow(null);
+                    void runMarkExternalFall([id]);
+                  }}
+                >
+                  Mark Fall Paid
+                </ActionSheet.Item>
+              </ActionSheet.Group>
+            ) : (
+              <ActionSheet.Group>
+                <ActionSheet.Item
+                  icon={<TrashIcon />}
+                  tone="destructive-tonal"
+                  disabled={busy}
+                  onClick={() => {
+                    const row = memberActionRow;
+                    setMemberActionRow(null);
+                    setPendingClear(row);
+                  }}
+                >
+                  {memberActionRow.status === "exempt"
+                    ? "Clear Exempt Mark"
+                    : "Clear External Mark"}
+                </ActionSheet.Item>
+              </ActionSheet.Group>
+            )}
             <ActionSheet.Cancel
               onClick={() => {
                 setMemberActionRow(null);
               }}
             />
-          </>
+          </div>
         ) : null}
       </ActionSheet.Root>
 
@@ -810,7 +875,11 @@ export function AdminClubFees() {
             : `Already-covered members for ${data.label} are skipped automatically.`
         }
         confirmLabel={
-          busy ? "Charging…" : confirmBatchSeason === "fall" ? "Charge Fall" : "Charge Spring"
+          busy
+            ? "Charging…"
+            : confirmBatchSeason === "fall"
+              ? `Confirm & Charge (${String(data.fallFeeSek)} kr)`
+              : `Confirm & Charge (${String(data.springFeeSek)} kr)`
         }
         onCancel={() => {
           if (!busy) setConfirmBatchSeason(null);

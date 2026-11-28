@@ -558,10 +558,13 @@ describe("club fees page", () => {
     window.history.pushState({}, "", "/admin/money/club-fees");
   });
 
-  it("filters Paid in Fall members and displays summary counts", async () => {
+  it("filters Paid in Fall members and displays parallel filter counts", async () => {
     stub();
     renderWith(<AdminClubFees />);
     const list = await screen.findByRole("list", { name: /club fee members/i });
+    expect(screen.getByRole("heading", { name: "Club Fees" })).toBeTruthy();
+    expect(screen.getByRole("radio", { name: /All \(/ }).getAttribute("checked")).not.toBeNull();
+    expect(screen.getByRole("radio", { name: /Paid in Spring \(/ })).toBeTruthy();
     expect(within(list).getByText("Ada Fall")).toBeTruthy();
     expect(within(list).getByText("Bo External")).toBeTruthy();
     expect(within(list).getByText("Cy Spring")).toBeTruthy();
@@ -574,6 +577,20 @@ describe("club fees page", () => {
     expect(within(list).getByText("Bo External")).toBeTruthy();
     expect(within(list).queryByText("Cy Spring")).toBeNull();
     expect(within(list).queryByText("Di Uncharged")).toBeNull();
+  });
+
+  it("shows single Charge Fall button + overflow sheet without duplicate Charge Fall", async () => {
+    stub();
+    renderWith(<AdminClubFees />);
+    const list = await screen.findByRole("list", { name: /club fee members/i });
+    expect(within(list).getByRole("button", { name: "Charge Fall (160 kr)" })).toBeTruthy();
+    expect(within(list).queryByRole("button", { name: "Mark Fall Paid" })).toBeNull();
+
+    fireEvent.click(within(list).getByRole("button", { name: "More actions for Di Uncharged" }));
+    const sheet = await screen.findByRole("dialog", { name: "Member Club Fee Actions" });
+    expect(within(sheet).queryByRole("button", { name: /Charge Fall/ })).toBeNull();
+    expect(within(sheet).getByRole("button", { name: "Charge Spring (85 kr)" })).toBeTruthy();
+    expect(within(sheet).getByRole("button", { name: "Mark Fall Paid" })).toBeTruthy();
   });
 
   it("batch charges Spring skipping Fall payers and marks selected members paid externally", async () => {
@@ -616,7 +633,7 @@ describe("club fees page", () => {
       name: /Charge Spring Fee \(85 kr\)/,
     });
     expect(within(confirm).getByText(/skipped automatically/i)).toBeTruthy();
-    fireEvent.click(within(confirm).getByRole("button", { name: "Charge Spring" }));
+    fireEvent.click(within(confirm).getByRole("button", { name: "Confirm & Charge (85 kr)" }));
 
     await waitFor(() => {
       expect(calls.some((c) => c.path === "/admin/club-fees/charge")).toBe(true);
@@ -627,12 +644,13 @@ describe("club fees page", () => {
     });
   });
 
-  it("confirms before clearing external mark", async () => {
+  it("confirms before clearing external mark via overflow menu", async () => {
     const calls = stub(() => json(200, {}));
     renderWith(<AdminClubFees />);
     const list = await screen.findByRole("list", { name: /club fee members/i });
-    const clearBtns = within(list).getAllByRole("button", { name: "Clear External Mark" });
-    fireEvent.click(clearBtns[0]!);
+    fireEvent.click(within(list).getByRole("button", { name: "More actions for Bo External" }));
+    const sheet = await screen.findByRole("dialog", { name: "Member Club Fee Actions" });
+    fireEvent.click(within(sheet).getByRole("button", { name: "Clear External Mark" }));
     const confirm = await screen.findByRole("dialog", { name: "Clear External Mark?" });
     fireEvent.click(within(confirm).getByRole("button", { name: "Clear Mark" }));
 

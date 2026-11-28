@@ -1,5 +1,4 @@
 .bcq-attendance {
-  margin-top: 1rem;
   padding: 1rem;
   border: 1px solid var(--bcq-line);
   border-radius: var(--bcq-radius);
@@ -60,11 +59,14 @@
   color: var(--bcq-muted);
 }
 
+.bcq-attendance__toggle {
+  padding: 0 0.875rem;
+  font-size: 0.75rem;
+}
+
 .bcq-attendance__actions {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 0.75rem;
+  display: grid;
+  gap: 0.5rem;
 }
 
 .bcq-attendance__saved {

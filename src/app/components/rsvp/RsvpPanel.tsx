@@ -4,7 +4,7 @@ import { ApiError } from "../../api/client";
 import type { EventDetail } from "../../api/events";
 import type { SlotProps } from "../../routes/events/slots";
 import { noteRsvpSaved } from "../install";
-import { Button, Skeleton, StatusChip, Stepper, type StatusTone } from "../ui";
+import { Button, ConfirmDialog, Skeleton, StatusChip, Stepper, type StatusTone } from "../ui";
 import { cancelRsvp, declineRsvp, getMyRsvp, putRsvp, type RsvpStatus, type RsvpView } from "./api";
 import "./rsvp.css";
 
@@ -66,6 +66,7 @@ export function RsvpPanel({ event }: SlotProps) {
   const [rsvp, setRsvp] = useState<RsvpView | null>(null);
   const [names, setNames] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
+  const [confirmCancel, setConfirmCancel] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const headingId = useId();
   const quickHandledRef = useRef(false);
@@ -159,9 +160,14 @@ export function RsvpPanel({ event }: SlotProps) {
 
   return (
     <section className="bcq-rsvp" aria-labelledby={headingId}>
-      <h2 id={headingId} className="bcq-rsvp__title">
-        Your RSVP
-      </h2>
+      <div className="bcq-rsvp__head">
+        <h2 id={headingId} className="bcq-rsvp__title">
+          Your RSVP
+        </h2>
+        {active || declined ? (
+          <StatusChip tone={TONE[rsvp.status]}>{LABEL[rsvp.status]}</StatusChip>
+        ) : null}
+      </div>
 
       {load === "error" ? (
         <p role="alert" className="bcq-rsvp__error">
@@ -169,11 +175,8 @@ export function RsvpPanel({ event }: SlotProps) {
         </p>
       ) : null}
 
-      {active || declined ? (
-        <div className="bcq-rsvp__status">
-          <StatusChip tone={TONE[rsvp.status]}>{LABEL[rsvp.status]}</StatusChip>
-          {HINT[rsvp.status] && open ? <p className="bcq-rsvp__hint">{HINT[rsvp.status]}</p> : null}
-        </div>
+      {(active || declined) && HINT[rsvp.status] && open ? (
+        <p className="bcq-rsvp__hint">{HINT[rsvp.status]}</p>
       ) : null}
 
       {active && rsvp.guests.length > 0 ? (
@@ -247,7 +250,7 @@ export function RsvpPanel({ event }: SlotProps) {
                 block
                 disabled={busy}
                 onClick={() => {
-                  void run(() => cancelRsvp(event.id));
+                  setConfirmCancel(true);
                 }}
               >
                 Cancel RSVP
@@ -267,6 +270,22 @@ export function RsvpPanel({ event }: SlotProps) {
           </div>
         </form>
       ) : null}
+
+      <ConfirmDialog
+        open={confirmCancel}
+        title="Cancel RSVP?"
+        description="Cancelling your RSVP will release your spot for this event."
+        cancelLabel="Keep RSVP"
+        confirmLabel="Confirm Cancel"
+        destructive
+        onCancel={() => {
+          setConfirmCancel(false);
+        }}
+        onConfirm={() => {
+          setConfirmCancel(false);
+          void run(() => cancelRsvp(event.id));
+        }}
+      />
 
       {error ? (
         <p role="alert" className="bcq-rsvp__error">

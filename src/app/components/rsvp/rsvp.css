@@ -10,7 +10,14 @@
 .bcq-rsvp__status > * {
   margin: 0;
 }
+.bcq-rsvp__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
 .bcq-rsvp__title {
+  margin: 0;
   font-size: 1.125rem;
 }
 .bcq-rsvp__status,
@@ -38,7 +45,8 @@
 .bcq-rsvp__guest input {
   min-height: var(--bcq-touch);
   padding: 0 0.75rem;
-  font: inherit;
+  font: 400 1rem var(--bcq-font);
+  font-variant-numeric: tabular-nums;
   color: var(--bcq-ink);
   background: var(--bcq-card);
   border: 1px solid var(--bcq-input-border);

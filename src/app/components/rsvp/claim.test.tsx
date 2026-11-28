@@ -125,7 +125,7 @@ describe("ClaimSpotPanel & CapacityPanel (S4.4b)", () => {
     render(<CapacityPanel event={closedEvent({ capacity: 4 })} viewer={managerViewer} />);
     const input = screen.getByLabelText(/new capacity/i);
     fireEvent.change(input, { target: { value: "2" } });
-    fireEvent.click(screen.getByRole("button", { name: "Update capacity" }));
+    fireEvent.click(screen.getByRole("button", { name: "Update Capacity" }));
 
     expect(await screen.findByText(/3 confirmed/i)).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: /override/i }));

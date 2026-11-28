@@ -90,43 +90,52 @@ export function EventDetailPage() {
   if (state.kind === "error") return <ErrorState>We couldn&apos;t load this event.</ErrorState>;
 
   const { event, viewer } = state;
+  const formatText =
+    event.format.length > 0
+      ? event.format.charAt(0).toUpperCase() + event.format.slice(1)
+      : event.format;
+
   return (
     <article aria-labelledby="event-title" className="bcq-event">
-      <h1 id="event-title" className="bcq-page__title">
-        {event.title}
-      </h1>
-      <p className="bcq-event__when">{formatWhen(event.startsAt, event.endsAt)}</p>
-      {event.location ? <p className="bcq-event__where">{event.location}</p> : null}
-      <p className="bcq-event__chips">
-        <StatusChip>
-          {event.format.length > 0
-            ? event.format.charAt(0).toUpperCase() + event.format.slice(1)
-            : event.format}
-        </StatusChip>{" "}
-        {event.kind === "member_oneoff" ? (
-          <StatusChip tone="neutral">Member-Organized</StatusChip>
-        ) : null}
-        {event.audienceLabel ? (
-          <>
-            {" "}
-            <StatusChip tone="info">Invited: {event.audienceLabel}</StatusChip>
-          </>
-        ) : null}
-        {event.status === "cancelled" ? <StatusChip tone="danger">Cancelled</StatusChip> : null}
-        {event.readOnly && event.status !== "cancelled" ? (
-          <StatusChip>Past Event</StatusChip>
-        ) : null}
-      </p>
-      {event.adhocFee > 0 ? (
-        <p className="bcq-event__where">
-          {event.kind === "member_oneoff"
-            ? `${String(event.adhocFee)} kr · settled directly with organizer (not billed by BOLT IF)`
-            : `${String(event.adhocFee)} kr · billed via BOLT HQ`}
+      <header className="bcq-event__header">
+        <h1 id="event-title" className="bcq-page__title">
+          {event.title}
+        </h1>
+        <p className="bcq-event__when">
+          {formatWhen(event.startsAt, event.endsAt)}
+          {event.location ? (
+            <>
+              {" · "}
+              <span className="bcq-event__location">{event.location}</span>
+            </>
+          ) : null}
         </p>
-      ) : null}
+        {event.adhocFee > 0 ? (
+          <p className="bcq-event__fee">
+            {event.kind === "member_oneoff"
+              ? `${String(event.adhocFee)} kr · Settled Directly With Organizer (Not Billed by BOLT IF)`
+              : `${String(event.adhocFee)} kr · Billed via BOLT HQ`}
+          </p>
+        ) : null}
+        <div className="bcq-event__header-actions">
+          <div className="bcq-event__chips">
+            <StatusChip>{formatText}</StatusChip>
+            {event.kind === "member_oneoff" ? (
+              <StatusChip tone="neutral">Member-Organized</StatusChip>
+            ) : null}
+            {event.audienceLabel ? (
+              <StatusChip tone="info">Invited: {event.audienceLabel}</StatusChip>
+            ) : null}
+            {event.status === "cancelled" ? <StatusChip tone="danger">Cancelled</StatusChip> : null}
+            {event.readOnly && event.status !== "cancelled" ? (
+              <StatusChip>Past Event</StatusChip>
+            ) : null}
+          </div>
+          <Slot name="ShareSlot" event={event} viewer={viewer} />
+        </div>
+      </header>
 
       <Slot name="RsvpSlot" event={event} viewer={viewer} />
-      <Slot name="ShareSlot" event={event} viewer={viewer} />
       {viewer.canManage ? <Slot name="OrganizerToolsSlot" event={event} viewer={viewer} /> : null}
       {viewer.canSeeAttendees ? <Slot name="AttendeesSlot" event={event} viewer={viewer} /> : null}
     </article>

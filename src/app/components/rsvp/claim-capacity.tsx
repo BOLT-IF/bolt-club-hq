@@ -92,7 +92,7 @@ export function CapacityPanel({ event, viewer }: SlotProps) {
   return (
     <section className="bcq-rsvp" aria-labelledby={headingId}>
       <h2 id={headingId} className="bcq-rsvp__title">
-        Event capacity
+        Event Capacity
       </h2>
       <p className="bcq-rsvp__hint">Current capacity: {currentCapacity} spots</p>
 
@@ -109,10 +109,11 @@ export function CapacityPanel({ event, viewer }: SlotProps) {
         }}
       >
         <label htmlFor={inputId} className="bcq-rsvp__guest">
-          <span>New capacity</span>
+          <span>New Capacity</span>
           <input
             id={inputId}
             type="number"
+            inputMode="numeric"
             min={1}
             step={1}
             value={draft}
@@ -123,8 +124,8 @@ export function CapacityPanel({ event, viewer }: SlotProps) {
           />
         </label>
         <div className="bcq-rsvp__actions">
-          <Button type="submit" variant="secondary" block disabled={busy}>
-            Update capacity
+          <Button type="submit" variant="tonal" block disabled={busy}>
+            Update Capacity
           </Button>
         </div>
       </form>

@@ -131,7 +131,7 @@ export function AttendancePanel({ event, viewer }: SlotProps) {
         {data.lockedForOrganizer ? (
           <StatusChip tone="warning">Locked after 7 days</StatusChip>
         ) : data.hasUnmarked ? (
-          <StatusChip>Default: attended</StatusChip>
+          <StatusChip>Default: Attended</StatusChip>
         ) : (
           <StatusChip tone="success">Saved</StatusChip>
         )}
@@ -168,17 +168,18 @@ export function AttendancePanel({ event, viewer }: SlotProps) {
                   {data.canEdit ? (
                     <Button
                       variant={isNoShow ? "danger" : "secondary"}
+                      className="bcq-attendance__toggle"
                       aria-pressed={isNoShow}
-                      aria-label={`${row.name}: ${isNoShow ? "No-show" : "Attended"}`}
+                      aria-label={`${row.name}: ${isNoShow ? "No-Show" : "Attended"}`}
                       onClick={() => {
                         toggle(row.id);
                       }}
                     >
-                      {isNoShow ? "No-show" : "Attended"}
+                      {isNoShow ? "No-Show" : "Attended"}
                     </Button>
                   ) : (
                     <StatusChip tone={isNoShow ? "danger" : "success"}>
-                      {isNoShow ? "No-show" : "Attended"}
+                      {isNoShow ? "No-Show" : "Attended"}
                     </StatusChip>
                   )}
                 </li>
@@ -194,8 +195,8 @@ export function AttendancePanel({ event, viewer }: SlotProps) {
 
           {data.canEdit ? (
             <div className="bcq-attendance__actions">
-              <Button variant="primary" disabled={saving} onClick={() => void handleSave()}>
-                {saving ? "Saving…" : "Save attendance"}
+              <Button variant="primary" block disabled={saving} onClick={() => void handleSave()}>
+                {saving ? "Saving…" : "Save Attendance"}
               </Button>
               {savedNotice ? <span className="bcq-attendance__saved">Saved</span> : null}
             </div>

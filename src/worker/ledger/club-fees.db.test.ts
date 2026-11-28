@@ -428,4 +428,26 @@ describe("admin club fees routes", () => {
     expect(waivedEntries).toHaveLength(2); // original charge + waiver reversal, no :v2
     expect(await ledger.balance(waived.id)).toBe(0);
   });
+
+  it("skips erased and pending members when explicit memberIds are passed to POST /admin/club-fees/charge", async () => {
+    const active = await makeMember(t.db, { status: "active", displayName: "Active M" });
+    const pending = await makeMember(t.db, { status: "pending", displayName: "Pending M" });
+    const erased = await makeMember(t.db, { status: "erased", displayName: "Erased M" });
+
+    const res = await call(admin, "POST", "/admin/club-fees/charge", {
+      body: { clubYear: 2026, season: "fall", memberIds: [active.id, pending.id, erased.id] },
+    });
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({
+      chargedCount: 1,
+      skippedCount: 2,
+      chargedMemberIds: [active.id],
+    });
+    expect(await t.db.select().from(clubFee).where(eq(clubFee.memberId, pending.id))).toHaveLength(
+      0,
+    );
+    expect(await t.db.select().from(clubFee).where(eq(clubFee.memberId, erased.id))).toHaveLength(
+      0,
+    );
+  });
 });

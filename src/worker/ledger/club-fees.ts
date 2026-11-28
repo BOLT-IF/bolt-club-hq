@@ -41,7 +41,7 @@ export type EnsureClubFeeResult =
     }
   | {
       charged: false;
-      skippedReason: "already_covered" | "zero_fee" | "member_not_found";
+      skippedReason: "already_covered" | "zero_fee" | "member_not_found" | "member_not_active";
     };
 
 async function loadClubFeeSettings(tx: Tx): Promise<{ fallSek: number; springSek: number }> {
@@ -111,6 +111,9 @@ export async function ensureClubFeeForMember(
     .where(eq(member.id, input.memberId))
     .for("update");
   if (!m) return { charged: false, skippedReason: "member_not_found" };
+  if (m.status === "erased" || m.status === "pending") {
+    return { charged: false, skippedReason: "member_not_active" };
+  }
 
   const existing = await loadMemberYearClubFees(tx, input.memberId, input.clubYear);
   if (existing.active.length > 0) {

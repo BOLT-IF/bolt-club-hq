@@ -569,5 +569,29 @@ describe("post-close RSVP, cancel, promotion, refill (S4.4a)", () => {
       expect(rejoin.status).toBe(200);
       expect(await balanceOf(m1.id)).toBe(120);
     });
+
+    it("putLateRsvp checks prepaid pass inside the event transaction lock (passes tx)", async () => {
+      const ev = await addEvent({ capacity: 2, adhocFee: 120 });
+      const m = await makeMember(t.db);
+      clock.set(at(25));
+      await closeEvent(t.db, clock, ev.id);
+
+      let seenTx: unknown;
+      configureRsvpDeps({
+        prepaid: () => ({
+          isPrepaid(input) {
+            seenTx = input.tx;
+            return Promise.resolve(true);
+          },
+        }),
+      });
+
+      const res = await putLate(ev.id, m.clerkUserId);
+      expect(res.status).toBe(200);
+      expect(seenTx).toBeDefined();
+      const body = await res.json<{ rsvp: { tier: number; status: string } }>();
+      expect(body.rsvp).toMatchObject({ tier: 1, status: "confirmed" });
+      expect(await balanceOf(m.id)).toBe(0);
+    });
   });
 });

@@ -4,6 +4,8 @@
  * under src/worker/test-support/fakes.ts.
  */
 
+import type { Tx } from "./db/client";
+
 export interface CurrentMember {
   id: string;
   role: "member" | "admin";
@@ -24,7 +26,7 @@ export interface NotifyPort {
 }
 
 export interface PrepaidPort {
-  isPrepaid(input: { memberId: string; eventId: string }): Promise<boolean>;
+  isPrepaid(input: { memberId: string; eventId: string; tx?: Tx }): Promise<boolean>;
 }
 
 export interface ChargePort {

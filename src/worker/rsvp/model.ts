@@ -189,15 +189,6 @@ export async function putRsvp(
   input: PutRsvpInput,
 ): Promise<RsvpResult> {
   const now = clock.now();
-  // Tier lookup before the transaction: the port may do its own I/O.
-  const [peek] = await db.select().from(event).where(eq(event.id, input.eventId));
-  if (!peek) return { ok: false, error: "not_found" };
-  // Tier 1 only exists on series events (admin one-offs have none, member one-offs are instant).
-  const isPrepaid =
-    peek.kind === "series"
-      ? await prepaid.isPrepaid({ memberId: input.memberId, eventId: input.eventId })
-      : false;
-  const tier = rsvpTier(peek, isPrepaid);
 
   return db.transaction(async (tx) => {
     const e = await lockEvent(tx, input.eventId);
@@ -206,6 +197,14 @@ export async function putRsvp(
     if (input.guests.length > e.maxGuestsPerMember) {
       return { ok: false, error: "guest_limit", max: e.maxGuestsPerMember } as const;
     }
+
+    // Tier 1 only exists on series events (admin one-offs have none, member one-offs are instant).
+    // Evaluated inside the transaction after locking the event row so pass issuance/revocation serializes cleanly.
+    const isPrepaid =
+      e.kind === "series"
+        ? await prepaid.isPrepaid({ memberId: input.memberId, eventId: e.id, tx })
+        : false;
+    const tier = rsvpTier(e, isPrepaid);
 
     const instant = e.allocationMode === "instant";
     const existing = await findRsvp(tx, e.id, input.memberId);

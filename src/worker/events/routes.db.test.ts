@@ -2,7 +2,15 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { Hono } from "hono";
 import { eq } from "drizzle-orm";
 
-import { auditLog, event, series, seriesCaptain, term } from "../../../db/schema";
+import {
+  auditLog,
+  event,
+  notification,
+  rsvp,
+  series,
+  seriesCaptain,
+  term,
+} from "../../../db/schema";
 import { FixedClock } from "../core/clock";
 import { configureRequestDeps } from "../core/context";
 import { TEST_IDENTITY_HEADER } from "../core/test-identity";
@@ -292,6 +300,55 @@ describe("events routes (S3.0)", () => {
     it("404 for an unknown event", async () => {
       const admin = await makeMember(t.db, { role: "admin" });
       expect((await patch("/events/nope", admin.clerkUserId, { title: "x" })).status).toBe(404);
+    });
+
+    it("PATCH /events/:id with location on a closed event triggers materialChangeAt and notifies active attendees", async () => {
+      const admin = await makeMember(t.db, { role: "admin" });
+      const attendee = await makeMember(t.db);
+      const row = await addEvent(admin.id, { status: "closed", rsvpCloseAt: at(-2) });
+      await t.db.insert(rsvp).values({
+        id: "rsv_closed_loc",
+        eventId: row.id,
+        memberId: attendee.id,
+        status: "confirmed",
+        tier: 2,
+        requestedAt: at(-5),
+      });
+
+      const res = await patch(`/events/${row.id}`, admin.clerkUserId, { location: "New Hall" });
+      expect(res.status).toBe(200);
+
+      const [saved] = await t.db.select().from(event).where(eq(event.id, row.id));
+      expect(saved!.location).toBe("New Hall");
+      expect(saved!.materialChangeAt).toEqual(new Date(NOW));
+
+      const notifs = await t.db
+        .select()
+        .from(notification)
+        .where(eq(notification.memberId, attendee.id));
+      expect(notifs.some((n) => n.title === "Event updated")).toBe(true);
+    });
+
+    it("PATCH /events/:id with location on a past-close scheduled event closes it and triggers materialChangeAt", async () => {
+      const admin = await makeMember(t.db, { role: "admin" });
+      const attendee = await makeMember(t.db);
+      const row = await addEvent(admin.id, { status: "scheduled", rsvpCloseAt: at(-1) });
+      await t.db.insert(rsvp).values({
+        id: "rsv_due_loc",
+        eventId: row.id,
+        memberId: attendee.id,
+        status: "confirmed",
+        tier: 1,
+        requestedAt: at(-5),
+      });
+
+      const res = await patch(`/events/${row.id}`, admin.clerkUserId, { location: "Court B" });
+      expect(res.status).toBe(200);
+
+      const [saved] = await t.db.select().from(event).where(eq(event.id, row.id));
+      expect(saved!.status).toBe("closed");
+      expect(saved!.location).toBe("Court B");
+      expect(saved!.materialChangeAt).toEqual(new Date(NOW));
     });
   });
 });

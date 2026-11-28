@@ -5,6 +5,7 @@ import { series } from "../../../db/schema";
 import { contextMiddleware } from "../core/context";
 import { requireGuard } from "../core/permissions";
 import { closeDueEvents } from "../rsvp/close";
+import { updateEventDetails } from "../rsvp/eventchange";
 import type { AppEnv } from "../types";
 import { canAccessEvent, filterAccessibleEvents } from "./audience";
 import { eventsDeps } from "./deps";
@@ -15,7 +16,6 @@ import {
   getEventBySlug,
   listEvents,
   nextOpenEvent,
-  updateEvent,
   type EventPatch,
   type EventRow,
 } from "./model";
@@ -121,26 +121,25 @@ export default new Hono<AppEnv>()
   })
   .patch("/events/:id", requireGuard("member"), async (c) => {
     const actor = c.var.actor;
-    const row = await getEventById(c.var.db, c.req.param("id"));
-    if (!row) return notFound(c);
-    if (!actor || !canManageEvent(actor, row)) return c.json({ error: "forbidden" }, 403);
+    if (!actor) return c.json({ error: "forbidden" }, 403);
 
     const patch = parsePatch(await c.req.json().catch(() => null));
     if (!patch) return c.json({ error: "invalid_body" }, 400);
-    if (isReadOnly(row, c.var.clock.now())) return c.json({ error: "event_read_only" }, 409);
 
-    const updated = await updateEvent(
-      {
-        db: c.var.db,
-        clock: c.var.clock,
-        publishOg: eventsDeps().publishOg(c.env),
-        onOgError: (error) => {
-          c.var.logger.warn("og_publish_failed", { error: String(error) });
-        },
-      },
-      row.id,
-      actor.id,
+    const result = await updateEventDetails(c.var.db, c.var.clock, {
+      eventId: c.req.param("id"),
+      actor,
       patch,
-    );
-    return updated ? detail(c, updated) : notFound(c);
+      publishOg: eventsDeps().publishOg(c.env),
+      onOgError: (error) => {
+        c.var.logger.warn("og_publish_failed", { error: String(error) });
+      },
+    });
+    if (!result.ok) {
+      if (result.error === "not_found") return notFound(c);
+      if (result.error === "forbidden") return c.json({ error: "forbidden" }, 403);
+      if (result.error === "invalid_body") return c.json({ error: "invalid_body" }, 400);
+      return c.json({ error: result.error }, 409);
+    }
+    return detail(c, result.event);
   });

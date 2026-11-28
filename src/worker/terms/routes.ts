@@ -429,7 +429,21 @@ export default new Hono<AppEnv>()
     requireGuard("captain-of-series", { seriesIdOf: seriesIdParam }),
     async (c) => {
       const found = await oneSeries(c.var.db, c.req.param("id"));
-      return found ? c.json({ series: found }) : c.json({ error: "not_found" }, 404);
+      if (!found) return c.json({ error: "not_found" }, 404);
+      const passHolders = await c.var.db
+        .select({
+          id: pass.id,
+          memberId: member.id,
+          displayName: member.displayName,
+          paymentRef: member.paymentRef,
+          priceCharged: pass.priceCharged,
+          purchasedAt: pass.purchasedAt,
+        })
+        .from(pass)
+        .innerJoin(member, eq(member.id, pass.memberId))
+        .where(and(eq(pass.seriesId, found.id), eq(pass.status, "active")))
+        .orderBy(asc(member.displayName), asc(pass.purchasedAt));
+      return c.json({ series: { ...found, passHolders } });
     },
   )
 

@@ -350,6 +350,74 @@ describe("balances page", () => {
     expect(calls.filter((c) => c.method === "GET" && c.path === "/admin/balances")).toHaveLength(2);
     expect(calls.filter((c) => c.method === "GET" && c.path === "/admin/passes")).toHaveLength(2);
   });
+
+  it("shows all active pass holders (paid and unpaid) under Pass Holders and only shows Revoke Pass for unpaid passes", async () => {
+    configureApiClient({
+      fetch: vi.fn((input: string) => {
+        const path = input.replace("/api/v1", "");
+        if (path === "/admin/balances")
+          return Promise.resolve(json(200, { members: [bo, cy, di] }));
+        if (path === "/admin/payment-claims") return Promise.resolve(json(200, { claims: [] }));
+        if (path === "/admin/passes") {
+          return Promise.resolve(
+            json(200, {
+              passes: [
+                {
+                  id: "pas_paid",
+                  memberId: "m4",
+                  memberName: "Di Ek",
+                  paymentRef: "BC-DI",
+                  seriesId: "ser_thu",
+                  seriesName: "Thursday XD",
+                  termName: "Spring 2027",
+                  priceCharged: 1200,
+                  eventsCovered: 10,
+                  purchasedAt: "2027-01-01T10:00:00.000Z",
+                  chargeStatus: "paid",
+                  unpaidSek: 0,
+                  daysElapsed: 10,
+                  revocable: false,
+                },
+                {
+                  id: "pas_unpaid",
+                  memberId: "m2",
+                  memberName: "Bo Berg",
+                  paymentRef: "BC-BO",
+                  seriesId: "ser_mon",
+                  seriesName: "Monday MD",
+                  termName: "Spring 2027",
+                  priceCharged: 900,
+                  eventsCovered: 10,
+                  purchasedAt: "2027-01-02T10:00:00.000Z",
+                  chargeStatus: "unpaid",
+                  unpaidSek: 900,
+                  daysElapsed: 3,
+                  revocable: true,
+                },
+              ],
+            }),
+          );
+        }
+        return Promise.resolve(json(200, {}));
+      }),
+    });
+
+    renderWith(<AdminBalances />);
+    await screen.findByText("Bo Berg");
+
+    fireEvent.click(screen.getByRole("radio", { name: "Pass Holders" }));
+
+    const list = await screen.findByRole("list", { name: "Pass Holders" });
+    expect(within(list).getByText("Di Ek")).toBeTruthy();
+    expect(within(list).getByText("Paid · 1200 kr")).toBeTruthy();
+    expect(within(list).getByText("Bo Berg")).toBeTruthy();
+    expect(within(list).getByText("Unpaid 900 kr")).toBeTruthy();
+    expect(within(list).getAllByRole("button", { name: "Revoke Pass" })).toHaveLength(1);
+
+    fireEvent.change(screen.getByRole("searchbox"), { target: { value: "Thursday" } });
+    expect(within(list).getByText("Di Ek")).toBeTruthy();
+    expect(within(list).queryByText("Bo Berg")).toBeNull();
+  });
 });
 
 describe("member ledger page", () => {

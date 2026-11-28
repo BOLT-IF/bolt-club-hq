@@ -177,19 +177,19 @@ test("member sees prorated offer and terms notice before purchasing a pass", asy
   await expect(page.getByText("You hold a pass")).toBeVisible();
 });
 
-test("admin filters revocable passes and revokes one", async ({ page }) => {
+test("admin filters pass holders and revokes an unpaid pass", async ({ page }) => {
   await mockPassesApi(page);
   await page.goto("/admin/money");
   await expect(page.getByText("Bo Berg")).toBeVisible();
-  await page.getByRole("radio", { name: /revocable/i }).click();
-  const list = page.getByRole("list", { name: /balances/i });
+  await page.getByRole("radio", { name: /pass holders/i }).click();
+  const list = page.getByRole("list", { name: /pass holders/i });
   await expect(list).toContainText("Bo Berg");
   await expect(list).not.toContainText("Cy Dahl");
 
   await list.getByRole("button", { name: /revoke pass/i }).click();
   const dialog = page.getByRole("dialog");
   await dialog.getByRole("button", { name: /confirm revocation/i }).click();
-  await expect(page.getByText("No Revocable Passes")).toBeVisible();
+  await expect(page.getByText("No Active Pass Holders")).toBeVisible();
 });
 
 test("passes screen has no serious or critical axe violations", async ({ page }) => {

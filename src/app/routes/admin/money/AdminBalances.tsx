@@ -24,14 +24,14 @@ import {
 import "../../members/members.css";
 import "./money.css";
 
-type Filter = "all" | "owes" | "credit" | "inactive" | "revocable";
+type Filter = "all" | "owes" | "credit" | "inactive" | "passes";
 
 const FILTERS: ReadonlyArray<{ value: Filter; label: string }> = [
   { value: "all", label: "All" },
   { value: "owes", label: "Owes Money" },
   { value: "credit", label: "In Credit" },
   { value: "inactive", label: "Inactive With Balance" },
-  { value: "revocable", label: "Revocable" },
+  { value: "passes", label: "Pass Holders" },
 ];
 
 function ReceiptIcon() {
@@ -158,7 +158,7 @@ const matchesFilter = (row: BalanceRow, filter: Filter) => {
       return row.balanceSek < 0;
     case "inactive":
       return row.status === "inactive" && row.balanceSek !== 0;
-    case "revocable":
+    case "passes":
       return false;
   }
 };
@@ -178,7 +178,8 @@ const matchesPassSearch = (pass: AdminPassRow, query: string) => {
     q === "" ||
     pass.memberName.toLowerCase().includes(q) ||
     pass.paymentRef.toLowerCase().includes(q) ||
-    pass.seriesName.toLowerCase().includes(q)
+    pass.seriesName.toLowerCase().includes(q) ||
+    pass.termName.toLowerCase().includes(q)
   );
 };
 
@@ -259,14 +260,19 @@ export function AdminBalances() {
     );
   }
 
-  const isRevocableView = filter === "revocable";
-  const rows = isRevocableView
+  const isPassesView = filter === "passes";
+  const rows = isPassesView
     ? []
     : [...state.rows]
         .filter((r) => matchesFilter(r, filter) && matchesSearch(r, query))
         .sort(compareBalanceRows);
-  const revocablePasses = isRevocableView
-    ? state.passes.filter((p) => p.revocable && matchesPassSearch(p, query))
+  const passHolders = isPassesView
+    ? [...state.passes]
+        .filter((p) => matchesPassSearch(p, query))
+        .sort(
+          (a, b) =>
+            Number(b.revocable) - Number(a.revocable) || a.memberName.localeCompare(b.memberName),
+        )
     : [];
   const totalOwed = state.rows.reduce((sum, r) => sum + r.owedSek, 0);
   const owesCount = state.rows.filter((r) => r.balanceSek > 0).length;
@@ -434,44 +440,63 @@ export function AdminBalances() {
         </fieldset>
       </div>
 
-      {isRevocableView ? (
+      {isPassesView ? (
         <>
-          {revocablePasses.length === 0 ? (
-            <EmptyState title="No Revocable Passes">No unpaid active passes to revoke.</EmptyState>
+          {passHolders.length === 0 ? (
+            <EmptyState title="No Active Pass Holders">
+              {query.trim()
+                ? "No pass holders match that search."
+                : "No active passes have been assigned or purchased yet."}
+            </EmptyState>
           ) : null}
-          <ul className="bcq-members" aria-label="Balances">
-            {revocablePasses.map((p) => (
-              <li key={p.id} className="bcq-member bcq-money-revocable-card">
-                <a
-                  className="bcq-money-row"
-                  href={`/admin/money/members/${p.memberId}`}
-                  onClick={(e) => {
-                    e.preventDefault();
-                    navigate(`/admin/money/members/${p.memberId}`);
-                  }}
-                >
-                  <span className="bcq-money-row__top">
-                    <span className="bcq-money-row__name">{p.memberName}</span>
-                    <StatusChip tone="warning">Unpaid {p.unpaidSek} kr</StatusChip>
-                  </span>
-                  <span className="bcq-money-row__meta">
-                    Payment reference <span className="bcq-mono-code">{p.paymentRef}</span> ·{" "}
-                    {p.seriesName} ({p.termName}) · {p.daysElapsed}d unpaid
-                  </span>
-                </a>
-                <div>
-                  <Button
-                    variant="destructive-tonal"
-                    onClick={() => {
-                      setRevokeKey(newIdempotencyKey());
-                      setPendingRevoke(p);
+          <ul className="bcq-members" aria-label="Pass Holders">
+            {passHolders.map((p) => {
+              const statusTone =
+                p.chargeStatus === "unpaid" || p.chargeStatus === "partly_paid"
+                  ? "warning"
+                  : "success";
+              const statusLabel =
+                p.chargeStatus === "unpaid"
+                  ? `Unpaid ${String(p.unpaidSek)} kr`
+                  : p.chargeStatus === "partly_paid"
+                    ? `Partly Paid · ${String(p.unpaidSek)} kr left`
+                    : `Paid · ${String(p.priceCharged)} kr`;
+              return (
+                <li key={p.id} className="bcq-member bcq-money-revocable-card">
+                  <a
+                    className="bcq-money-row"
+                    href={`/admin/money/members/${p.memberId}`}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      navigate(`/admin/money/members/${p.memberId}`);
                     }}
                   >
-                    Revoke Pass
-                  </Button>
-                </div>
-              </li>
-            ))}
+                    <span className="bcq-money-row__top">
+                      <span className="bcq-money-row__name">{p.memberName}</span>
+                      <StatusChip tone={statusTone}>{statusLabel}</StatusChip>
+                    </span>
+                    <span className="bcq-money-row__meta">
+                      Ref <span className="bcq-mono-code">{p.paymentRef}</span> · {p.seriesName} (
+                      {p.termName}) · <span className="tabular-nums">{p.priceCharged} kr</span>
+                      {p.revocable ? ` · ${String(p.daysElapsed)}d unpaid` : ""}
+                    </span>
+                  </a>
+                  {p.revocable ? (
+                    <div>
+                      <Button
+                        variant="destructive-tonal"
+                        onClick={() => {
+                          setRevokeKey(newIdempotencyKey());
+                          setPendingRevoke(p);
+                        }}
+                      >
+                        Revoke Pass
+                      </Button>
+                    </div>
+                  ) : null}
+                </li>
+              );
+            })}
           </ul>
         </>
       ) : (

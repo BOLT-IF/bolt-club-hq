@@ -218,9 +218,9 @@ describe("admin balances revocable filter and pass revocation", () => {
     renderWith(<AdminBalances />);
 
     await screen.findByText("Bo Berg");
-    fireEvent.click(screen.getByRole("radio", { name: /revocable/i }));
+    fireEvent.click(screen.getByRole("radio", { name: /pass holders/i }));
 
-    const list = screen.getByRole("list", { name: /balances/i });
+    const list = screen.getByRole("list", { name: /pass holders/i });
     expect(within(list).getByText("Bo Berg")).toBeTruthy();
     expect(within(list).queryByText("Cy Dahl")).toBeNull();
 

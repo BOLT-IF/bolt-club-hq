@@ -134,6 +134,14 @@ export interface SeriesRow {
   passCap: number;
   captains: Array<{ id: string; displayName: string }>;
   discountEligible?: Array<{ id: string; displayName: string }>;
+  passHolders?: Array<{
+    id: string;
+    memberId: string;
+    displayName: string;
+    paymentRef: string;
+    priceCharged: number;
+    purchasedAt: string;
+  }>;
 }
 
 export const STATUS_LABEL: Record<TermStatus, string> = {

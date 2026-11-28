@@ -299,7 +299,7 @@ describe("inbox screen", () => {
     expect(screen.queryByText("Older duplicate alert")).toBeNull();
     expect(await screen.findByText("Event Passed")).toBeTruthy();
     expect(await screen.findByText("Responded · Confirmed")).toBeTruthy();
-    expect(screen.queryByRole("button", { name: "RSVP" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Going" })).toBeNull();
     expect(screen.queryByRole("button", { name: "Not Going" })).toBeNull();
   });
 

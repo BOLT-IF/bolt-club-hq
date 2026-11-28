@@ -312,6 +312,12 @@ type LoadState =
 const MAX_EVENT_LOOKUPS = 6;
 const MAX_HOME_RSVPS = 3;
 const MAX_HOME_UNANSWERED = 2;
+const CLOSE_SOON_MS = 5 * 24 * 60 * 60 * 1000;
+
+function isRsvpClosingSoon(rsvpCloseAt: string, nowMs: number = Date.now()): boolean {
+  const closeMs = Date.parse(rsvpCloseAt);
+  return Number.isFinite(closeMs) && closeMs > nowMs && closeMs <= nowMs + CLOSE_SOON_MS;
+}
 
 const RSVP_CHIP: Record<
   Exclude<RsvpStatus, "cancelled" | "late_cancelled" | "declined">,
@@ -682,17 +688,17 @@ export function HomePage() {
                     <li key={event.id}>
                       <AppLink href={`/events/${event.slug}`} className="bcq-home__divided-row">
                         <span className="bcq-home__row-main">
-                          <span className="bcq-home__row-title">{event.title}</span>
+                          <span className="bcq-home__row-title-line">
+                            <span className="bcq-home__row-title">{event.title}</span>
+                            {chip ? <StatusChip tone={chip.tone}>{chip.label}</StatusChip> : null}
+                          </span>
                           <span className="bcq-home__row-meta">
                             {formatWhen(event.startsAt, event.endsAt)}
                             {event.location ? ` · ${event.location}` : ""}
                           </span>
                         </span>
-                        <span className="bcq-home__row-end">
-                          {chip ? <StatusChip tone={chip.tone}>{chip.label}</StatusChip> : null}
-                          <span className="bcq-home__row-chevron" aria-hidden="true">
-                            <ChevronRightIcon />
-                          </span>
+                        <span className="bcq-home__row-chevron" aria-hidden="true">
+                          <ChevronRightIcon />
                         </span>
                       </AppLink>
                     </li>
@@ -714,12 +720,6 @@ export function HomePage() {
                     icon={<CalendarClockIcon />}
                     iconTone="amber"
                     title="Unanswered Events"
-                    trailing={
-                      <AppLink href="/events" className="bcq-chevron-link">
-                        <span>All Events</span>
-                        <ChevronRightIcon />
-                      </AppLink>
-                    }
                   />
                   {quickError ? (
                     <p role="alert" className="bcq-home__muted">
@@ -727,7 +727,7 @@ export function HomePage() {
                     </p>
                   ) : null}
                   <ul className="bcq-home__divided-list">
-                    {visibleUnanswered.map((event, index) => {
+                    {visibleUnanswered.map((event) => {
                       const isBusy = busyEventId === event.id;
                       const respond = (action: "going" | "decline") => {
                         if (busyEventId !== null) return;
@@ -768,8 +768,8 @@ export function HomePage() {
                             <span className="bcq-home__row-main">
                               <span className="bcq-home__row-title-line">
                                 <span className="bcq-home__row-title">{event.title}</span>
-                                {index === 0 ? (
-                                  <span className="bcq-home__next-pill">Next Up</span>
+                                {isRsvpClosingSoon(event.rsvpCloseAt) ? (
+                                  <StatusChip tone="warning">Closes Soon</StatusChip>
                                 ) : null}
                               </span>
                               <span className="bcq-home__row-meta">
@@ -785,13 +785,13 @@ export function HomePage() {
                             <Button
                               className="bcq-home__quick-btn"
                               disabled={isBusy}
-                              aria-label={`RSVP to ${event.title}`}
+                              aria-label={`Going to ${event.title}`}
                               onClick={() => {
                                 respond("going");
                               }}
                             >
                               <CheckIcon />
-                              <span>RSVP</span>
+                              <span>Going</span>
                             </Button>
                             <Button
                               variant="tonal"

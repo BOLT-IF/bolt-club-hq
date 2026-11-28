@@ -619,7 +619,7 @@ function Inbox() {
                 }}
               >
                 <CheckIcon />
-                <span>RSVP</span>
+                <span>Going</span>
               </Button>
               <Button
                 variant="tonal"

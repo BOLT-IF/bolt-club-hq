@@ -240,6 +240,50 @@
   display: grid;
   gap: 0.875rem;
 }
+.bcq-pass-holders-card {
+  gap: 0.75rem;
+}
+.bcq-pass-holders-list {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.bcq-pass-holders-item + .bcq-pass-holders-item {
+  border-top: 1px solid var(--bcq-divider);
+}
+.bcq-pass-holders-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  min-height: var(--bcq-touch);
+  padding: 0.5rem 0;
+  color: inherit;
+  text-decoration: none;
+}
+.bcq-pass-holders-row:active {
+  opacity: 0.75;
+}
+.bcq-pass-holders-row__main {
+  display: grid;
+  gap: 0.15rem;
+  min-width: 0;
+}
+.bcq-pass-holders-row__name {
+  font: 600 0.9375rem/1.3 var(--bcq-font);
+  color: var(--bcq-ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.bcq-pass-holders-row__meta {
+  font: 400 0.8125rem/1.35 var(--bcq-font);
+  color: var(--bcq-muted);
+}
+.bcq-tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
 .bcq-detail-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

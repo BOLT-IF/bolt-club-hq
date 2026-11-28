@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import {
   event,
+  eventEligibleMember,
   member,
   notification,
   notificationPref,
@@ -346,6 +347,47 @@ describe("reminders engine (S6.5a)", () => {
       await t.db.update(reminderRule).set({ enabled: false });
       clock.set("2027-06-01T09:00:00Z");
       expect((await run()).sent).toBe(0);
+    });
+
+    it("excludes ineligible members from event_unrsvped reminders for invite-only (members) events", async () => {
+      const organizer = await makeMember(t.db, { role: "admin" });
+      const invited = await makeMember(t.db);
+      const outsider = await makeMember(t.db);
+
+      await t.db.insert(event).values({
+        id: "e_invite_only",
+        shareSlug: "slug_invite_only",
+        kind: "member_oneoff",
+        createdBy: organizer.id,
+        title: "Secret Match",
+        format: "Mixed Doubles",
+        startsAt: new Date("2027-01-03T18:00:00Z"),
+        endsAt: new Date("2027-01-03T19:30:00Z"),
+        location: "Hall Secret",
+        capacity: 4,
+        adhocFee: 0,
+        maxGuestsPerMember: 1,
+        rsvpCloseAt: new Date("2027-01-03T17:00:00Z"),
+        allocationMode: "instant",
+        status: "scheduled",
+        audienceKind: "members",
+      });
+      await t.db.insert(eventEligibleMember).values({
+        eventId: "e_invite_only",
+        memberId: invited.id,
+      });
+      await t.db.insert(reminderRule).values({
+        id: "r_ev_invite",
+        category: "event_unrsvped",
+        params: { atPublish: true, hoursBeforeClose: null },
+        template: "{name}, coming to {event}?",
+      });
+
+      const res = await run();
+      expect(res.sent).toBe(1);
+      const sentTo = (await t.db.select().from(notification)).map((n) => n.memberId);
+      expect(sentTo).toEqual([invited.id]);
+      expect(sentTo).not.toContain(outsider.id);
     });
   });
 });

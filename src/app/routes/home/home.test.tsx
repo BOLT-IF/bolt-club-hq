@@ -141,7 +141,7 @@ describe("HomePage", () => {
     const eventLink = screen.getByRole("link", { name: /Thu Mixed Doubles/ });
     expect(eventLink.getAttribute("href")).toBe("/events/k3f9xq2m");
     expect(eventLink.textContent).toContain("Hall X");
-    expect(screen.getByText("Next Up")).toBeTruthy();
+    expect(screen.queryByText("Closes Soon")).toBeNull();
     expect(screen.queryByText("RSVP Open")).toBeNull();
     expect(screen.getByText(/0 kr/)).toBeTruthy();
     expect(screen.getByText("No active pass")).toBeTruthy();
@@ -155,8 +155,15 @@ describe("HomePage", () => {
   });
 
   it("caps Unanswered Events to 2 items with a footer link and caps Next RSVPs to 3", async () => {
+    const closingSoonAt = new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString();
     const events = [
-      sampleEvent({ id: "e1", slug: "e1", title: "Session 1", location: "Sollentuna Rackethall" }),
+      sampleEvent({
+        id: "e1",
+        slug: "e1",
+        title: "Session 1",
+        location: "Sollentuna Rackethall",
+        rsvpCloseAt: closingSoonAt,
+      }),
       sampleEvent({ id: "e2", slug: "e2", title: "Session 2", location: "Sollentuna Rackethall" }),
       sampleEvent({ id: "e3", slug: "e3", title: "Session 3", location: "Sollentuna Rackethall" }),
       sampleEvent({ id: "e4", slug: "e4", title: "Session 4", location: "Sollentuna Rackethall" }),
@@ -180,7 +187,8 @@ describe("HomePage", () => {
     expect(screen.getByText("Session 2")).toBeTruthy();
     expect(screen.queryByText("Session 3")).toBeNull();
     expect(screen.queryByText("Session 4")).toBeNull();
-    expect(screen.getAllByText("Next Up")).toHaveLength(1);
+    expect(screen.getAllByText("Closes Soon")).toHaveLength(1);
+    expect(screen.getByRole("button", { name: "Going to Session 1" })).toBeTruthy();
     const moreLink = screen.getByRole("link", { name: /\+2 More in Events/ });
     expect(moreLink.getAttribute("href")).toBe("/events");
   });

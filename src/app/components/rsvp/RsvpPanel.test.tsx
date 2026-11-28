@@ -78,7 +78,7 @@ describe("RsvpPanel (S4.2)", () => {
   it("is registered in RsvpSlot", async () => {
     stub(null);
     render(<Slot name="RsvpSlot" event={event()} viewer={viewer} />);
-    expect(await screen.findByRole("button", { name: "RSVP" })).toBeTruthy();
+    expect(await screen.findByRole("button", { name: "Going" })).toBeTruthy();
   });
 
   it("RSVPs with guests through the stepper and an Idempotency-Key, then shows Requested", async () => {
@@ -99,7 +99,7 @@ describe("RsvpPanel (S4.2)", () => {
       render(<RsvpPanel event={event()} viewer={viewer} />);
       fireEvent.click(await screen.findByRole("button", { name: "Increase guests" }));
       fireEvent.change(screen.getByLabelText("Guest 1 name"), { target: { value: "Kim" } });
-      fireEvent.click(screen.getByRole("button", { name: "RSVP" }));
+      fireEvent.click(screen.getByRole("button", { name: "Going" }));
 
       // The member and the guest each show a Requested chip.
       expect(await screen.findAllByText("Requested")).toHaveLength(2);
@@ -126,7 +126,7 @@ describe("RsvpPanel (S4.2)", () => {
 
     stub(null);
     render(<RsvpPanel event={event({ maxGuestsPerMember: 0 })} viewer={viewer} />);
-    await screen.findByRole("button", { name: "RSVP" });
+    await screen.findByRole("button", { name: "Going" });
     expect(screen.queryByRole("group", { name: "guests" })).toBeNull();
   });
 
@@ -137,7 +137,7 @@ describe("RsvpPanel (S4.2)", () => {
     render(<RsvpPanel event={event()} viewer={viewer} />);
     expect(await screen.findByText("Confirmed")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Cancel RSVP" }));
-    expect(await screen.findByRole("button", { name: "RSVP" })).toBeTruthy();
+    expect(await screen.findByRole("button", { name: "Going" })).toBeTruthy();
     const del = calls.find((c) => c.method === "DELETE")!;
     expect(del.key).toBeTruthy();
   });
@@ -166,7 +166,7 @@ describe("RsvpPanel (S4.2)", () => {
   it("explains a server refusal in plain words", async () => {
     stub(null, () => ({ status: 409, body: { error: "rsvp_closed" } }));
     render(<RsvpPanel event={event()} viewer={viewer} />);
-    fireEvent.click(await screen.findByRole("button", { name: "RSVP" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Going" }));
     await waitFor(() => {
       expect(screen.getByRole("alert").textContent).toMatch(/closed/i);
     });
@@ -193,7 +193,7 @@ describe("RsvpPanel (S4.2)", () => {
     expect(await screen.findByText("Not Going")).toBeTruthy();
     expect(screen.getByText(/won't get reminders for this event/i)).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Not Going" })).toBeNull();
-    expect(screen.getByRole("button", { name: "RSVP" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Going" })).toBeTruthy();
     const post = calls.find((c) => c.method === "POST" && c.path === "/events/evt_1/rsvp/decline");
     expect(post?.key).toBeTruthy();
   });

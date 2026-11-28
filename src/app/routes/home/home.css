@@ -263,18 +263,6 @@
   outline-offset: 2px;
 }
 
-.bcq-home__next-pill {
-  display: inline-flex;
-  align-items: center;
-  padding: 0.125rem 0.5rem;
-  border-radius: 999px;
-  background: #fffbeb;
-  color: #92400e;
-  font: 600 0.6875rem/1.3 var(--bcq-font);
-  white-space: nowrap;
-  flex-shrink: 0;
-}
-
 .bcq-home__quick-actions {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

@@ -4,15 +4,28 @@ import { expect, test, type Page } from "@playwright/test";
 // Block the service worker so WebKit/iPhone does not bypass page.route() after clients.claim().
 test.use({ serviceWorkers: "block" });
 
-async function mockConfig(page: Page) {
+async function mockConfig(page: Page, privacy = true) {
   await page.route("**/api/v1/config", (route) =>
     route.fulfill({
       status: 200,
       contentType: "application/json",
-      body: JSON.stringify({ flags: { events: true, money: true, inbox: true } }),
+      body: JSON.stringify({ flags: { events: true, money: true, inbox: true, privacy } }),
     }),
   );
 }
+
+test("privacy entry is hidden in More and /privacy shows disabled state when FLAG_PRIVACY is off", async ({
+  page,
+}) => {
+  await mockConfig(page, false);
+  await page.goto("/");
+  await page.getByRole("button", { name: /More/ }).click();
+  await expect(page.getByRole("link", { name: "Privacy" })).toHaveCount(0);
+
+  await page.goto("/privacy");
+  await expect(page.getByRole("heading", { name: "Privacy Screen Isn't Enabled" })).toBeVisible();
+  await expect(page.getByRole("button", { name: /download my data/i })).toHaveCount(0);
+});
 
 test("privacy page is reachable from More, renders notice, downloads export, and passes axe", async ({
   page,

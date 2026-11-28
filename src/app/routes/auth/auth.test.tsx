@@ -18,6 +18,7 @@ vi.mock("@clerk/react", () => ({
 }));
 
 import { AuthProvider } from "../../auth/AuthProvider";
+import { FeatureFlagsProvider } from "../../lib/flags";
 import { registeredFrontendRoutes } from "../registry";
 import { SignInPage } from "./SignInPage";
 
@@ -66,16 +67,28 @@ describe("SignInPage", () => {
     expect(screen.queryByTestId("clerk-sign-in")).toBeNull();
   });
 
-  it("sends the user back to return_to after sign-in", () => {
+  it("sends the user back to return_to after sign-in and hides privacy link unless flagged on", () => {
     window.history.pushState({}, "", "/sign-in?return_to=%2Fevents%2Fmon-3");
-    render(
-      <AuthProvider publishableKey="pk_test_abc">
-        <SignInPage />
-      </AuthProvider>,
+    const { unmount } = render(
+      <FeatureFlagsProvider flags={{ privacy: false }}>
+        <AuthProvider publishableKey="pk_test_abc">
+          <SignInPage />
+        </AuthProvider>
+      </FeatureFlagsProvider>,
     );
     expect(screen.getByTestId("clerk-sign-in")).toBeTruthy();
-    expect(screen.getByRole("link", { name: /privacy/i }).getAttribute("href")).toBe("/privacy");
+    expect(screen.queryByRole("link", { name: /privacy/i })).toBeNull();
     expect(captured.signIn).toMatchObject({ forceRedirectUrl: "/events/mon-3" });
+    unmount();
+
+    render(
+      <FeatureFlagsProvider flags={{ privacy: true }}>
+        <AuthProvider publishableKey="pk_test_abc">
+          <SignInPage />
+        </AuthProvider>
+      </FeatureFlagsProvider>,
+    );
+    expect(screen.getByRole("link", { name: /privacy/i }).getAttribute("href")).toBe("/privacy");
   });
 
   it("refuses an off-site return_to", () => {

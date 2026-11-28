@@ -6,6 +6,7 @@ import { detectClient, shouldShowGoogle } from "../../auth/google";
 import { peekIntent, safeReturnTo } from "../../auth/intent";
 import { Button } from "../../components/ui/Button";
 import { EmptyState, ErrorState, Skeleton } from "../../components/ui/States";
+import { useFeatureFlag } from "../../lib/flags";
 import { navigate } from "../../lib/navigate";
 import "../../auth/auth.css";
 
@@ -43,6 +44,7 @@ function returnTarget(): string {
 
 function SignInForm() {
   const { isLoaded, isSignedIn, getToken } = useAuth();
+  const privacyOn = useFeatureFlag("privacy");
   const [timedOut, setTimedOut] = useState(false);
   const [tokenFailed, setTokenFailed] = useState(false);
   const returnTo = returnTarget();
@@ -122,18 +124,20 @@ function SignInForm() {
           ...(showGoogle ? {} : { elements: { socialButtonsRoot: hidden, dividerRow: hidden } }),
         }}
       />
-      <p className="bcq-auth__privacy">
-        <a
-          href="/privacy"
-          onClick={(e) => {
-            if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
-            e.preventDefault();
-            navigate("/privacy");
-          }}
-        >
-          Privacy policy
-        </a>
-      </p>
+      {privacyOn ? (
+        <p className="bcq-auth__privacy">
+          <a
+            href="/privacy"
+            onClick={(e) => {
+              if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
+              e.preventDefault();
+              navigate("/privacy");
+            }}
+          >
+            Privacy policy
+          </a>
+        </p>
+      ) : null}
     </main>
   );
 }

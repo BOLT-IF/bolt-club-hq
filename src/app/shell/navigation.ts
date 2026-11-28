@@ -55,7 +55,7 @@ export const moreMenu: readonly NavLink[] = [
   { id: "profile", label: "Profile", path: "/profile", icon: "profile" },
   { id: "notifications", label: "Notifications", path: "/settings/notifications", icon: "bell" },
   { id: "attendance-history", label: "Attendance History", path: "/history", icon: "history" },
-  { id: "privacy", label: "Privacy", path: "/privacy", icon: "shield" },
+  { id: "privacy", label: "Privacy", path: "/privacy", icon: "shield", flag: "privacy" },
   {
     id: "install",
     label: "Install the App",

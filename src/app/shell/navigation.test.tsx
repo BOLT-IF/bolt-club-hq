@@ -80,6 +80,11 @@ describe("navigation registry", () => {
     expect(visibleNavItems(items, { events: true }).map((i) => i.id)).toEqual(["home", "events"]);
   });
 
+  it("hides Privacy from the More menu unless the privacy flag is on", () => {
+    expect(visibleNavItems(moreMenu, { privacy: false }).map((i) => i.id)).not.toContain("privacy");
+    expect(visibleNavItems(moreMenu, { privacy: true }).map((i) => i.id)).toContain("privacy");
+  });
+
   it("only offers the Admin index to admins", () => {
     expect(adminIndex.every((item) => item.requiresAdmin === true)).toBe(true);
     expect(moreMenu.some((item) => item.id === "admin")).toBe(true);

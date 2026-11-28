@@ -11,7 +11,9 @@ const reply = (status: number, body: unknown) => ({
 async function mockSignedInAdmin(page: Page) {
   await page.route("**/api/v1/**", (route) => route.fulfill(reply(200, {})));
   await page.route("**/api/v1/config", (route) =>
-    route.fulfill(reply(200, { flags: { events: true, money: true, inbox: true, polls: true } })),
+    route.fulfill(
+      reply(200, { flags: { events: true, money: true, inbox: true, polls: true, privacy: true } }),
+    ),
   );
   await page.route("**/api/v1/me", (route) =>
     route.fulfill(

@@ -2,6 +2,12 @@
 
 Decisions made after `PLAN.md` (v3) was written. Newest first. Every entry gives the decision, the reason, and what it changes.
 
+## 2026-11-28: Feature-flag the `/privacy` screen (`FLAG_PRIVACY = "off"`)
+
+- **Decision:** Gate the `/privacy` frontend screen (`PrivacyPage`), its `MoreSheet` entry (`navigation.ts`), and the `/privacy` link on `SignInPage` behind a new feature flag `FLAG_PRIVACY` defaulting to `"off"` in `wrangler.jsonc` (`vars` and `previews.vars`), while leaving all backend privacy routes (`GET /api/v1/me/export`, `POST /api/v1/admin/members/:id/erase`) and the `privacy-retention-purge` scheduled hook untouched and active.
+- **Reason:** For a small Swedish non-profit sports association (*ideell idrottsförening*), GDPR (IMY guidance) does not mandate an in-app self-service JSON download portal — access requests (*registerutdrag*) and erasure requests can be handled within 1 month by a club admin when requested, provided basic data/contact transparency is shared during member onboarding. Hiding the UI behind `FLAG_PRIVACY` removes clutter while preserving full backend export/erasure/retention capabilities and allowing the UI screen to be turned back on cleanly via a single env var flip.
+- **Changes:** `wrangler.jsonc`, `worker-configuration.d.ts`, `src/app/shell/navigation.ts`, `src/app/routes/auth/SignInPage.tsx`, `src/app/routes/privacy/PrivacyPage.tsx`, plus unit and Playwright tests.
+
 ## 2026-11-27: Mobile PWA UI/UX design system & full audit (`docs/PWA_UI_Rules.md`, PRs #90–#93)
 
 - **Design system source of truth (`docs/PWA_UI_Rules.md`):** Standardizes BOLT HQ's visual tokens (`#1e293b` navy chrome, `#faf8f5` warm canvas, `#ffffff` cards with `16px` radius, `#f97316` primary CTA with `#0f172a` ink, `#526075` WCAG AA muted ink — darkened from `#64748b` which measured 4.48:1 on `#faf8f5`), Title Case for headings/labels/buttons/chips vs sentence case for body/helper copy, and the 4-tier Apple HIG button hierarchy (`primary`, `tonal` [replacing outlined white text boxes], `destructive-tonal`, and `destructive-solid` reserved exclusively for final confirmation modals).

@@ -11,6 +11,7 @@ interface __BaseEnv_Env {
   FLAG_MONEY: "off";
   FLAG_INBOX: "off";
   FLAG_POLLS: "off";
+  FLAG_PRIVACY: "off";
 }
 declare namespace Cloudflare {
   interface GlobalProps {

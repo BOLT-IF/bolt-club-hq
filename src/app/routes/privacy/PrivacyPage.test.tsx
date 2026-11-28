@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { configureApiClient } from "../../api/client";
 import { ToastProvider } from "../../components/ui/Toast";
+import { FeatureFlagsProvider } from "../../lib/flags";
 import { registeredFrontendRoutes } from "../registry";
 import { PrivacyPage } from "./PrivacyPage";
 
@@ -58,9 +59,11 @@ describe("privacy page (S2.5)", () => {
 
   it("renders the privacy notice and retention windows with zero axe violations", async () => {
     const { container } = render(
-      <ToastProvider>
-        <PrivacyPage />
-      </ToastProvider>,
+      <FeatureFlagsProvider flags={{ privacy: true }}>
+        <ToastProvider>
+          <PrivacyPage />
+        </ToastProvider>
+      </FeatureFlagsProvider>,
     );
 
     expect(screen.getByRole("heading", { name: /^privacy$/i })).toBeTruthy();
@@ -72,6 +75,19 @@ describe("privacy page (S2.5)", () => {
 
     const results = await axe.run(container);
     expect(results.violations.map((v) => `${v.id}: ${v.help}`)).toEqual([]);
+  });
+
+  it("hides the privacy notice and export button when the privacy flag is off", () => {
+    render(
+      <FeatureFlagsProvider flags={{ privacy: false }}>
+        <ToastProvider>
+          <PrivacyPage />
+        </ToastProvider>
+      </FeatureFlagsProvider>,
+    );
+
+    expect(screen.getByRole("heading", { name: /privacy screen isn't enabled/i })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /download my data/i })).toBeNull();
   });
 
   it("downloads the member export JSON from GET /me/export", async () => {
@@ -86,9 +102,11 @@ describe("privacy page (S2.5)", () => {
     configureApiClient({ fetch: fetchMock });
 
     render(
-      <ToastProvider>
-        <PrivacyPage />
-      </ToastProvider>,
+      <FeatureFlagsProvider flags={{ privacy: true }}>
+        <ToastProvider>
+          <PrivacyPage />
+        </ToastProvider>
+      </FeatureFlagsProvider>,
     );
 
     fireEvent.click(screen.getByRole("button", { name: /download my data/i }));
@@ -110,9 +128,11 @@ describe("privacy page (S2.5)", () => {
     });
 
     render(
-      <ToastProvider>
-        <PrivacyPage />
-      </ToastProvider>,
+      <FeatureFlagsProvider flags={{ privacy: true }}>
+        <ToastProvider>
+          <PrivacyPage />
+        </ToastProvider>
+      </FeatureFlagsProvider>,
     );
 
     fireEvent.click(screen.getByRole("button", { name: /download my data/i }));

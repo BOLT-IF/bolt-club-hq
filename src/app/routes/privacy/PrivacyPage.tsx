@@ -2,7 +2,8 @@ import "./privacy.css";
 import { useState } from "react";
 
 import { ApiError, apiFetch } from "../../api/client";
-import { Button } from "../../components/ui";
+import { Button, EmptyState, Skeleton } from "../../components/ui";
+import { useFeatureFlag, useFeatureFlagsLoaded } from "../../lib/flags";
 
 const EXPORT_FILENAME = "bolt-hq-data-export.json";
 
@@ -31,9 +32,20 @@ function errorMessage(error: unknown): string {
  * or exited (inactive) member session (`GET /me/export`).
  */
 export function PrivacyPage() {
+  const flagsLoaded = useFeatureFlagsLoaded();
+  const privacyOn = useFeatureFlag("privacy");
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  if (!flagsLoaded) return <Skeleton label="Loading privacy" />;
+  if (!privacyOn) {
+    return (
+      <EmptyState title="Privacy Screen Isn't Enabled">
+        Contact a club admin if you need a copy of your data or account erasure.
+      </EmptyState>
+    );
+  }
 
   async function downloadExport() {
     setBusy(true);

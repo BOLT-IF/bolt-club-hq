@@ -212,4 +212,16 @@ describe("RsvpPanel (S4.2)", () => {
       true,
     );
   });
+
+  it("hides Update RSVP when maxGuestsPerMember is 0 and shows it when guests are allowed", async () => {
+    stub(view({ status: "confirmed", guests: [] }));
+    render(<RsvpPanel event={event({ maxGuestsPerMember: 0 })} viewer={viewer} />);
+    expect(await screen.findByRole("button", { name: "Cancel RSVP" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Update RSVP" })).toBeNull();
+
+    cleanup();
+    stub(view({ status: "confirmed", guests: [] }));
+    render(<RsvpPanel event={event({ maxGuestsPerMember: 1 })} viewer={viewer} />);
+    expect(await screen.findByRole("button", { name: "Update RSVP" })).toBeTruthy();
+  });
 });

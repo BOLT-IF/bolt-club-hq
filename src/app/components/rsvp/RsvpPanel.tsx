@@ -241,9 +241,11 @@ export function RsvpPanel({ event }: SlotProps) {
           ) : null}
 
           <div className="bcq-rsvp__actions">
-            <Button type="submit" block disabled={busy}>
-              {active ? "Update RSVP" : "Going"}
-            </Button>
+            {!active || maxGuests > 0 ? (
+              <Button type="submit" block disabled={busy}>
+                {active ? "Update RSVP" : "Going"}
+              </Button>
+            ) : null}
             {active ? (
               <Button
                 variant="destructive-tonal"

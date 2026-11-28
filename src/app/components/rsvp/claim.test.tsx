@@ -4,9 +4,12 @@ import { afterEach, describe, expect, it } from "vitest";
 import { configureApiClient } from "../../api/client";
 import type { EventDetail, EventViewer } from "../../api/events";
 import { Slot } from "../../routes/events/slots";
+import { ToastProvider } from "../ui";
 import type { RsvpView } from "./api";
 import { ClaimSpotPanel } from "./claim";
 import { CapacityPanel } from "./claim-capacity";
+import "./postclose";
+import "./register";
 
 const closedEvent = (over: Partial<EventDetail> = {}): EventDetail => ({
   id: "evt_1",
@@ -83,7 +86,11 @@ describe("ClaimSpotPanel & CapacityPanel (S4.4b)", () => {
       },
     });
 
-    render(<Slot name="RsvpSlot" event={closedEvent()} viewer={viewer} />);
+    render(
+      <ToastProvider>
+        <Slot name="RsvpSlot" event={closedEvent()} viewer={viewer} />
+      </ToastProvider>,
+    );
     const btn = await screen.findByRole("button", { name: "Claim spot" });
     fireEvent.click(btn);
 
@@ -154,5 +161,49 @@ describe("ClaimSpotPanel & CapacityPanel (S4.4b)", () => {
     });
     const { container } = render(<ClaimSpotPanel event={closedEvent()} viewer={viewer} />);
     expect(container.firstChild).toBeNull();
+  });
+
+  it("renders only ClaimSpotPanel (no duplicate PostCloseRsvpPanel or RsvpPanel) when status is offered, and refreshes PostCloseRsvpPanel on claim", async () => {
+    let currentStatus: RsvpView["status"] = "offered";
+    configureApiClient({
+      fetch: (input, init) => {
+        const method = init?.method ?? "GET";
+        if (method === "POST" && input.endsWith("/claim")) {
+          currentStatus = "confirmed";
+          return Promise.resolve(
+            new Response(JSON.stringify({ rsvp: view({ status: "confirmed" }) }), { status: 200 }),
+          );
+        }
+        return Promise.resolve(
+          new Response(
+            JSON.stringify({
+              rsvp: view({ status: currentStatus }),
+              freeSpots: currentStatus === "offered" ? 1 : 0,
+              waitlistCount: 1,
+              isPastCutoff: true,
+            }),
+            { status: 200 },
+          ),
+        );
+      },
+    });
+
+    const { container } = render(
+      <ToastProvider>
+        <Slot name="RsvpSlot" event={closedEvent()} viewer={viewer} />
+      </ToastProvider>,
+    );
+    const claimBtn = await screen.findByRole("button", { name: "Claim spot" });
+
+    // Only ClaimSpotPanel renders during offered state (no duplicate/conflicting Spot offered card).
+    expect(container.querySelectorAll(".bcq-rsvp")).toHaveLength(1);
+    expect(screen.queryByRole("button", { name: "Leave waitlist" })).toBeNull();
+
+    fireEvent.click(claimBtn);
+    await waitFor(() => {
+      expect(screen.getByText(/spot claimed/i)).toBeTruthy();
+      expect(screen.getByRole("button", { name: "Late cancel" })).toBeTruthy();
+    });
+    expect(screen.queryByText("Spot offered")).toBeNull();
   });
 });

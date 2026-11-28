@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useState, type SyntheticEvent } from "react";
 
-import { apiFetch, newIdempotencyKey } from "../../../api/client";
+import { ApiError, apiFetch, newIdempotencyKey } from "../../../api/client";
 import {
   BottomSheet,
   Button,
+  ConfirmDialog,
   EmptyState,
   ErrorState,
   Skeleton,
@@ -146,6 +147,9 @@ export function AdminMemberLedger() {
   const [state, setState] = useState<State>({ kind: "loading" });
   const [action, setAction] = useState<Action | null>(null);
   const [assignOpen, setAssignOpen] = useState(false);
+  const [pendingRevokePass, setPendingRevokePass] = useState<LedgerItem | null>(null);
+  const [revokingPass, setRevokingPass] = useState(false);
+  const [revokeKey, setRevokeKey] = useState(newIdempotencyKey);
 
   const load = useCallback(
     (isCancelled: () => boolean = () => false) =>
@@ -245,7 +249,7 @@ export function AdminMemberLedger() {
                     {item.outstandingSek > 0 ? ` · ${String(item.outstandingSek)} kr left` : ""}
                     {item.note ? ` · ${item.note}` : ""}
                   </p>
-                  {item.waivable || item.reversible ? (
+                  {item.waivable || item.reversible || (item.passRevocable && item.passId) ? (
                     <div className="bcq-member__actions">
                       {item.waivable ? (
                         <Button
@@ -254,6 +258,18 @@ export function AdminMemberLedger() {
                           onClick={open({ kind: "waive", item })}
                         >
                           Waive
+                        </Button>
+                      ) : null}
+                      {item.passRevocable && item.passId ? (
+                        <Button
+                          variant="destructive-tonal"
+                          aria-label={`Revoke ${itemLabel(item)}`}
+                          onClick={() => {
+                            setRevokeKey(newIdempotencyKey());
+                            setPendingRevokePass(item);
+                          }}
+                        >
+                          Revoke Pass
                         </Button>
                       ) : null}
                       {item.reversible ? (
@@ -303,6 +319,50 @@ export function AdminMemberLedger() {
           }}
         />
       ) : null}
+
+      <ConfirmDialog
+        open={pendingRevokePass !== null}
+        title="Revoke Pass?"
+        description={
+          pendingRevokePass
+            ? `Revoke ${name}'s ${pendingRevokePass.note || "season pass"}? This reverses the ${String(pendingRevokePass.amountSek)} kr charge, frees the seat, and downgrades open RSVPs to requested.`
+            : ""
+        }
+        confirmLabel={revokingPass ? "Revoking…" : "Confirm Revocation"}
+        destructive
+        onCancel={() => {
+          if (!revokingPass) setPendingRevokePass(null);
+        }}
+        onConfirm={() => {
+          const passId = pendingRevokePass?.passId;
+          if (!passId || revokingPass) return;
+          setRevokingPass(true);
+          void apiFetch(`/admin/passes/${encodeURIComponent(passId)}/revoke`, {
+            method: "POST",
+            body: {},
+            idempotencyKey: revokeKey,
+          })
+            .then(async () => {
+              toast.show(`Revoked ${name}'s pass.`, "success");
+              setPendingRevokePass(null);
+              setRevokeKey(newIdempotencyKey());
+              await load();
+            })
+            .catch((error: unknown) => {
+              const code =
+                error instanceof ApiError
+                  ? (error.body as { error?: unknown } | null)?.error
+                  : undefined;
+              if (code !== "idempotency_key_in_progress") {
+                setRevokeKey(newIdempotencyKey());
+              }
+              toast.show(describeError(error), "danger");
+            })
+            .finally(() => {
+              setRevokingPass(false);
+            });
+        }}
+      />
     </section>
   );
 }

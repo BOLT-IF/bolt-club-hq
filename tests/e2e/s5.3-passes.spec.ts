@@ -53,7 +53,6 @@ const balancesResponse = {
 };
 
 const adminPassesResponse = {
-  revokeAfterDays: 21,
   passes: [
     {
       id: "pas_rev",
@@ -68,7 +67,6 @@ const adminPassesResponse = {
       purchasedAt: "2027-01-01T10:00:00.000Z",
       chargeStatus: "unpaid",
       unpaidSek: 1800,
-      revocableAt: "2027-01-22T10:00:00.000Z",
       daysElapsed: 25,
       revocable: true,
     },
@@ -147,7 +145,7 @@ async function mockPassesApi(page: Page) {
     ),
   );
   await page.route("**/api/v1/admin/passes", (route) =>
-    route.fulfill(reply(200, revoked ? { revokeAfterDays: 21, passes: [] } : adminPassesResponse)),
+    route.fulfill(reply(200, revoked ? { passes: [] } : adminPassesResponse)),
   );
   await page.route("**/api/v1/admin/passes/pas_rev/revoke", (route) => {
     revoked = true;

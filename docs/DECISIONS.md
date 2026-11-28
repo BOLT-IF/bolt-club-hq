@@ -2,6 +2,12 @@
 
 Decisions made after `PLAN.md` (v3) was written. Newest first. Every entry gives the decision, the reason, and what it changes.
 
+## 2026-11-28: Remove 21-day pass revocation waiting period & block ledger reversal on pass charges
+
+- **Decision:** Drop `club_settings.pass_unpaid_revoke_days` (`0006_drop_pass_revoke_days.sql`) and remove the 21-day waiting period (`revoke_too_early`) from `revokePass` and `listAdminPasses`, block `POST /admin/adjustments` (`type: "reversal"`) and `reversible` on `reason === "pass"` entries (keeping `waiver` allowed when intentionally comping a pass), and expose **Revoke Pass** directly on active unpaid `Pass` rows in `AdminMemberLedger`.
+- **Reason:** Reversing a pass charge via the generic ledger adjustment only negated the balance while leaving `pass.status = "active"`, keeping the seat occupied and Tier 1 priority intact. Meanwhile, a 21-day lock prevented admins from immediately undoing mistaken or cancelled unpaid pass assignments.
+- **Changes:** `db/schema/club.ts`, `db/migrations/0006_drop_pass_revoke_days.sql`, `src/worker/passes/model.ts`, `src/worker/ledger/admin-routes.ts`, `src/worker/settings/`, `src/app/routes/admin/settings/SettingsPage.tsx`, `src/app/routes/admin/money/{AdminBalances,AdminMemberLedger,moneyApi}.*`.
+
 ## 2026-11-28: Feature-flag the `/privacy` screen (`FLAG_PRIVACY = "off"`)
 
 - **Decision:** Gate the `/privacy` frontend screen (`PrivacyPage`), its `MoreSheet` entry (`navigation.ts`), and the `/privacy` link on `SignInPage` behind a new feature flag `FLAG_PRIVACY` defaulting to `"off"` in `wrangler.jsonc` (`vars` and `previews.vars`), while leaving all backend privacy routes (`GET /api/v1/me/export`, `POST /api/v1/admin/members/:id/erase`) and the `privacy-retention-purge` scheduled hook untouched and active.

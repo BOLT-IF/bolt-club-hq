@@ -14,7 +14,6 @@ import {
 
 const valid = {
   clubName: "BOLT IF",
-  passUnpaidRevokeDays: 21,
   autoPromoteCutoffMin: 180,
 };
 
@@ -107,7 +106,6 @@ describe("validateSettingsInput", () => {
         bank: null,
         paymentInstructions: null,
         quietHours: null,
-        passUnpaidRevokeDays: 21,
         autoPromoteCutoffMin: 180,
         clubFeeFallSek: 160,
         clubFeeSpringSek: 85,
@@ -175,7 +173,6 @@ describe("validateSettingsInput", () => {
         bankgiro: "1234567",
       },
       quietHours: { start: "25:00", end: "08:00" },
-      passUnpaidRevokeDays: 0,
       autoPromoteCutoffMin: -5,
       defaults: { capacity: 1.5, adhocFee: -1, surprise: 1 },
       accountCodes: { "Bad Key": "3010" },
@@ -195,19 +192,17 @@ describe("validateSettingsInput", () => {
         "defaults.adhocFee",
         "defaults.capacity",
         "defaults.surprise",
-        "passUnpaidRevokeDays",
         "quietHours.start",
         "rosterAppUrl",
       ].sort(),
     );
   });
 
-  it("requires club name and the two numeric rules", () => {
+  it("requires club name and autoPromoteCutoffMin", () => {
     const result = validateSettingsInput({});
     expect(!result.ok && Object.keys(result.errors).sort()).toEqual([
       "autoPromoteCutoffMin",
       "clubName",
-      "passUnpaidRevokeDays",
     ]);
   });
 

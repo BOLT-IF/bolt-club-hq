@@ -235,7 +235,7 @@ function stub(
       if (method === "GET" && path === "/admin/balances")
         return Promise.resolve(json(200, { members: [bo, cy, di] }));
       if (method === "GET" && path === "/admin/passes")
-        return Promise.resolve(json(200, { revokeAfterDays: 21, passes: [] }));
+        return Promise.resolve(json(200, { passes: [] }));
       if (method === "GET" && path === "/admin/balances/m2")
         return Promise.resolve(json(200, detail));
       if (method === "GET" && path.startsWith("/admin/passes/offers")) {
@@ -516,11 +516,67 @@ describe("member ledger page", () => {
     fireEvent.click(screen.getByRole("button", { name: /assign pass/i }));
     const emptyDialog = screen.getByRole("dialog", { name: /assign pass to Bo Berg/i });
     await within(emptyDialog).findByText("No passes available");
-    const disabledSubmit = within(emptyDialog).getByRole<HTMLButtonElement>("button", {
-      name: /^assign pass$/i,
-    });
-    expect(disabledSubmit.disabled).toBe(true);
+    expect(
+      within(emptyDialog).getByRole<HTMLButtonElement>("button", {
+        name: /^assign pass$/i,
+      }).disabled,
+    ).toBe(true);
     expect(emptyCalls.filter((c) => c.method === "POST")).toHaveLength(0);
+
+    cleanup();
+    const revokeCalls: Call[] = [];
+    configureApiClient({
+      fetch: vi.fn((input: string, init?: RequestInit) => {
+        const path = input.replace("/api/v1", "");
+        const method = init?.method ?? "GET";
+        const body: unknown = init?.body ? JSON.parse(init.body as string) : null;
+        const headers = new Headers(init?.headers);
+        revokeCalls.push({ method, path, body, key: headers.get("Idempotency-Key") });
+        if (method === "GET" && path === "/admin/balances/m2") {
+          return Promise.resolve(
+            json(200, {
+              member: { id: "m2", displayName: "Bo Berg", paymentRef: "BC-BO", status: "active" },
+              balanceSek: 900,
+              owedSek: 900,
+              creditSek: 0,
+              items: [
+                {
+                  id: "led_pas",
+                  kind: "charge",
+                  reason: "pass",
+                  amountSek: 900,
+                  status: "unpaid",
+                  allocatedSek: 0,
+                  outstandingSek: 900,
+                  note: "Monday MD — Spring 2027",
+                  createdAt: "2027-01-01T10:00:00.000Z",
+                  reversesEntryId: null,
+                  eventTitle: null,
+                  eventStartsAt: null,
+                  passId: "pas_1",
+                  passRevocable: true,
+                  waivable: true,
+                  reversible: false,
+                },
+              ],
+            }),
+          );
+        }
+        return Promise.resolve(json(200, { pass: { id: "pas_1", status: "revoked" } }));
+      }),
+    });
+    renderWith(<AdminMemberLedger />);
+    await screen.findByRole("heading", { name: "Bo Berg" });
+    expect(screen.queryByRole("button", { name: /reverse/i })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: /revoke pass/i }));
+    const revokeConfirm = await screen.findByRole("dialog", { name: "Revoke Pass?" });
+    fireEvent.click(within(revokeConfirm).getByRole("button", { name: "Confirm Revocation" }));
+    await waitFor(() => {
+      expect(
+        revokeCalls.some((c) => c.method === "POST" && c.path === "/admin/passes/pas_1/revoke"),
+      ).toBe(true);
+    });
+    expect(await screen.findByText("Revoked Bo Berg's pass.")).toBeTruthy();
 
     cleanup();
     let attempts = 0;

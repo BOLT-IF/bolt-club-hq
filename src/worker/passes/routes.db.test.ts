@@ -389,7 +389,6 @@ describe("passes routes (S5.3)", () => {
       await t.db.insert(clubSettings).values({
         id: 1,
         clubName: "BOLT IF",
-        passUnpaidRevokeDays: 14,
       });
 
       const buy = await call(buyer, "POST", "/passes", { body: { seriesId: "ser_1" } });
@@ -400,24 +399,17 @@ describe("passes routes (S5.3)", () => {
       await call(buyer, "PUT", `/events/${events[0]!.id}/rsvp`, { body: {} });
       await call(buyer, "PUT", `/events/${events[1]!.id}/rsvp`, { body: {} });
 
-      // Day 13: too early to revoke.
-      clock.set(new Date(new Date(NOW).getTime() + 13 * DAY_MS));
-      const listEarly = await call(admin, "GET", "/admin/passes");
-      expect(listEarly.status).toBe(200);
-      expect(listEarly.body.passes[0]).toMatchObject({ id: passId, revocable: false });
-
-      const early = await call(admin, "POST", `/admin/passes/${passId}/revoke`, { body: {} });
-      expect(early.status).toBe(409);
-      expect(early.body.error).toBe("revoke_too_early");
-
-      // Day 14: now eligible! Advance past event 0's close too, so only event 1 is open before close.
-      clock.set("2027-04-01T12:00:00Z"); // 31 days after NOW, after event 0 close (03-31T18Z), before event 1 close (04-07T18Z).
-      const listReady = await call(admin, "GET", "/admin/passes");
-      expect(listReady.body.passes[0]).toMatchObject({
+      // Unpaid pass is immediately revocable without a waiting period.
+      const listImmediate = await call(admin, "GET", "/admin/passes");
+      expect(listImmediate.status).toBe(200);
+      expect(listImmediate.body.passes[0]).toMatchObject({
         id: passId,
         revocable: true,
         unpaidSek: 900,
       });
+
+      // Advance past event 0's close so only event 1 is open before close.
+      clock.set("2027-04-01T12:00:00Z"); // after event 0 close (03-31T18Z), before event 1 close (04-07T18Z).
 
       // Non-admin cannot revoke.
       expect(

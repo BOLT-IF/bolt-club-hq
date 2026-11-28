@@ -120,10 +120,6 @@ export function validateSettingsInput(input: unknown): ValidationResult {
   const bank = validateBank(input.bank, errors);
   const quietHours = validateQuietHours(input.quietHours, errors);
 
-  const passUnpaidRevokeDays = wholeNumber(input.passUnpaidRevokeDays, 1, 365);
-  if (passUnpaidRevokeDays === undefined) {
-    errors.passUnpaidRevokeDays = "Enter a whole number of days from 1 to 365";
-  }
   const autoPromoteCutoffMin = wholeNumber(input.autoPromoteCutoffMin, 0, 10080);
   if (autoPromoteCutoffMin === undefined) {
     errors.autoPromoteCutoffMin = "Enter a whole number of minutes from 0 to 10080";
@@ -165,7 +161,6 @@ export function validateSettingsInput(input: unknown): ValidationResult {
       bank: bank ?? null,
       paymentInstructions: paymentInstructions ?? null,
       quietHours: quietHours ?? null,
-      passUnpaidRevokeDays: passUnpaidRevokeDays as number,
       autoPromoteCutoffMin: autoPromoteCutoffMin as number,
       clubFeeFallSek: clubFeeFallSek as number,
       clubFeeSpringSek: clubFeeSpringSek as number,

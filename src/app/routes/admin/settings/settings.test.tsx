@@ -17,7 +17,6 @@ const loaded = {
   },
   paymentInstructions: null,
   quietHours: { start: "22:00", end: "08:00" },
-  passUnpaidRevokeDays: 21,
   autoPromoteCutoffMin: 180,
   clubFeeFallSek: 160,
   clubFeeSpringSek: 85,
@@ -85,10 +84,6 @@ describe("admin settings page", () => {
     );
     expect(screen.getByLabelText("Bankgiro (Optional)")).toHaveProperty("value", "5402-9681");
     expect(screen.getByLabelText("Roster App URL")).toHaveProperty("value", "");
-    expect(screen.getByLabelText("Days Before Unpaid Pass Revocation")).toHaveProperty(
-      "value",
-      "21",
-    );
     expect(screen.getByLabelText("Fall Club Fee (kr)")).toHaveProperty("value", "160");
     expect(screen.getByLabelText("Spring Joining Fee (kr)")).toHaveProperty("value", "85");
   });
@@ -120,7 +115,6 @@ describe("admin settings page", () => {
         accountNumber: "6101 123 456 789",
       },
       rosterAppUrl: "https://roster.example.se",
-      passUnpaidRevokeDays: 21,
       clubFeeFallSek: 200,
       clubFeeSpringSek: 100,
     });

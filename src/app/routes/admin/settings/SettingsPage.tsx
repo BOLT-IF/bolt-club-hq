@@ -19,7 +19,6 @@ interface Settings {
   } | null;
   paymentInstructions: string | null;
   quietHours: { start: string; end: string } | null;
-  passUnpaidRevokeDays: number;
   autoPromoteCutoffMin: number;
   clubFeeFallSek?: number;
   clubFeeSpringSek?: number;
@@ -57,7 +56,6 @@ function toForm(s: Settings): Form {
     paymentInstructions: s.paymentInstructions ?? "",
     quietStart: s.quietHours?.start ?? "",
     quietEnd: s.quietHours?.end ?? "",
-    passUnpaidRevokeDays: String(s.passUnpaidRevokeDays),
     autoPromoteCutoffMin: String(s.autoPromoteCutoffMin),
     clubFeeFallSek: String(s.clubFeeFallSek ?? 160),
     clubFeeSpringSek: String(s.clubFeeSpringSek ?? 85),
@@ -97,7 +95,6 @@ function toBody(f: Form): unknown {
     paymentInstructions: blank(f.paymentInstructions) ? null : f.paymentInstructions,
     quietHours:
       blank(f.quietStart) && blank(f.quietEnd) ? null : { start: f.quietStart, end: f.quietEnd },
-    passUnpaidRevokeDays: num(f.passUnpaidRevokeDays),
     autoPromoteCutoffMin: num(f.autoPromoteCutoffMin),
     clubFeeFallSek: num(f.clubFeeFallSek),
     clubFeeSpringSek: num(f.clubFeeSpringSek),
@@ -337,10 +334,6 @@ export default function SettingsPage() {
             Rules
           </h2>
           <div className="bcq-card bcq-settings-card">
-            {field("passUnpaidRevokeDays", "Days Before Unpaid Pass Revocation", {
-              inputMode: "numeric",
-              placeholder: "21",
-            })}
             {field("autoPromoteCutoffMin", "Stop Waitlist Auto-Promotion (Minutes Before Start)", {
               inputMode: "numeric",
               placeholder: "180",

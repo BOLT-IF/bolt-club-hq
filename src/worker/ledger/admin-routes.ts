@@ -2,7 +2,7 @@ import { asc, eq, inArray, sql } from "drizzle-orm";
 import { Hono, type Context } from "hono";
 import type { ContentfulStatusCode } from "hono/utils/http-status";
 
-import { event, guest, ledgerEntry, member } from "../../../db/schema";
+import { event, guest, ledgerEntry, member, pass } from "../../../db/schema";
 import { LedgerError, type LedgerErrorCode } from "../../domain/ledger";
 import { contextMiddleware } from "../core/context";
 import { idempotent } from "../core/idempotency";
@@ -59,9 +59,9 @@ function noteOf(value: unknown): string | null {
   return value.trim();
 }
 
-/** Still counts in the FIFO allocation and has not been reversed. */
+/** Still counts in the FIFO allocation and has not been reversed. Pass charges must be revoked, not reversed. */
 const reversible = (entry: LedgerEntryView, status: string) =>
-  entry.kind !== "reversal" && status !== "reversed";
+  entry.kind !== "reversal" && status !== "reversed" && entry.reason !== "pass";
 
 /** A waiver undoes something the member owes: a charge or a positive adjustment. */
 const waivable = (entry: LedgerEntryView, status: string) =>
@@ -124,6 +124,7 @@ adminRoutes.get("/admin/balances/:memberId", context, admin, async (c) => {
   const result = await createLedgerService({ db: c.var.db, clock: c.var.clock }).itemize(memberId);
   const eventIds = [...new Set(result.items.flatMap((i) => i.entry.eventId ?? []))];
   const guestIds = [...new Set(result.items.flatMap((i) => i.entry.guestId ?? []))];
+  const passIds = [...new Set(result.items.flatMap((i) => i.entry.passId ?? []))];
   const events =
     eventIds.length === 0
       ? []
@@ -138,8 +139,16 @@ adminRoutes.get("/admin/balances/:memberId", context, admin, async (c) => {
           .select({ id: guest.id, name: guest.name })
           .from(guest)
           .where(inArray(guest.id, guestIds));
+  const passes =
+    passIds.length === 0
+      ? []
+      : await c.var.db
+          .select({ id: pass.id, status: pass.status })
+          .from(pass)
+          .where(inArray(pass.id, passIds));
   const eventById = new Map(events.map((e) => [e.id, e]));
   const guestById = new Map(guests.map((g) => [g.id, g]));
+  const passStatusById = new Map(passes.map((p) => [p.id, p.status]));
 
   return c.json({
     member: who,
@@ -148,6 +157,14 @@ adminRoutes.get("/admin/balances/:memberId", context, admin, async (c) => {
     creditSek: result.creditSek,
     items: result.items.map(({ entry, status, allocatedSek, outstandingSek }) => {
       const ev = entry.eventId ? eventById.get(entry.eventId) : undefined;
+      const passStatus = entry.passId ? passStatusById.get(entry.passId) : undefined;
+      const passRevocable = Boolean(
+        entry.passId &&
+        entry.kind === "charge" &&
+        entry.reason === "pass" &&
+        passStatus === "active" &&
+        (status === "unpaid" || status === "partly_paid"),
+      );
       return {
         id: entry.id,
         kind: entry.kind,
@@ -164,6 +181,8 @@ adminRoutes.get("/admin/balances/:memberId", context, admin, async (c) => {
         eventTitle: ev?.title ?? null,
         eventStartsAt: ev?.startsAt.toISOString() ?? null,
         guestName: (entry.guestId && guestById.get(entry.guestId)?.name) || null,
+        passId: entry.passId,
+        passRevocable,
         waivable: waivable(entry, status),
         reversible: reversible(entry, status),
       };
@@ -230,11 +249,15 @@ adminRoutes.post(
           id: ledgerEntry.id,
           memberId: ledgerEntry.memberId,
           kind: ledgerEntry.kind,
+          reason: ledgerEntry.reason,
           amountSek: ledgerEntry.amountSek,
         })
         .from(ledgerEntry)
         .where(eq(ledgerEntry.id, entryId));
       if (!entry) return c.json({ error: "entry_not_found" }, 404);
+      if (type === "reversal" && entry.reason === "pass") {
+        return c.json({ error: "cannot_reverse_pass" }, 409);
+      }
       if (type === "waiver" && !(entry.amountSek > 0 && entry.kind !== "reversal")) {
         return c.json({ error: "not_waivable" }, 409);
       }

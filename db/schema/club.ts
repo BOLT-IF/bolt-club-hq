@@ -23,7 +23,6 @@ export const clubSettings = pgTable("club_settings", {
   bankDetails: text("bank_details"),
   paymentInstructions: text("payment_instructions"),
   quietHours: jsonb("quiet_hours"),
-  passUnpaidRevokeDays: integer("pass_unpaid_revoke_days").notNull().default(21),
   autoPromoteCutoffMin: integer("auto_promote_cutoff_min").notNull().default(180),
   clubFeeFallSek: integer("club_fee_fall_sek").notNull().default(160),
   clubFeeSpringSek: integer("club_fee_spring_sek").notNull().default(85),

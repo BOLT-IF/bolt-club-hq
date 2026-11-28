@@ -178,6 +178,35 @@ async function loadRoster(tx: Tx, e: EventRow) {
   };
 }
 
+async function findUnreversedCharge(
+  tx: Tx,
+  eventId: string,
+  memberId: string,
+  guestId: string | null,
+): Promise<{ id: string } | undefined> {
+  const reversal = alias(ledgerEntry, "reversal");
+  const [row] = await tx
+    .select({ id: ledgerEntry.id })
+    .from(ledgerEntry)
+    .where(
+      and(
+        eq(ledgerEntry.memberId, memberId),
+        eq(ledgerEntry.eventId, eventId),
+        eq(ledgerEntry.kind, "charge"),
+        guestId ? eq(ledgerEntry.guestId, guestId) : isNull(ledgerEntry.guestId),
+        notExists(
+          tx
+            .select({ id: reversal.id })
+            .from(reversal)
+            .where(eq(reversal.reversesEntryId, ledgerEntry.id)),
+        ),
+      ),
+    )
+    .orderBy(asc(ledgerEntry.createdAt), asc(ledgerEntry.id))
+    .limit(1);
+  return row;
+}
+
 async function chargeConfirmedCandidate(
   tx: Tx,
   clock: Clock,
@@ -189,6 +218,8 @@ async function chargeConfirmedCandidate(
 ): Promise<void> {
   if (e.kind === "member_oneoff" || e.adhocFee <= 0) return;
   if (!guestId && e.kind === "series" && tier === 1) return;
+  // Avoid double-charging when re-confirming an RSVP that was late_cancelled without being refilled.
+  if (await findUnreversedCharge(tx, e.id, memberId, guestId)) return;
 
   const ledger = createLedgerService({ db: tx, clock });
   await ledger.charge({
@@ -253,7 +284,6 @@ async function processRefills(tx: Tx, clock: Clock, e: EventRow): Promise<void> 
   const now = clock.now();
   const ledger = createLedgerService({ db: tx, clock });
   const notify = createNotifyPort({ db: tx, clock });
-  const reversal = alias(ledgerEntry, "reversal");
 
   for (let i = 0; i < toRefill; i++) {
     const target = targets[i];
@@ -265,27 +295,12 @@ async function processRefills(tx: Tx, clock: Clock, e: EventRow): Promise<void> 
       await tx.update(guest).set({ refilled: true }).where(eq(guest.id, target.id));
     }
 
-    const [unreversedCharge] = await tx
-      .select({ id: ledgerEntry.id })
-      .from(ledgerEntry)
-      .where(
-        and(
-          eq(ledgerEntry.memberId, target.memberId),
-          eq(ledgerEntry.eventId, e.id),
-          eq(ledgerEntry.kind, "charge"),
-          target.kind === "guest"
-            ? eq(ledgerEntry.guestId, target.id)
-            : isNull(ledgerEntry.guestId),
-          notExists(
-            tx
-              .select({ id: reversal.id })
-              .from(reversal)
-              .where(eq(reversal.reversesEntryId, ledgerEntry.id)),
-          ),
-        ),
-      )
-      .orderBy(asc(ledgerEntry.createdAt), asc(ledgerEntry.id))
-      .limit(1);
+    const unreversedCharge = await findUnreversedCharge(
+      tx,
+      e.id,
+      target.memberId,
+      target.kind === "guest" ? target.id : null,
+    );
 
     if (unreversedCharge) {
       await ledger.reverse({

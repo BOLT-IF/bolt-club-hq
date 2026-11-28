@@ -1,5 +1,5 @@
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { configureApiClient } from "../../api/client";
 import type { EventDetail, EventViewer } from "../../api/events";
@@ -108,5 +108,48 @@ describe("EventEditPanel (S4.4c)", () => {
       expect(cancelCalled).toBe(true);
       expect(screen.getByText(/Event cancelled/i)).toBeTruthy();
     });
+  });
+
+  it("formats and saves start/end times in Europe/Stockholm regardless of local timezone", async () => {
+    vi.stubEnv("TZ", "America/New_York");
+    let sentBody: Record<string, unknown> | null = null;
+    try {
+      configureApiClient({
+        fetch: (input, init) => {
+          if (input === "/api/v1/events/evt_1/details" && init?.method === "PATCH") {
+            sentBody = JSON.parse(typeof init.body === "string" ? init.body : "{}") as Record<
+              string,
+              unknown
+            >;
+            return Promise.resolve(
+              new Response(JSON.stringify({ event: baseEvent }), { status: 200 }),
+            );
+          }
+          return Promise.resolve(new Response("not found", { status: 404 }));
+        },
+      });
+
+      render(<EventEditPanel event={baseEvent} viewer={managerViewer} />);
+      const startsInput = screen.getByLabelText<HTMLInputElement>(/Starts/i);
+      const endsInput = screen.getByLabelText<HTMLInputElement>(/Ends/i);
+
+      // 2027-04-01T18:00:00.000Z is 20:00 CEST (UTC+2) in Europe/Stockholm
+      expect(startsInput.value).toBe("2027-04-01T20:00");
+      expect(endsInput.value).toBe("2027-04-01T21:30");
+
+      fireEvent.change(startsInput, { target: { value: "2027-04-01T20:30" } });
+      fireEvent.change(endsInput, { target: { value: "2027-04-01T22:00" } });
+      fireEvent.click(screen.getByRole("button", { name: /Save changes/i }));
+
+      await waitFor(() => {
+        expect(screen.getByRole("status").textContent).toContain("Changes saved");
+      });
+      expect(sentBody).toMatchObject({
+        startsAt: "2027-04-01T18:30:00.000Z",
+        endsAt: "2027-04-01T20:00:00.000Z",
+      });
+    } finally {
+      vi.unstubAllEnvs();
+    }
   });
 });

@@ -2,6 +2,7 @@ import { useRef, useState, type SyntheticEvent } from "react";
 
 import { ApiError, apiFetch, newIdempotencyKey } from "../../api/client";
 import type { SlotProps } from "../../routes/events/slots";
+import { stockholmInputToUtc, utcToStockholmInput } from "../../routes/events/new/stockholm";
 import { Button, ConfirmDialog, StatusChip } from "../ui";
 import "./edit.css";
 
@@ -26,18 +27,11 @@ function CalendarIcon() {
   );
 }
 
-function toLocalInput(iso: string): string {
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return "";
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${String(d.getFullYear())}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-}
-
 export function EventEditPanel({ event, viewer }: SlotProps) {
   const [title, setTitle] = useState(event.title);
   const [location, setLocation] = useState(event.location ?? "");
-  const [startsLocal, setStartsLocal] = useState(() => toLocalInput(event.startsAt));
-  const [endsLocal, setEndsLocal] = useState(() => toLocalInput(event.endsAt));
+  const [startsLocal, setStartsLocal] = useState(() => utcToStockholmInput(event.startsAt));
+  const [endsLocal, setEndsLocal] = useState(() => utcToStockholmInput(event.endsAt));
   const [fee, setFee] = useState(String(event.adhocFee));
 
   const [saving, setSaving] = useState(false);
@@ -84,13 +78,13 @@ export function EventEditPanel({ event, viewer }: SlotProps) {
       return;
     }
 
-    const nextStarts = new Date(startsLocal);
-    const nextEnds = new Date(endsLocal);
-    if (Number.isNaN(nextStarts.getTime()) || Number.isNaN(nextEnds.getTime())) {
+    const nextStartsIso = stockholmInputToUtc(startsLocal);
+    const nextEndsIso = stockholmInputToUtc(endsLocal);
+    if (!nextStartsIso || !nextEndsIso) {
       setError("Enter valid start and end times.");
       return;
     }
-    if (nextEnds <= nextStarts) {
+    if (Date.parse(nextEndsIso) <= Date.parse(nextStartsIso)) {
       setError("End time must be after start time.");
       return;
     }
@@ -104,8 +98,8 @@ export function EventEditPanel({ event, viewer }: SlotProps) {
     const body: Record<string, unknown> = {
       title: trimmedTitle,
       location: location.trim() === "" ? null : location.trim(),
-      startsAt: nextStarts.toISOString(),
-      endsAt: nextEnds.toISOString(),
+      startsAt: nextStartsIso,
+      endsAt: nextEndsIso,
     };
     if (!feeLocked) {
       body.adhocFee = parsedFee;

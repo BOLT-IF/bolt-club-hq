@@ -35,11 +35,14 @@ function formatShareTime(startsAt: string): string {
   }).format(new Date(startsAt));
 }
 
-export function buildShareText(event: EventDetail, origin: string): { url: string; text: string } {
+export function buildShareText(
+  event: EventDetail,
+  origin: string,
+): { url: string; summary: string; text: string } {
   const url = `${origin}/e/${encodeURIComponent(event.slug)}`;
   const where = event.location ? ` @ ${event.location}` : "";
-  const text = `🏸 ${event.title} ${formatShareTime(event.startsAt)}${where}, ${String(event.capacity)} spots: ${url}`;
-  return { url, text };
+  const summary = `🏸 ${event.title} ${formatShareTime(event.startsAt)}${where}, ${String(event.capacity)} spots`;
+  return { url, summary, text: `${summary}: ${url}` };
 }
 
 /** Share button for the event page (`ShareSlot`): Web Share API with clipboard copy fallback. */
@@ -47,10 +50,10 @@ export function SharePanel({ event }: SlotProps) {
   const toast = useToast();
 
   const onShare = async () => {
-    const { url, text } = buildShareText(event, window.location.origin);
+    const { url, summary, text } = buildShareText(event, window.location.origin);
     if (typeof navigator.share === "function") {
       try {
-        await navigator.share({ title: event.title, text, url });
+        await navigator.share({ title: event.title, text: summary, url });
         return;
       } catch (err) {
         if (err instanceof DOMException && err.name === "AbortError") return;

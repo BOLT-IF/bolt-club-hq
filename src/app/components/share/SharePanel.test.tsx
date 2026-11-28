@@ -53,6 +53,8 @@ describe("SharePanel (S7.1)", () => {
         url: `${window.location.origin}/e/k3f9xq2m`,
       }),
     );
+    const sharePayload = share.mock.calls[0]?.[0] as { text?: string; url?: string };
+    expect(sharePayload.text).not.toContain(sharePayload.url);
   });
 
   it("falls back to copying the prebuilt invite text when Web Share is unavailable", async () => {

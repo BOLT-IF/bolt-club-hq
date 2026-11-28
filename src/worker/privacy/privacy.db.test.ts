@@ -37,6 +37,7 @@ import { FixedClock } from "../core/clock";
 import { configureRequestDeps } from "../core/context";
 import { TEST_IDENTITY_HEADER } from "../core/test-identity";
 import { mountBackendRoutes } from "../registry";
+import { configureRsvpCancel } from "../members/rsvp-cancel";
 import { tickHooks } from "../scheduler/registry";
 import { createTestDatabase, type TestDatabase } from "../test-support/database";
 import { makeLedgerEntry, makeMember } from "../test-support/factories";
@@ -651,6 +652,90 @@ describe("privacy: export, erasure, retention (S2.5)", () => {
 
       const [updatedRsvp] = await t.db.select().from(rsvp).where(eq(rsvp.id, "rsvp_open_future"));
       expect(updatedRsvp?.status).toBe("cancelled");
+    });
+
+    it("retries cancelFutureRsvps on repeat erase if the first post-commit cancel threw", async () => {
+      const admin = await makeMember(t.db, { role: "admin" });
+      await seedClubFixture(admin.id);
+      const active = await makeMember(t.db, { status: "active", displayName: "Retry Cancel" });
+      await t.db.insert(rsvp).values({
+        id: "rsvp_retry_future",
+        eventId: "evt_1",
+        memberId: active.id,
+        status: "confirmed",
+        tier: 2,
+        requestedAt: new Date("2027-05-01T10:00:00.000Z"),
+      });
+
+      configureClerkErase(
+        createClerkUserDeleter(() => Promise.resolve(new Response(null, { status: 200 }))),
+      );
+      configureRsvpCancel({
+        cancelFutureRsvps: () => Promise.reject(new Error("transient_rsvp_cancel_failure")),
+      });
+
+      try {
+        const first = await call(admin.clerkUserId, "POST", `/admin/members/${active.id}/erase`);
+        expect(first.status).toBe(500);
+
+        // Future RSVP is still confirmed after post-commit failure.
+        const [stillConfirmed] = await t.db
+          .select()
+          .from(rsvp)
+          .where(eq(rsvp.id, "rsvp_retry_future"));
+        expect(stillConfirmed?.status).toBe("confirmed");
+
+        // Retry with real cancelFutureRsvps -> completes cancellation cleanly.
+        configureRsvpCancel(undefined);
+        const retry = await call(admin.clerkUserId, "POST", `/admin/members/${active.id}/erase`);
+        expect(retry.status).toBe(200);
+
+        const [cancelledRsvp] = await t.db
+          .select()
+          .from(rsvp)
+          .where(eq(rsvp.id, "rsvp_retry_future"));
+        expect(cancelledRsvp?.status).toBe("cancelled");
+      } finally {
+        configureRsvpCancel(undefined);
+      }
+    });
+
+    it("scrubs admin join-request notifications even after the join request was rejected and deleted", async () => {
+      const admin = await makeMember(t.db, { role: "admin" });
+      const target = await makeMember(t.db, {
+        status: "pending",
+        displayName: "Rejected Applicant",
+      });
+
+      await t.db.insert(auditLog).values({
+        id: "aud_jr_reject_1",
+        actorId: admin.id,
+        action: "join_request.reject",
+        entity: "member",
+        entityId: target.id,
+        before: JSON.stringify({ joinRequestId: "jr_rejected_1", via: "invite", sourceId: null }),
+      });
+      await t.db.insert(notification).values({
+        id: "ntf_admin_rejected_jr",
+        memberId: admin.id,
+        category: "admin_tasks",
+        title: "New join request",
+        body: "Rejected Applicant asked to join the club.",
+        idempotencyKey: `join-request:jr_rejected_1:${admin.id}`,
+      });
+
+      configureClerkErase(
+        createClerkUserDeleter(() => Promise.resolve(new Response(null, { status: 200 }))),
+      );
+
+      const res = await call(admin.clerkUserId, "POST", `/admin/members/${target.id}/erase`);
+      expect(res.status).toBe(200);
+
+      const [ntf] = await t.db
+        .select()
+        .from(notification)
+        .where(eq(notification.id, "ntf_admin_rejected_jr"));
+      expect(ntf?.body).toBe(`Former member #${target.id} asked to join the club.`);
     });
   });
 

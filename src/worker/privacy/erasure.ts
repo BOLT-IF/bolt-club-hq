@@ -129,7 +129,12 @@ export async function eraseMember(
       const [before] = await tx.select().from(member).where(eq(member.id, targetId)).for("update");
       if (!before) throw new EraseRefused(404, { error: "not_found" });
       if (before.status === "erased") {
-        return { member: erasedView(before), cancelFuture: false };
+        // Re-run post-commit cancelFutureRsvps on retry in case an earlier attempt failed after commit.
+        return {
+          member: erasedView(before),
+          cancelFuture: true,
+          cancelAt: before.leftAt ?? now,
+        };
       }
       if (isLastAdmin(admins, before)) throw new EraseRefused(409, { error: "last_admin" });
 
@@ -164,14 +169,42 @@ export async function eraseMember(
         .select({ id: joinRequest.id })
         .from(joinRequest)
         .where(eq(joinRequest.memberId, targetId));
-      const joinRequestIds = memberJoinRequests.map((jr) => jr.id);
+      const rejectedJoinAudits = await tx
+        .select({ entity: auditLog.entity, entityId: auditLog.entityId, before: auditLog.before })
+        .from(auditLog)
+        .where(
+          or(
+            and(
+              eq(auditLog.entity, "member"),
+              eq(auditLog.entityId, targetId),
+              eq(auditLog.action, "join_request.reject"),
+            ),
+            and(eq(auditLog.actorId, targetId), eq(auditLog.entity, "join_request")),
+          ),
+        );
+      const joinRequestIdSet = new Set(memberJoinRequests.map((jr) => jr.id));
+      for (const row of rejectedJoinAudits) {
+        if (row.entity === "join_request") {
+          joinRequestIdSet.add(row.entityId);
+        } else if (row.before) {
+          try {
+            const parsed = JSON.parse(row.before) as { joinRequestId?: unknown };
+            if (typeof parsed.joinRequestId === "string") {
+              joinRequestIdSet.add(parsed.joinRequestId);
+            }
+          } catch {
+            // ignore non-JSON
+          }
+        }
+      }
+      const joinRequestIds = [...joinRequestIdSet];
       for (const jrId of joinRequestIds) {
         await tx
           .update(notification)
           .set({ body: `${formerName} asked to join the club.` })
           .where(like(notification.idempotencyKey, `join-request:${jrId}:%`));
       }
-      if (joinRequestIds.length > 0) {
+      if (memberJoinRequests.length > 0) {
         await tx.delete(joinRequest).where(eq(joinRequest.memberId, targetId));
       }
 
@@ -243,7 +276,7 @@ export async function eraseMember(
       );
 
       await getClerkErase().deleteUser({ clerkUserId: before.clerkUserId, env });
-      return { member: erasedView(updated), cancelFuture };
+      return { member: erasedView(updated), cancelFuture, cancelAt: leftAt };
     });
 
     if (outcome.cancelFuture) {
@@ -251,8 +284,8 @@ export async function eraseMember(
         db,
         clock,
         memberId: targetId,
-        at: now,
-        idempotencyKey: `member-erase:${targetId}:${now.toISOString()}`,
+        at: outcome.cancelAt,
+        idempotencyKey: `member-erase:${targetId}:${outcome.cancelAt.toISOString()}`,
       });
     }
 

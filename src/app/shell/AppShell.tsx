@@ -67,6 +67,9 @@ function backTargetFor(path: string): { readonly label: string; readonly fallbac
   if (path.startsWith("/admin/terms/")) {
     return { label: "Terms", fallback: "/admin/terms" };
   }
+  if (path.startsWith("/admin/money/members/")) {
+    return { label: "Balances", fallback: "/admin/money" };
+  }
   if (path.startsWith("/admin/money/")) {
     return { label: "Finances", fallback: "/admin/money" };
   }

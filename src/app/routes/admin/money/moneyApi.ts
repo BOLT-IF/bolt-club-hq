@@ -104,14 +104,14 @@ export function parseKronor(text: string): number | null {
 
 export const REASON_LABEL: Record<string, string> = {
   pass: "Pass",
-  adhoc: "Drop-in fee",
-  guest: "Guest fee",
-  club_fee: "Club fee",
-  manual: "Manual charge",
+  adhoc: "Drop-In Fee",
+  guest: "Guest Fee",
+  club_fee: "Club Fee",
+  manual: "Manual Charge",
   payment: "Payment",
   waiver: "Waiver",
-  revocation: "Pass revoked",
-  opening_balance: "Opening balance",
+  revocation: "Pass Revoked",
+  opening_balance: "Opening Balance",
 };
 
 export const STATUS_LABEL: Record<string, { label: string; tone: StatusTone }> = {

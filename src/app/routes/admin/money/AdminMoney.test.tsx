@@ -607,6 +607,102 @@ describe("member ledger page", () => {
     expect(second?.key).toBeTruthy();
     expect(second?.key).not.toBe(first?.key);
   });
+
+  it("surfaces Unpaid entries above Ledger History, formats Club Fee and dates, copies ref, and confirms Reverse", async () => {
+    const writeText = vi.fn(() => Promise.resolve());
+    Object.assign(navigator, { clipboard: { writeText } });
+    configureApiClient({
+      fetch: vi.fn((input: string) => {
+        const path = input.replace("/api/v1", "");
+        if (path === "/admin/balances/m2") {
+          return Promise.resolve(
+            json(200, {
+              member: { id: "m2", displayName: "Bo Berg", paymentRef: "BC-BO", status: "active" },
+              balanceSek: 85,
+              owedSek: 85,
+              creditSek: 0,
+              items: [
+                {
+                  id: "led_rev_orig",
+                  kind: "charge",
+                  reason: "club_fee",
+                  amountSek: 160,
+                  status: "reversed",
+                  allocatedSek: 0,
+                  outstandingSek: 0,
+                  note: "Club fee — Fall 2026/2027",
+                  createdAt: "2026-11-28T10:00:00.000Z",
+                  reversesEntryId: null,
+                  eventTitle: null,
+                  eventStartsAt: null,
+                  waivable: false,
+                  reversible: false,
+                },
+                {
+                  id: "led_rev_adj",
+                  kind: "reversal",
+                  reason: "club_fee",
+                  amountSek: -160,
+                  status: "reversal",
+                  allocatedSek: 0,
+                  outstandingSek: 0,
+                  note: "Test",
+                  createdAt: "2026-11-28T10:05:00.000Z",
+                  reversesEntryId: "led_rev_orig",
+                  eventTitle: null,
+                  eventStartsAt: null,
+                  waivable: false,
+                  reversible: false,
+                },
+                {
+                  id: "led_unpaid_fee",
+                  kind: "charge",
+                  reason: "club_fee",
+                  amountSek: 85,
+                  status: "unpaid",
+                  allocatedSek: 0,
+                  outstandingSek: 85,
+                  note: "Club fee — Spring 2026/2027",
+                  createdAt: "2026-11-28T11:00:00.000Z",
+                  reversesEntryId: null,
+                  eventTitle: null,
+                  eventStartsAt: null,
+                  waivable: true,
+                  reversible: true,
+                },
+              ],
+            }),
+          );
+        }
+        return Promise.resolve(json(404, { error: "not_found" }));
+      }),
+    });
+
+    renderWith(<AdminMemberLedger />);
+    await screen.findByRole("heading", { name: "Bo Berg" });
+
+    const unpaidHeading = screen.getByRole("heading", { name: "Unpaid (1)" });
+    const historyHeading = screen.getByRole("heading", { name: "Ledger History (2)" });
+    expect(
+      unpaidHeading.compareDocumentPosition(historyHeading) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+
+    expect(screen.getByText("Club Fee · 85 kr")).toBeTruthy();
+    expect(screen.getByText("Club Fee · -160 kr")).toBeTruthy();
+    expect(screen.getByText("28 Nov 2026 · 85 kr left · Spring 2026/2027")).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: "Copy payment reference BC-BO" }));
+    expect(writeText).toHaveBeenCalledWith("BC-BO");
+    expect(await screen.findByText("Copied")).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: "Reverse Club Fee · 85 kr" }));
+    const reverseSheet = await screen.findByRole("dialog", { name: "Reverse Club Fee · 85 kr" });
+    expect(
+      within(reverseSheet).getByText("Reverse Club Fee · 85 kr — Spring 2026/2027 for Bo Berg?"),
+    ).toBeTruthy();
+    fireEvent.click(within(reverseSheet).getByRole("button", { name: "Cancel" }));
+    expect(screen.queryByRole("dialog")).toBeNull();
+  });
 });
 
 describe("club fees page", () => {

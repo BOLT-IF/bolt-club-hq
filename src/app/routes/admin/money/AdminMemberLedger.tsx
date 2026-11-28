@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, type SyntheticEvent } from "react";
+import { useCallback, useEffect, useRef, useState, type SyntheticEvent } from "react";
 
 import { ApiError, apiFetch, newIdempotencyKey } from "../../../api/client";
 import {
@@ -28,15 +28,150 @@ import {
 import "../../members/members.css";
 import "./money.css";
 
-const dateFmt = new Intl.DateTimeFormat("sv-SE", {
+const dateFmt = new Intl.DateTimeFormat("en-GB", {
   timeZone: "Europe/Stockholm",
-  year: "numeric",
-  month: "short",
   day: "numeric",
+  month: "short",
+  year: "numeric",
 });
 
+function formatEntryAmount(amountSek: number): string {
+  return `${amountSek < 0 ? "-" : ""}${String(Math.abs(amountSek))} kr`;
+}
+
 const itemLabel = (item: LedgerItem) =>
-  `${REASON_LABEL[item.reason] ?? item.reason} ${String(Math.abs(item.amountSek))} kr`;
+  `${REASON_LABEL[item.reason] ?? item.reason} · ${formatEntryAmount(item.amountSek)}`;
+
+function cleanEntryNote(item: LedgerItem): string {
+  const note = item.note.trim();
+  if (!note) return "";
+  if (item.reason === "club_fee") {
+    return note.replace(/^club\s+fee\s*[—–-]\s*/i, "");
+  }
+  return note;
+}
+
+function isUnpaidEntry(item: LedgerItem): boolean {
+  return item.status === "unpaid" || item.status === "partly_paid";
+}
+
+function BanknoteIcon() {
+  return (
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <rect width="20" height="12" x="2" y="6" rx="2" />
+      <circle cx="12" cy="12" r="2" />
+      <path d="M6 12h.01M18 12h.01" />
+    </svg>
+  );
+}
+
+function PlusCircleIcon() {
+  return (
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <circle cx="12" cy="12" r="10" />
+      <path d="M8 12h8" />
+      <path d="M12 8v8" />
+    </svg>
+  );
+}
+
+function FileMinusIcon() {
+  return (
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z" />
+      <path d="M14 2v4a2 2 0 0 0 2 2h4" />
+      <path d="M9 15h6" />
+    </svg>
+  );
+}
+
+function TicketIcon() {
+  return (
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z" />
+      <path d="M13 5v2" />
+      <path d="M13 17v2" />
+      <path d="M13 11v2" />
+    </svg>
+  );
+}
+
+function CopySmIcon() {
+  return (
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <rect width="14" height="14" x="8" y="8" rx="2" ry="2" />
+      <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" />
+    </svg>
+  );
+}
+
+function CheckSmIcon() {
+  return (
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.25"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M20 6 9 17l-5-5" />
+    </svg>
+  );
+}
 
 /** What the open sheet does. Each kind maps to one POST. */
 type Action =
@@ -48,11 +183,19 @@ type Action =
 
 interface SheetSpec {
   readonly title: string;
+  readonly summary?: string;
   readonly submit: string;
+  readonly showCancel?: boolean;
+  readonly destructive?: boolean;
   readonly amount: boolean;
   readonly noteLabel: string;
   readonly noteRequired: boolean;
   readonly done: string;
+}
+
+function entrySummary(item: LedgerItem): string {
+  const details = [item.eventTitle, cleanEntryNote(item)].filter(Boolean).join(" · ");
+  return details ? `${itemLabel(item)} — ${details}` : itemLabel(item);
 }
 
 function specOf(action: Action, name: string): SheetSpec {
@@ -87,7 +230,9 @@ function specOf(action: Action, name: string): SheetSpec {
     case "waive":
       return {
         title: `Waive ${itemLabel(action.item)}`,
+        summary: `Waive ${entrySummary(action.item)} for ${name}?`,
         submit: "Confirm waiver",
+        showCancel: true,
         amount: false,
         noteLabel: "Reason",
         noteRequired: true,
@@ -96,7 +241,10 @@ function specOf(action: Action, name: string): SheetSpec {
     case "reverse":
       return {
         title: `Reverse ${itemLabel(action.item)}`,
+        summary: `Reverse ${entrySummary(action.item)} for ${name}?`,
         submit: "Confirm reversal",
+        showCancel: true,
+        destructive: true,
         amount: false,
         noteLabel: "Reason",
         noteRequired: true,
@@ -150,6 +298,15 @@ export function AdminMemberLedger() {
   const [pendingRevokePass, setPendingRevokePass] = useState<LedgerItem | null>(null);
   const [revokingPass, setRevokingPass] = useState(false);
   const [revokeKey, setRevokeKey] = useState(newIdempotencyKey);
+  const [refCopied, setRefCopied] = useState(false);
+  const copyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(
+    () => () => {
+      if (copyTimerRef.current !== null) clearTimeout(copyTimerRef.current);
+    },
+    [],
+  );
 
   const load = useCallback(
     (isCancelled: () => boolean = () => false) =>
@@ -190,105 +347,204 @@ export function AdminMemberLedger() {
     setAction(next);
   };
 
+  const unpaidItems = ledger.items.filter(isUnpaidEntry);
+  const historyItems = ledger.items.filter((item) => !isUnpaidEntry(item));
+
+  const copyRef = () => {
+    const clipboard = navigator.clipboard as Clipboard | undefined;
+    (clipboard
+      ? clipboard.writeText(ledger.member.paymentRef)
+      : Promise.reject(new Error("no clipboard"))
+    ).then(
+      () => {
+        setRefCopied(true);
+        if (copyTimerRef.current !== null) clearTimeout(copyTimerRef.current);
+        copyTimerRef.current = setTimeout(() => {
+          setRefCopied(false);
+        }, 2000);
+      },
+      () => {
+        toast.show("Could not copy automatically. Long-press to copy.", "danger");
+      },
+    );
+  };
+
+  const renderEntryCard = (item: LedgerItem) => {
+    const status = STATUS_LABEL[item.status] ?? { label: item.status, tone: "neutral" as const };
+    const cleanedNote = cleanEntryNote(item);
+    const metaParts = [
+      dateFmt.format(new Date(item.createdAt)),
+      item.outstandingSek > 0 ? `${String(item.outstandingSek)} kr left` : null,
+      item.eventTitle,
+      item.guestName ? `guest ${item.guestName}` : null,
+      cleanedNote || null,
+    ].filter((part): part is string => Boolean(part));
+
+    const canWaive = item.waivable;
+    const canRevokePass = Boolean(item.passRevocable && item.passId);
+    const canReverse = item.reversible;
+    const actionCount = [canWaive, canRevokePass, canReverse].filter(Boolean).length;
+
+    return (
+      <li key={item.id} className="bcq-member bcq-ledger-card">
+        <div className="bcq-ledger-card__top">
+          <div className="bcq-ledger-card__main">
+            <h3 className="bcq-ledger-card__title bcq-tabular-nums">{itemLabel(item)}</h3>
+            <p className="bcq-ledger-card__meta bcq-tabular-nums">{metaParts.join(" · ")}</p>
+          </div>
+          <div className="bcq-ledger-card__badge">
+            <StatusChip tone={status.tone}>{status.label}</StatusChip>
+          </div>
+        </div>
+        {actionCount > 0 ? (
+          <div
+            className={
+              actionCount > 1
+                ? "bcq-ledger-card__actions bcq-ledger-card__actions--pair"
+                : "bcq-ledger-card__actions"
+            }
+          >
+            {canWaive ? (
+              <button
+                type="button"
+                className="bcq-ledger-entry-btn bcq-ledger-entry-btn--tonal"
+                aria-label={`Waive ${itemLabel(item)}`}
+                onClick={open({ kind: "waive", item })}
+              >
+                Waive
+              </button>
+            ) : null}
+            {canRevokePass ? (
+              <button
+                type="button"
+                className="bcq-ledger-entry-btn bcq-ledger-entry-btn--danger"
+                aria-label={`Revoke ${itemLabel(item)}`}
+                onClick={() => {
+                  setRevokeKey(newIdempotencyKey());
+                  setPendingRevokePass(item);
+                }}
+              >
+                Revoke Pass
+              </button>
+            ) : null}
+            {canReverse ? (
+              <button
+                type="button"
+                className="bcq-ledger-entry-btn bcq-ledger-entry-btn--danger"
+                aria-label={`Reverse ${itemLabel(item)}`}
+                onClick={open({ kind: "reverse", item })}
+              >
+                Reverse
+              </button>
+            ) : null}
+          </div>
+        ) : null}
+      </li>
+    );
+  };
+
   return (
     <section className="bcq-page bcq-money-page" aria-labelledby="admin-ledger-title">
       <div>
         <h1 id="admin-ledger-title" className="bcq-page__title">
           {name}
         </h1>
-        <div className="bcq-member__head">
+        <div className="bcq-ledger-identity">
           <StatusChip tone={balanceTone(ledger.balanceSek)}>
             {describeBalance(ledger.balanceSek)}
           </StatusChip>
-          <span className="bcq-member__meta">Payment reference {ledger.member.paymentRef}</span>
+          <button
+            type="button"
+            className={
+              refCopied ? "bcq-ledger-ref-btn bcq-ledger-ref-btn--copied" : "bcq-ledger-ref-btn"
+            }
+            aria-label={`Copy payment reference ${ledger.member.paymentRef}`}
+            onClick={copyRef}
+          >
+            {refCopied ? (
+              <>
+                <CheckSmIcon />
+                <span>Copied</span>
+              </>
+            ) : (
+              <>
+                <span>
+                  Ref <span className="bcq-mono-code">{ledger.member.paymentRef}</span>
+                </span>
+                <CopySmIcon />
+              </>
+            )}
+          </button>
         </div>
       </div>
 
-      <div className="bcq-member__actions">
-        <Button onClick={open({ kind: "payment" })}>Record Payment</Button>
-        <Button variant="tonal" onClick={open({ kind: "charge" })}>
-          Add Charge
-        </Button>
-        <Button variant="tonal" onClick={open({ kind: "writeoff" })}>
-          Write Off
-        </Button>
-        <Button
-          variant="tonal"
+      <div className="bcq-ledger-actions-grid">
+        <button
+          type="button"
+          className="bcq-ledger-action-btn bcq-ledger-action-btn--primary"
+          onClick={open({ kind: "payment" })}
+        >
+          <BanknoteIcon />
+          <span>Record Payment</span>
+        </button>
+        <button
+          type="button"
+          className="bcq-ledger-action-btn bcq-ledger-action-btn--elevated"
+          onClick={open({ kind: "charge" })}
+        >
+          <PlusCircleIcon />
+          <span>Add Charge</span>
+        </button>
+        <button
+          type="button"
+          className="bcq-ledger-action-btn bcq-ledger-action-btn--elevated"
+          onClick={open({ kind: "writeoff" })}
+        >
+          <FileMinusIcon />
+          <span>Write Off</span>
+        </button>
+        <button
+          type="button"
+          className="bcq-ledger-action-btn bcq-ledger-action-btn--elevated"
           onClick={() => {
             setAssignOpen(true);
           }}
         >
-          Assign Pass
-        </Button>
+          <TicketIcon />
+          <span>Assign Pass</span>
+        </button>
       </div>
 
-      <div className="bcq-money-section">
-        <h2 className="bcq-member__name">Entries</h2>
-        {ledger.items.length === 0 ? (
+      {ledger.items.length === 0 ? (
+        <div className="bcq-money-section">
+          <h2 className="bcq-ledger-subheader">Entries (0)</h2>
           <EmptyState title="No Entries Yet">Charges and payments appear here.</EmptyState>
-        ) : (
+        </div>
+      ) : unpaidItems.length > 0 ? (
+        <>
+          <div className="bcq-money-section">
+            <h2 className="bcq-ledger-subheader">Unpaid ({unpaidItems.length})</h2>
+            <ul className="bcq-members" aria-label="Unpaid ledger entries">
+              {unpaidItems.map(renderEntryCard)}
+            </ul>
+          </div>
+          {historyItems.length > 0 ? (
+            <div className="bcq-money-section">
+              <h2 className="bcq-ledger-subheader">Ledger History ({historyItems.length})</h2>
+              <ul className="bcq-members" aria-label="Ledger history">
+                {historyItems.map(renderEntryCard)}
+              </ul>
+            </div>
+          ) : null}
+        </>
+      ) : (
+        <div className="bcq-money-section">
+          <h2 className="bcq-ledger-subheader">Entries ({historyItems.length})</h2>
           <ul className="bcq-members" aria-label="Ledger entries">
-            {ledger.items.map((item) => {
-              const status = STATUS_LABEL[item.status] ?? { label: item.status, tone: "neutral" };
-              return (
-                <li key={item.id} className="bcq-member">
-                  <div className="bcq-member__head">
-                    <span className="bcq-member__name">
-                      {REASON_LABEL[item.reason] ?? item.reason}
-                    </span>
-                    <span className="bcq-money-amount">
-                      {item.amountSek > 0 ? "" : "−"}
-                      {Math.abs(item.amountSek)} kr
-                    </span>
-                    <StatusChip tone={status.tone}>{status.label}</StatusChip>
-                  </div>
-                  <p className="bcq-member__meta">
-                    {dateFmt.format(new Date(item.createdAt))}
-                    {item.eventTitle ? ` · ${item.eventTitle}` : ""}
-                    {item.guestName ? ` · guest ${item.guestName}` : ""}
-                    {item.outstandingSek > 0 ? ` · ${String(item.outstandingSek)} kr left` : ""}
-                    {item.note ? ` · ${item.note}` : ""}
-                  </p>
-                  {item.waivable || item.reversible || (item.passRevocable && item.passId) ? (
-                    <div className="bcq-member__actions">
-                      {item.waivable ? (
-                        <Button
-                          variant="tonal"
-                          aria-label={`Waive ${itemLabel(item)}`}
-                          onClick={open({ kind: "waive", item })}
-                        >
-                          Waive
-                        </Button>
-                      ) : null}
-                      {item.passRevocable && item.passId ? (
-                        <Button
-                          variant="destructive-tonal"
-                          aria-label={`Revoke ${itemLabel(item)}`}
-                          onClick={() => {
-                            setRevokeKey(newIdempotencyKey());
-                            setPendingRevokePass(item);
-                          }}
-                        >
-                          Revoke Pass
-                        </Button>
-                      ) : null}
-                      {item.reversible ? (
-                        <Button
-                          variant="destructive-tonal"
-                          aria-label={`Reverse ${itemLabel(item)}`}
-                          onClick={open({ kind: "reverse", item })}
-                        >
-                          Reverse
-                        </Button>
-                      ) : null}
-                    </div>
-                  ) : null}
-                </li>
-              );
-            })}
+            {historyItems.map(renderEntryCard)}
           </ul>
-        )}
-      </div>
+        </div>
+      )}
 
       {action ? (
         <EntrySheet
@@ -413,6 +669,7 @@ function EntrySheet({
   return (
     <BottomSheet open title={spec.title} onClose={onClose}>
       <form className="bcq-form" noValidate onSubmit={(e) => void submit(e)}>
+        {spec.summary ? <p className="bcq-confirm__text bcq-tabular-nums">{spec.summary}</p> : null}
         {spec.amount ? (
           <div className="bcq-field">
             <label className="bcq-field__label" htmlFor="money-amount">
@@ -449,9 +706,24 @@ function EntrySheet({
             {error}
           </p>
         ) : null}
-        <Button type="submit" disabled={busy}>
-          {spec.submit}
-        </Button>
+        {spec.showCancel ? (
+          <div className="bcq-confirm__actions">
+            <Button type="button" variant="tonal" disabled={busy} onClick={onClose}>
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              variant={spec.destructive ? "destructive-solid" : "primary"}
+              disabled={busy}
+            >
+              {spec.submit}
+            </Button>
+          </div>
+        ) : (
+          <Button type="submit" disabled={busy}>
+            {spec.submit}
+          </Button>
+        )}
       </form>
     </BottomSheet>
   );

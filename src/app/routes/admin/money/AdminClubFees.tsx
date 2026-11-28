@@ -3,17 +3,22 @@ import { useCallback, useEffect, useState } from "react";
 import { ApiError, apiFetch, newIdempotencyKey } from "../../../api/client";
 import { formatClubYear, type TermSeason } from "../../../../domain/club-fee";
 import {
+  ActionSheet,
+  BottomSheet,
   Button,
+  ChevronRightIcon,
   ConfirmDialog,
   EmptyState,
   ErrorState,
+  OverflowButton,
   Skeleton,
   StatusChip,
   useToast,
   type StatusTone,
 } from "../../../components/ui";
 import { useFeatureFlag } from "../../../lib/flags";
-import { goBack, navigate } from "../../../lib/navigate";
+import { navigate } from "../../../lib/navigate";
+import { useBackTarget } from "../../../shell/AppShell";
 import { describeError } from "./moneyApi";
 import "../../members/members.css";
 import "./money.css";
@@ -67,15 +72,53 @@ export interface ClubFeesResponse {
   readonly members: readonly ClubFeeMemberRow[];
 }
 
-type Filter = "all" | "paid_fall" | "owes" | "spring" | "not_charged";
+type Filter = "all" | "not_charged" | "owes" | "paid_fall" | "spring";
 
 const FILTERS: ReadonlyArray<{ value: Filter; label: string }> = [
   { value: "all", label: "All" },
-  { value: "paid_fall", label: "Paid in Fall" },
-  { value: "owes", label: "Owes Club Fee" },
-  { value: "spring", label: "Spring" },
   { value: "not_charged", label: "Not Charged" },
+  { value: "owes", label: "Owes Club Fee" },
+  { value: "paid_fall", label: "Paid in Fall" },
+  { value: "spring", label: "Spring" },
 ];
+
+function SearchIcon() {
+  return (
+    <svg
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <circle cx="11" cy="11" r="8" />
+      <path d="m21 21-4.3-4.3" />
+    </svg>
+  );
+}
+
+function ClearIcon() {
+  return (
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <line x1="18" y1="6" x2="6" y2="18" />
+      <line x1="6" y1="6" x2="18" y2="18" />
+    </svg>
+  );
+}
 
 function matchesFilter(row: ClubFeeMemberRow, filter: Filter): boolean {
   switch (filter) {
@@ -101,12 +144,24 @@ function matchesSearch(row: ClubFeeMemberRow, query: string): boolean {
   );
 }
 
+function statusSortRank(status: ClubFeeStatus): number {
+  if (status === "charged_fall_unpaid" || status === "charged_spring_unpaid") return 0;
+  if (status === "not_charged") return 1;
+  return 2;
+}
+
+function compareClubFeeRows(a: ClubFeeMemberRow, b: ClubFeeMemberRow): number {
+  const rankDiff = statusSortRank(a.status) - statusSortRank(b.status);
+  if (rankDiff !== 0) return rankDiff;
+  return a.displayName.localeCompare(b.displayName);
+}
+
 function feeStatusBadge(row: ClubFeeMemberRow): { label: string; tone: StatusTone } {
   switch (row.status) {
     case "paid_fall":
       return { label: "Paid in Fall", tone: "success" };
     case "paid_fall_external":
-      return { label: "Paid in Fall (outside app)", tone: "success" };
+      return { label: "Paid Externally", tone: "success" };
     case "charged_fall_unpaid":
       return { label: `Owes Fall (${String(row.oweAmountSek)} kr)`, tone: "warning" };
     case "paid_spring":
@@ -116,7 +171,22 @@ function feeStatusBadge(row: ClubFeeMemberRow): { label: string; tone: StatusTon
     case "exempt":
       return { label: "Exempt", tone: "neutral" };
     case "not_charged":
-      return { label: "Not charged", tone: "neutral" };
+      return { label: "Not Charged", tone: "neutral" };
+  }
+}
+
+function filterCount(summary: ClubFeesSummary, filter: Filter): number {
+  switch (filter) {
+    case "all":
+      return summary.totalMembers;
+    case "not_charged":
+      return summary.notChargedCount;
+    case "owes":
+      return summary.owesFallCount + summary.owesSpringCount;
+    case "paid_fall":
+      return summary.paidFallCount;
+    case "spring":
+      return summary.springCount;
   }
 }
 
@@ -135,7 +205,13 @@ export function AdminClubFees() {
   const [query, setQuery] = useState("");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
   const [busy, setBusy] = useState(false);
+  const [batchSheetOpen, setBatchSheetOpen] = useState(false);
+  const [bulkSheetOpen, setBulkSheetOpen] = useState(false);
   const [confirmBatchSeason, setConfirmBatchSeason] = useState<TermSeason | null>(null);
+  const [memberActionRow, setMemberActionRow] = useState<ClubFeeMemberRow | null>(null);
+  const [pendingClear, setPendingClear] = useState<ClubFeeMemberRow | null>(null);
+
+  useBackTarget({ label: "Balances", fallback: "/admin/money" });
 
   const load = useCallback((year: number | null, isCancelled: () => boolean = () => false) => {
     const path = year === null ? "/admin/club-fees" : `/admin/club-fees?clubYear=${String(year)}`;
@@ -167,7 +243,7 @@ export function AdminClubFees() {
   if (state.kind === "error") {
     return (
       <ErrorState
-        title="Couldn't load club fees"
+        title="Couldn't Load Club Fees"
         onRetry={() => {
           setState({ kind: "loading" });
           load(selectedYear);
@@ -179,7 +255,10 @@ export function AdminClubFees() {
   }
 
   const { data } = state;
-  const visible = data.members.filter((m) => matchesFilter(m, filter) && matchesSearch(m, query));
+  const visible = [...data.members]
+    .filter((m) => matchesFilter(m, filter) && matchesSearch(m, query))
+    .sort(compareClubFeeRows);
+  const notChargedVisible = visible.filter((m) => m.status === "not_charged");
   const selectedList = [...selectedIds];
 
   function toggleMember(memberId: string) {
@@ -192,9 +271,7 @@ export function AdminClubFees() {
   }
 
   function selectNotCharged() {
-    setSelectedIds(
-      new Set(visible.filter((m) => m.status === "not_charged").map((m) => m.memberId)),
-    );
+    setSelectedIds(new Set(notChargedVisible.map((m) => m.memberId)));
   }
 
   async function runCharge(season: TermSeason, memberIds?: string[]) {
@@ -217,6 +294,7 @@ export function AdminClubFees() {
         `Charged ${String(res.chargedCount)} member(s); skipped ${String(res.skippedCount)}.`,
         "success",
       );
+      setBulkSheetOpen(false);
       load(data.clubYear);
     } catch (error) {
       toast.show(describeError(error), "danger");
@@ -242,6 +320,7 @@ export function AdminClubFees() {
         `Marked ${String(res.markedCount)} as paid in Fall; skipped ${String(res.skippedCount)}.`,
         "success",
       );
+      setBulkSheetOpen(false);
       load(data.clubYear);
     } catch (error) {
       toast.show(describeError(error), "danger");
@@ -250,16 +329,22 @@ export function AdminClubFees() {
     }
   }
 
-  async function runClearExternal(clubFeeId: string, displayName: string) {
-    if (busy) return;
+  async function runClearExternal(row: ClubFeeMemberRow) {
+    if (busy || !row.clubFeeId) return;
     setBusy(true);
     try {
-      await apiFetch(`/admin/club-fees/${encodeURIComponent(clubFeeId)}/clear`, {
+      await apiFetch(`/admin/club-fees/${encodeURIComponent(row.clubFeeId)}/clear`, {
         method: "POST",
         body: {},
         idempotencyKey: newIdempotencyKey(),
       });
-      toast.show(`Cleared external mark for ${displayName}.`, "success");
+      toast.show(
+        row.status === "exempt"
+          ? `Cleared exempt mark for ${row.displayName}.`
+          : `Cleared external mark for ${row.displayName}.`,
+        "success",
+      );
+      setPendingClear(null);
       load(data.clubYear);
     } catch (error) {
       if (
@@ -276,32 +361,39 @@ export function AdminClubFees() {
   }
 
   return (
-    <section className="bcq-page bcq-money-page" aria-labelledby="admin-club-fees-title">
-      <div>
-        <a
-          className="bcq-btn bcq-btn--tonal"
-          href="/admin/money"
-          onClick={(e) => {
-            if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
-            e.preventDefault();
-            goBack("/admin/money");
+    <section
+      className={
+        selectedList.length > 0
+          ? "bcq-page bcq-money-page bcq-club-fees-page has-selection"
+          : "bcq-page bcq-money-page bcq-club-fees-page"
+      }
+      aria-labelledby="admin-club-fees-title"
+    >
+      <div className="bcq-page-head">
+        <h1 id="admin-club-fees-title" className="bcq-page__title">
+          Club Fees (<span className="bcq-tabular-nums">{data.label}</span>)
+        </h1>
+        <Button
+          type="button"
+          variant="tonal"
+          className="bcq-btn--compact"
+          disabled={busy}
+          onClick={() => {
+            setBatchSheetOpen(true);
           }}
         >
-          Back to Balances
-        </a>
+          Charge All
+        </Button>
       </div>
-      <h1 id="admin-club-fees-title" className="bcq-page__title">
-        Club Fees ({data.label})
-      </h1>
 
-      <div className="bcq-card bcq-form">
+      <div className="bcq-card bcq-money-search-card">
         <div className="bcq-field">
-          <label className="bcq-field__label" htmlFor="club-fees-year">
+          <label className="bcq-club-fees-label" htmlFor="club-fees-year">
             Membership Year
           </label>
           <select
             id="club-fees-year"
-            className="bcq-input"
+            className="bcq-input bcq-tabular-nums"
             value={String(data.clubYear)}
             onChange={(e) => {
               const next = Number(e.target.value);
@@ -317,227 +409,432 @@ export function AdminClubFees() {
           </select>
         </div>
 
-        <dl className="bcq-club-fees__summary" aria-label="Club fee summary">
-          <div className="bcq-club-fees__stat">
-            <dt>Paid in Fall</dt>
-            <dd>{data.summary.paidFallCount}</dd>
-          </div>
-          <div className="bcq-club-fees__stat">
-            <dt>Owes Fall</dt>
-            <dd>{data.summary.owesFallCount}</dd>
-          </div>
-          <div className="bcq-club-fees__stat">
-            <dt>Spring</dt>
-            <dd>{data.summary.springCount}</dd>
-          </div>
-          <div className="bcq-club-fees__stat">
-            <dt>Not Charged</dt>
-            <dd>{data.summary.notChargedCount}</dd>
-          </div>
-        </dl>
-
-        <div className="bcq-field">
-          <label className="bcq-field__label" htmlFor="club-fees-search">
+        <div>
+          <label className="bcq-visually-hidden" htmlFor="club-fees-search">
             Search Name or Payment Reference
           </label>
-          <input
-            id="club-fees-search"
-            className="bcq-input"
-            type="search"
-            autoComplete="off"
-            value={query}
-            onChange={(e) => {
-              setQuery(e.target.value);
-            }}
-          />
+          <div className="bcq-search">
+            <span className="bcq-search__icon" aria-hidden="true">
+              <SearchIcon />
+            </span>
+            <input
+              id="club-fees-search"
+              className="bcq-search__input"
+              type="search"
+              autoComplete="off"
+              placeholder="Search name or reference..."
+              value={query}
+              onChange={(e) => {
+                setQuery(e.target.value);
+              }}
+            />
+            {query.length > 0 ? (
+              <button
+                type="button"
+                className="bcq-search__clear"
+                aria-label="Clear search"
+                onClick={() => {
+                  setQuery("");
+                }}
+              >
+                <ClearIcon />
+              </button>
+            ) : null}
+          </div>
         </div>
 
-        <fieldset className="bcq-filter-pills">
-          <legend>Show</legend>
-          {FILTERS.map((f) => (
-            <label key={f.value} className="bcq-filter-pill">
-              <input
-                type="radio"
-                name="club-fees-filter"
-                value={f.value}
-                checked={filter === f.value}
-                onChange={() => {
-                  setFilter(f.value);
-                }}
-              />
-              {f.label}
-            </label>
-          ))}
+        <fieldset className="bcq-money-filterset">
+          <legend className="bcq-money-filterset__legend">Show</legend>
+          <div className="bcq-filter-row">
+            {FILTERS.map((f) => {
+              const active = filter === f.value;
+              const count = filterCount(data.summary, f.value);
+              return (
+                <label
+                  key={f.value}
+                  className={active ? "bcq-money-filter-chip is-active" : "bcq-money-filter-chip"}
+                >
+                  <input
+                    type="radio"
+                    name="club-fees-filter"
+                    value={f.value}
+                    checked={active}
+                    onChange={() => {
+                      setFilter(f.value);
+                    }}
+                  />
+                  <span>{`${f.label} (${String(count)})`}</span>
+                </label>
+              );
+            })}
+          </div>
         </fieldset>
       </div>
 
-      <div className="bcq-member__actions" role="group" aria-label="Batch club fee actions">
-        <Button type="button" variant="tonal" disabled={busy} onClick={selectNotCharged}>
-          Select Not Charged
-        </Button>
+      <div className="bcq-club-fees-toolbar">
+        <span className="bcq-club-fees-toolbar__label">
+          {selectedList.length > 0
+            ? `${String(selectedList.length)} Selected`
+            : `Members (${String(visible.length)})`}
+        </span>
         {selectedList.length > 0 ? (
-          <Button
+          <button
             type="button"
-            variant="ghost"
+            className="bcq-club-fees-toolbar__btn"
             disabled={busy}
             onClick={() => {
               setSelectedIds(new Set());
             }}
           >
-            Clear Selection ({selectedList.length})
-          </Button>
-        ) : null}
-        <Button
-          type="button"
-          variant="tonal"
-          disabled={busy}
-          onClick={() => {
-            if (selectedList.length > 0) void runCharge("fall", selectedList);
-            else setConfirmBatchSeason("fall");
-          }}
-        >
-          {`Charge Fall Fee (${String(data.fallFeeSek)} kr)`}
-        </Button>
-        <Button
-          type="button"
-          variant="tonal"
-          disabled={busy}
-          onClick={() => {
-            if (selectedList.length > 0) void runCharge("spring", selectedList);
-            else setConfirmBatchSeason("spring");
-          }}
-        >
-          {`Charge Spring Fee (${String(data.springFeeSek)} kr)`}
-        </Button>
-        <Button
-          type="button"
-          variant="tonal"
-          disabled={busy || selectedList.length === 0}
-          onClick={() => {
-            void runMarkExternalFall(selectedList);
-          }}
-        >
-          Mark Paid in Fall (Outside App)
-        </Button>
+            Clear Selection
+          </button>
+        ) : (
+          <button
+            type="button"
+            className="bcq-club-fees-toolbar__btn"
+            disabled={busy || notChargedVisible.length === 0}
+            onClick={selectNotCharged}
+          >
+            {`Select Not Charged (${String(notChargedVisible.length)})`}
+          </button>
+        )}
       </div>
-      <p className="bcq-member__meta">
-        Fall payers and already-covered members are skipped automatically when charging Spring.
-      </p>
 
       {visible.length === 0 ? (
-        <EmptyState title="No members match">Try another search or filter.</EmptyState>
+        <EmptyState title="No Members Match">Try another search or filter.</EmptyState>
       ) : (
         <ul className="bcq-members" aria-label="Club fee members">
           {visible.map((m) => {
             const badge = feeStatusBadge(m);
             const checked = selectedIds.has(m.memberId);
+            const canClearMark =
+              (m.status === "paid_fall_external" || m.status === "exempt") && m.clubFeeId !== null;
+            const showActions = m.status === "not_charged" || canClearMark;
             return (
-              <li key={m.memberId} className="bcq-member">
+              <li key={m.memberId} className="bcq-member bcq-club-fees-card">
                 <div className="bcq-club-fees__row-head">
-                  <input
-                    type="checkbox"
-                    className="bcq-club-fees__checkbox"
-                    aria-label={`Select ${m.displayName}`}
-                    checked={checked}
-                    onChange={() => {
-                      toggleMember(m.memberId);
-                    }}
-                  />
+                  <label className="bcq-club-fees__check-wrap">
+                    <input
+                      type="checkbox"
+                      className="bcq-club-fees__checkbox"
+                      aria-label={`Select ${m.displayName}`}
+                      checked={checked}
+                      onChange={() => {
+                        toggleMember(m.memberId);
+                      }}
+                    />
+                  </label>
                   <a
-                    className="bcq-money-row"
+                    className="bcq-money-row bcq-money-row--nav bcq-club-fees-member-link"
                     href={`/admin/money/members/${m.memberId}`}
                     onClick={(e) => {
+                      if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
                       e.preventDefault();
                       navigate(`/admin/money/members/${m.memberId}`);
                     }}
                   >
-                    <span className="bcq-member__head">
-                      <span className="bcq-member__name">{m.displayName}</span>
-                      <StatusChip tone={badge.tone}>{badge.label}</StatusChip>
-                      {m.memberStatus !== "active" ? (
-                        <StatusChip tone="neutral">
-                          {m.memberStatus.charAt(0).toUpperCase() + m.memberStatus.slice(1)}
-                        </StatusChip>
-                      ) : null}
+                    <span className="bcq-money-row__main">
+                      <span className="bcq-money-row__title-wrap">
+                        <span className="bcq-money-row__name">{m.displayName}</span>
+                        {m.memberStatus !== "active" ? (
+                          <StatusChip tone="neutral">
+                            {m.memberStatus.charAt(0).toUpperCase() + m.memberStatus.slice(1)}
+                          </StatusChip>
+                        ) : null}
+                      </span>
+                      <span className="bcq-money-row__meta">
+                        Ref <span className="bcq-mono-code">{m.paymentRef}</span>
+                      </span>
                     </span>
-                    <span className="bcq-member__meta">
-                      Payment reference {m.paymentRef}
-                      {m.note ? ` · ${m.note}` : ""}
+                    <span className="bcq-money-row__trailing">
+                      <StatusChip tone={badge.tone}>{badge.label}</StatusChip>
+                      <span className="bcq-grouped-row__chevron" aria-hidden="true">
+                        <ChevronRightIcon />
+                      </span>
                     </span>
                   </a>
                 </div>
-                <div className="bcq-member__actions">
-                  {m.status === "not_charged" ? (
-                    <>
+
+                {showActions ? (
+                  <div className="bcq-club-fees-card__actions">
+                    {m.status === "not_charged" ? (
+                      <div className="bcq-club-fees-card__not-charged-row">
+                        <div className="bcq-club-fees-card__pair">
+                          <Button
+                            type="button"
+                            variant="tonal"
+                            disabled={busy}
+                            onClick={() => {
+                              void runCharge("fall", [m.memberId]);
+                            }}
+                          >
+                            Charge Fall
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="tonal"
+                            disabled={busy}
+                            onClick={() => {
+                              void runMarkExternalFall([m.memberId]);
+                            }}
+                          >
+                            Mark Fall Paid
+                          </Button>
+                        </div>
+                        <OverflowButton
+                          label={`More actions for ${m.displayName}`}
+                          onClick={() => {
+                            setMemberActionRow(m);
+                          }}
+                        />
+                      </div>
+                    ) : canClearMark ? (
                       <Button
                         type="button"
-                        variant="tonal"
+                        variant="destructive-tonal"
+                        block
                         disabled={busy}
                         onClick={() => {
-                          void runMarkExternalFall([m.memberId]);
+                          setPendingClear(m);
                         }}
                       >
-                        Mark Fall Paid
+                        {m.status === "exempt" ? "Clear Exempt Mark" : "Clear External Mark"}
                       </Button>
-                      <Button
-                        type="button"
-                        variant="tonal"
-                        disabled={busy}
-                        onClick={() => {
-                          void runCharge("fall", [m.memberId]);
-                        }}
-                      >
-                        Charge Fall
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="tonal"
-                        disabled={busy}
-                        onClick={() => {
-                          void runCharge("spring", [m.memberId]);
-                        }}
-                      >
-                        Charge Spring
-                      </Button>
-                    </>
-                  ) : null}
-                  {(m.status === "paid_fall_external" || m.status === "exempt") && m.clubFeeId ? (
-                    <Button
-                      type="button"
-                      variant="destructive-tonal"
-                      disabled={busy}
-                      onClick={() => {
-                        if (m.clubFeeId) void runClearExternal(m.clubFeeId, m.displayName);
-                      }}
-                    >
-                      Clear External Mark
-                    </Button>
-                  ) : null}
-                </div>
+                    ) : null}
+                  </div>
+                ) : null}
               </li>
             );
           })}
         </ul>
       )}
 
+      {selectedList.length > 0 ? (
+        <div className="bcq-club-fees-sticky-bar" role="region" aria-label="Selected actions">
+          <div className="bcq-club-fees-sticky-bar__inner">
+            <span className="bcq-club-fees-sticky-bar__count">
+              {String(selectedList.length)}{" "}
+              {selectedList.length === 1 ? "Member Selected" : "Members Selected"}
+            </span>
+            <Button
+              type="button"
+              className="bcq-btn--compact"
+              disabled={busy}
+              onClick={() => {
+                setBulkSheetOpen(true);
+              }}
+            >
+              Bulk Actions
+            </Button>
+          </div>
+        </div>
+      ) : null}
+
+      <BottomSheet
+        open={bulkSheetOpen && selectedList.length > 0}
+        title={`Selected (${String(selectedList.length)} ${selectedList.length === 1 ? "Member" : "Members"})`}
+        onClose={() => {
+          if (!busy) setBulkSheetOpen(false);
+        }}
+        footer={
+          <div className="bcq-club-fees-sheet-footer">
+            <Button
+              type="button"
+              variant="tonal"
+              block
+              disabled={busy}
+              onClick={() => {
+                if (!busy) setBulkSheetOpen(false);
+              }}
+            >
+              Cancel
+            </Button>
+          </div>
+        }
+      >
+        <div className="bcq-club-fees-sheet">
+          <div className="bcq-club-fees-card__pair">
+            <Button
+              type="button"
+              disabled={busy}
+              onClick={() => {
+                void runCharge("fall", selectedList);
+              }}
+            >
+              {`Charge Fall (${String(data.fallFeeSek)} kr)`}
+            </Button>
+            <Button
+              type="button"
+              variant="tonal"
+              disabled={busy}
+              onClick={() => {
+                void runCharge("spring", selectedList);
+              }}
+            >
+              {`Charge Spring (${String(data.springFeeSek)} kr)`}
+            </Button>
+          </div>
+          <Button
+            type="button"
+            variant="tonal"
+            block
+            disabled={busy}
+            onClick={() => {
+              void runMarkExternalFall(selectedList);
+            }}
+          >
+            Mark Paid in Fall (Outside App)
+          </Button>
+          <p className="bcq-club-fees-sheet__note">
+            Fall payers and already-covered members are skipped automatically when charging Spring.
+          </p>
+        </div>
+      </BottomSheet>
+
+      <BottomSheet
+        open={batchSheetOpen}
+        title={`Charge All Eligible (${data.label})`}
+        onClose={() => {
+          if (!busy) setBatchSheetOpen(false);
+        }}
+        footer={
+          <div className="bcq-club-fees-sheet-footer">
+            <Button
+              type="button"
+              variant="tonal"
+              block
+              disabled={busy}
+              onClick={() => {
+                if (!busy) setBatchSheetOpen(false);
+              }}
+            >
+              Cancel
+            </Button>
+          </div>
+        }
+      >
+        <div className="bcq-club-fees-sheet">
+          <p className="bcq-club-fees-sheet__note">
+            Applies to all active members not already covered for {data.label}.
+          </p>
+          <div className="bcq-club-fees-card__pair">
+            <Button
+              type="button"
+              disabled={busy}
+              onClick={() => {
+                setBatchSheetOpen(false);
+                setConfirmBatchSeason("fall");
+              }}
+            >
+              {`Charge Fall Fee (${String(data.fallFeeSek)} kr)`}
+            </Button>
+            <Button
+              type="button"
+              variant="tonal"
+              disabled={busy}
+              onClick={() => {
+                setBatchSheetOpen(false);
+                setConfirmBatchSeason("spring");
+              }}
+            >
+              {`Charge Spring Fee (${String(data.springFeeSek)} kr)`}
+            </Button>
+          </div>
+        </div>
+      </BottomSheet>
+
+      <ActionSheet.Root
+        open={memberActionRow !== null}
+        title="Member Club Fee Actions"
+        onClose={() => {
+          setMemberActionRow(null);
+        }}
+      >
+        {memberActionRow ? (
+          <>
+            <ActionSheet.Header
+              title={memberActionRow.displayName}
+              subtitle={`Ref ${memberActionRow.paymentRef}`}
+            />
+            <ActionSheet.Group>
+              <ActionSheet.Item
+                disabled={busy}
+                onClick={() => {
+                  const id = memberActionRow.memberId;
+                  setMemberActionRow(null);
+                  void runCharge("spring", [id]);
+                }}
+              >
+                {`Charge Spring (${String(data.springFeeSek)} kr)`}
+              </ActionSheet.Item>
+              <ActionSheet.Item
+                disabled={busy}
+                onClick={() => {
+                  const id = memberActionRow.memberId;
+                  setMemberActionRow(null);
+                  void runCharge("fall", [id]);
+                }}
+              >
+                {`Charge Fall (${String(data.fallFeeSek)} kr)`}
+              </ActionSheet.Item>
+              <ActionSheet.Item
+                disabled={busy}
+                onClick={() => {
+                  const id = memberActionRow.memberId;
+                  setMemberActionRow(null);
+                  void runMarkExternalFall([id]);
+                }}
+              >
+                Mark Fall Paid
+              </ActionSheet.Item>
+            </ActionSheet.Group>
+            <ActionSheet.Cancel
+              onClick={() => {
+                setMemberActionRow(null);
+              }}
+            />
+          </>
+        ) : null}
+      </ActionSheet.Root>
+
       <ConfirmDialog
         open={confirmBatchSeason !== null}
         title={
           confirmBatchSeason === "fall"
-            ? `Charge Fall fee (${String(data.fallFeeSek)} kr) to all active members?`
-            : `Charge Spring fee (${String(data.springFeeSek)} kr) to all active members?`
+            ? `Charge Fall Fee (${String(data.fallFeeSek)} kr) to All Active Members?`
+            : `Charge Spring Fee (${String(data.springFeeSek)} kr) to All Active Members?`
         }
         description={
           confirmBatchSeason === "spring"
             ? `Members who already paid or were charged in Fall ${data.label} are skipped automatically.`
             : `Already-covered members for ${data.label} are skipped automatically.`
         }
-        confirmLabel={busy ? "Charging…" : "Confirm charge"}
+        confirmLabel={
+          busy ? "Charging…" : confirmBatchSeason === "fall" ? "Charge Fall" : "Charge Spring"
+        }
         onCancel={() => {
           if (!busy) setConfirmBatchSeason(null);
         }}
         onConfirm={() => {
           if (confirmBatchSeason) void runCharge(confirmBatchSeason);
+        }}
+      />
+
+      <ConfirmDialog
+        open={pendingClear !== null}
+        title={pendingClear?.status === "exempt" ? "Clear Exempt Mark?" : "Clear External Mark?"}
+        description={
+          pendingClear
+            ? `Remove the ${pendingClear.status === "exempt" ? "exempt" : "external Fall payment"} status for ${pendingClear.displayName} (${data.label})? Their club fee status will revert to Not Charged.`
+            : ""
+        }
+        confirmLabel={busy ? "Clearing…" : "Clear Mark"}
+        destructive
+        onCancel={() => {
+          if (!busy) setPendingClear(null);
+        }}
+        onConfirm={() => {
+          if (pendingClear) void runClearExternal(pendingClear);
         }}
       />
     </section>

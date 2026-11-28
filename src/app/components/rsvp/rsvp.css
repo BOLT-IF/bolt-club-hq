@@ -59,3 +59,14 @@
 .bcq-rsvp__error {
   color: var(--bcq-danger);
 }
+.bcq-rsvp__fee-summary {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--bcq-muted);
+  font-variant-numeric: tabular-nums;
+}
+.bcq-rsvp__sheet-footer {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.625rem;
+}

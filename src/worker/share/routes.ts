@@ -77,6 +77,11 @@ function htmlResponse(
   });
 }
 
+function canonicalShareUrl(rawUrl: string): string {
+  const { origin, pathname } = new URL(rawUrl);
+  return `${origin}${pathname}`;
+}
+
 function eventMeta(event: OgEventData, url: string): OgMeta {
   return {
     title: `${event.title} — BOLT IF`,
@@ -102,7 +107,7 @@ export function createShareServeApp(): Hono<AppEnv> {
   return new Hono<AppEnv>()
     .get("/e/:slug", async (c) => {
       const slug = c.req.param("slug");
-      const url = c.req.url;
+      const url = canonicalShareUrl(c.req.url);
       const baseHtml = await loadSpaHtml(c);
 
       const kvHit = await readKvSnapshot(c, eventOgKey(slug));
@@ -130,7 +135,7 @@ export function createShareServeApp(): Hono<AppEnv> {
     })
     .get("/s/:slug", async (c) => {
       const slug = c.req.param("slug");
-      const url = c.req.url;
+      const url = canonicalShareUrl(c.req.url);
       const baseHtml = await loadSpaHtml(c);
 
       const kvHit = await readKvSnapshot(c, seriesOgKey(slug));

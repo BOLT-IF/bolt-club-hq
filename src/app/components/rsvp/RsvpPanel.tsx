@@ -4,7 +4,16 @@ import { ApiError } from "../../api/client";
 import type { EventDetail } from "../../api/events";
 import type { SlotProps } from "../../routes/events/slots";
 import { noteRsvpSaved } from "../install";
-import { Button, ConfirmDialog, Skeleton, StatusChip, Stepper, type StatusTone } from "../ui";
+import {
+  BottomSheet,
+  Button,
+  ConfirmDialog,
+  Skeleton,
+  StatusChip,
+  Stepper,
+  useToast,
+  type StatusTone,
+} from "../ui";
 import { cancelRsvp, declineRsvp, getMyRsvp, putRsvp, type RsvpStatus, type RsvpView } from "./api";
 import "./rsvp.css";
 
@@ -62,13 +71,18 @@ type Load = "loading" | "hidden" | "error" | "ready";
 
 /** RSVP panel for the event page (`RsvpSlot`): status, guest stepper, RSVP and cancel. */
 export function RsvpPanel({ event }: SlotProps) {
+  const toast = useToast();
   const [load, setLoad] = useState<Load>("loading");
   const [rsvp, setRsvp] = useState<RsvpView | null>(null);
   const [names, setNames] = useState<string[]>([]);
+  const [draftNames, setDraftNames] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
+  const [updateOpen, setUpdateOpen] = useState(false);
   const [confirmCancel, setConfirmCancel] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [sheetError, setSheetError] = useState<string | null>(null);
   const headingId = useId();
+  const updateFormId = useId();
   const quickHandledRef = useRef(false);
 
   const apply = (next: RsvpView | null) => {
@@ -157,6 +171,17 @@ export function RsvpPanel({ event }: SlotProps) {
   const active = isActive(rsvp);
   const declined = rsvp !== null && rsvp.status === "declined";
   const maxGuests = event.maxGuestsPerMember;
+  const statusHint =
+    rsvp?.status === "confirmed" && rsvp.guests.length > 0
+      ? `You're in (${String(rsvp.guests.length)} ${rsvp.guests.length === 1 ? "guest" : "guests"}).`
+      : rsvp
+        ? HINT[rsvp.status]
+        : undefined;
+
+  const resizeNames = (current: string[], nextCount: number) =>
+    nextCount > current.length
+      ? [...current, ...Array<string>(nextCount - current.length).fill("")]
+      : current.slice(0, nextCount);
 
   return (
     <section className="bcq-rsvp" aria-labelledby={headingId}>
@@ -175,8 +200,8 @@ export function RsvpPanel({ event }: SlotProps) {
         </p>
       ) : null}
 
-      {(active || declined) && HINT[rsvp.status] && open ? (
-        <p className="bcq-rsvp__hint">{HINT[rsvp.status]}</p>
+      {(active || declined) && statusHint && open ? (
+        <p className="bcq-rsvp__hint">{statusHint}</p>
       ) : null}
 
       {active && rsvp.guests.length > 0 ? (
@@ -192,84 +217,192 @@ export function RsvpPanel({ event }: SlotProps) {
       {!open ? (
         <p className="bcq-rsvp__hint">RSVPs are closed.</p>
       ) : load === "ready" ? (
-        <form
-          className="bcq-rsvp__form"
-          onSubmit={(e) => {
-            e.preventDefault();
-            void run(async () => {
-              const saved = await putRsvp(event.id, names);
-              noteRsvpSaved();
-              return saved;
-            });
-          }}
-        >
-          {maxGuests > 0 ? (
-            <div className="bcq-rsvp__field">
-              <span className="bcq-rsvp__label" aria-hidden="true">
-                Guests (max {maxGuests})
-              </span>
-              <Stepper
-                label="guests"
-                value={names.length}
-                min={0}
-                max={maxGuests}
-                onChange={(n) => {
-                  setNames((current) =>
-                    n > current.length
-                      ? [...current, ...Array<string>(n - current.length).fill("")]
-                      : current.slice(0, n),
-                  );
-                }}
-              />
-              {names.map((name, i) => (
-                <label key={i} className="bcq-rsvp__guest">
-                  <span>Guest {i + 1} name</span>
-                  <input
-                    type="text"
-                    value={name}
-                    maxLength={60}
-                    autoComplete="off"
-                    placeholder="Guest"
-                    onChange={(e) => {
-                      const value = e.target.value;
-                      setNames((current) => current.map((n, j) => (j === i ? value : n)));
-                    }}
-                  />
-                </label>
-              ))}
-            </div>
-          ) : null}
-
+        active ? (
           <div className="bcq-rsvp__actions">
-            <Button type="submit" block disabled={busy}>
-              {active ? "Update RSVP" : "Going"}
-            </Button>
-            {active ? (
+            {maxGuests > 0 ? (
               <Button
-                variant="destructive-tonal"
-                block
-                disabled={busy}
-                onClick={() => {
-                  setConfirmCancel(true);
-                }}
-              >
-                Cancel RSVP
-              </Button>
-            ) : !declined ? (
-              <Button
+                type="button"
                 variant="tonal"
                 block
                 disabled={busy}
                 onClick={() => {
-                  void run(() => declineRsvp(event.id));
+                  setDraftNames(rsvp.guests.map((g) => g.name));
+                  setSheetError(null);
+                  setUpdateOpen(true);
                 }}
               >
-                Not Going
+                Update RSVP
               </Button>
             ) : null}
+            <Button
+              type="button"
+              variant="destructive-tonal"
+              block
+              disabled={busy}
+              onClick={() => {
+                setConfirmCancel(true);
+              }}
+            >
+              Cancel RSVP
+            </Button>
           </div>
-        </form>
+        ) : (
+          <form
+            className="bcq-rsvp__form"
+            onSubmit={(e) => {
+              e.preventDefault();
+              void run(async () => {
+                const saved = await putRsvp(event.id, names);
+                noteRsvpSaved();
+                return saved;
+              });
+            }}
+          >
+            {maxGuests > 0 ? (
+              <div className="bcq-rsvp__field">
+                <span className="bcq-rsvp__label" aria-hidden="true">
+                  Guests (max {maxGuests})
+                </span>
+                <Stepper
+                  label="guests"
+                  value={names.length}
+                  min={0}
+                  max={maxGuests}
+                  onChange={(n) => {
+                    setNames((current) => resizeNames(current, n));
+                  }}
+                />
+                {names.map((name, i) => (
+                  <label key={i} className="bcq-rsvp__guest">
+                    <span>Guest {i + 1} name</span>
+                    <input
+                      type="text"
+                      value={name}
+                      maxLength={60}
+                      autoComplete="off"
+                      placeholder="Guest"
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        setNames((current) => current.map((n, j) => (j === i ? value : n)));
+                      }}
+                    />
+                  </label>
+                ))}
+              </div>
+            ) : null}
+
+            <div className="bcq-rsvp__actions">
+              <Button type="submit" block disabled={busy}>
+                Going
+              </Button>
+              {!declined ? (
+                <Button
+                  variant="tonal"
+                  block
+                  disabled={busy}
+                  onClick={() => {
+                    void run(() => declineRsvp(event.id));
+                  }}
+                >
+                  Not Going
+                </Button>
+              ) : null}
+            </div>
+          </form>
+        )
       ) : null}
+
+      <BottomSheet
+        open={updateOpen}
+        title="Update RSVP"
+        onClose={() => {
+          if (!busy) setUpdateOpen(false);
+        }}
+        footer={
+          <div className="bcq-rsvp__sheet-footer">
+            <Button
+              type="button"
+              variant="tonal"
+              block
+              disabled={busy}
+              onClick={() => {
+                setUpdateOpen(false);
+              }}
+            >
+              Cancel
+            </Button>
+            <Button type="submit" form={updateFormId} variant="primary" block disabled={busy}>
+              {busy ? "Saving…" : "Save Changes"}
+            </Button>
+          </div>
+        }
+      >
+        <form
+          id={updateFormId}
+          className="bcq-rsvp__form"
+          onSubmit={(e) => {
+            e.preventDefault();
+            setBusy(true);
+            setSheetError(null);
+            void putRsvp(event.id, draftNames)
+              .then((saved) => {
+                apply(saved);
+                noteRsvpSaved();
+                setUpdateOpen(false);
+                toast.show("RSVP updated", "success");
+              })
+              .catch((err: unknown) => {
+                setSheetError(errorText(err));
+              })
+              .finally(() => {
+                setBusy(false);
+              });
+          }}
+        >
+          <div className="bcq-rsvp__field">
+            <span className="bcq-rsvp__label" aria-hidden="true">
+              Guests (max {maxGuests})
+            </span>
+            <Stepper
+              label="guests"
+              value={draftNames.length}
+              min={0}
+              max={maxGuests}
+              onChange={(n) => {
+                setDraftNames((current) => resizeNames(current, n));
+              }}
+            />
+            {draftNames.map((name, i) => (
+              <label key={i} className="bcq-rsvp__guest">
+                <span>Guest {i + 1} name</span>
+                <input
+                  type="text"
+                  value={name}
+                  maxLength={60}
+                  autoComplete="off"
+                  placeholder="Guest"
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setDraftNames((current) => current.map((n, j) => (j === i ? value : n)));
+                  }}
+                />
+              </label>
+            ))}
+          </div>
+          {event.adhocFee > 0 ? (
+            <p className="bcq-rsvp__fee-summary">
+              {draftNames.length > 0
+                ? `Guest fee: ${String(draftNames.length)} × ${String(event.adhocFee)} kr = ${String(draftNames.length * event.adhocFee)} kr`
+                : `No extra guest fee (${String(event.adhocFee)} kr per guest)`}
+            </p>
+          ) : null}
+          {sheetError ? (
+            <p role="alert" className="bcq-rsvp__error">
+              {sheetError}
+            </p>
+          ) : null}
+        </form>
+      </BottomSheet>
 
       <ConfirmDialog
         open={confirmCancel}

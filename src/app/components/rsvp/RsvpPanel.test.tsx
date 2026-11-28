@@ -1,12 +1,23 @@
-import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import {
+  cleanup,
+  fireEvent,
+  render as rtlRender,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
+import type { ReactNode } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { configureApiClient } from "../../api/client";
 import type { EventDetail, EventViewer } from "../../api/events";
 import { Slot } from "../../routes/events/slots";
 import type { RsvpView } from "./api";
+import { ToastProvider } from "../ui";
 import { RsvpPanel } from "./RsvpPanel";
 import "./register";
+
+const render = (ui: ReactNode) => rtlRender(<ToastProvider>{ui}</ToastProvider>);
 
 const event = (over: Partial<EventDetail> = {}): EventDetail => ({
   id: "evt_1",
@@ -211,5 +222,52 @@ describe("RsvpPanel (S4.2)", () => {
     expect(calls.some((c) => c.method === "POST" && c.path === "/events/evt_1/rsvp/decline")).toBe(
       true,
     );
+  });
+
+  it("hides Update RSVP when maxGuestsPerMember is 0 and opens Update RSVP Bottom Sheet when guests are allowed", async () => {
+    stub(view({ status: "confirmed", guests: [] }));
+    render(
+      <ToastProvider>
+        <RsvpPanel event={event({ maxGuestsPerMember: 0 })} viewer={viewer} />
+      </ToastProvider>,
+    );
+    expect(await screen.findByRole("button", { name: "Cancel RSVP" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Update RSVP" })).toBeNull();
+
+    cleanup();
+    const calls = stub(
+      view({
+        status: "confirmed",
+        guests: [{ id: "g1", name: "Kim", status: "confirmed" }],
+      }),
+      () => ({
+        body: {
+          rsvp: view({
+            status: "confirmed",
+            guests: [
+              { id: "g1", name: "Kim", status: "confirmed" },
+              { id: "g2", name: "Alex", status: "confirmed" },
+            ],
+          }),
+        },
+      }),
+    );
+    render(
+      <ToastProvider>
+        <RsvpPanel event={event({ maxGuestsPerMember: 2, adhocFee: 100 })} viewer={viewer} />
+      </ToastProvider>,
+    );
+    expect(await screen.findByText("You're in (1 guest).")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Update RSVP" }));
+    const sheet = await screen.findByRole("dialog", { name: "Update RSVP" });
+    fireEvent.click(within(sheet).getByRole("button", { name: "Increase guests" }));
+    fireEvent.change(within(sheet).getByLabelText("Guest 2 name"), { target: { value: "Alex" } });
+    expect(within(sheet).getByText("Guest fee: 2 × 100 kr = 200 kr")).toBeTruthy();
+    fireEvent.click(within(sheet).getByRole("button", { name: "Save Changes" }));
+
+    expect(await screen.findByText("RSVP updated")).toBeTruthy();
+    expect(screen.getByText("You're in (2 guests).")).toBeTruthy();
+    const put = calls.find((c) => c.method === "PUT")!;
+    expect(put.body).toEqual({ guests: ["Kim", "Alex"] });
   });
 });

@@ -566,15 +566,17 @@ describe("club fees page", () => {
     expect(within(list).getByText("Bo External")).toBeTruthy();
     expect(within(list).getByText("Cy Spring")).toBeTruthy();
     expect(within(list).getByText("Di Uncharged")).toBeTruthy();
+    expect(within(list).getByText("Paid Externally")).toBeTruthy();
+    expect(within(list).getByText("Not Charged")).toBeTruthy();
 
-    fireEvent.click(screen.getByRole("radio", { name: "Paid in Fall" }));
+    fireEvent.click(screen.getByRole("radio", { name: /Paid in Fall/ }));
     expect(within(list).getByText("Ada Fall")).toBeTruthy();
     expect(within(list).getByText("Bo External")).toBeTruthy();
     expect(within(list).queryByText("Cy Spring")).toBeNull();
     expect(within(list).queryByText("Di Uncharged")).toBeNull();
   });
 
-  it("batch charges Spring skipping Fall payers and marks selected members paid in Fall outside app", async () => {
+  it("batch charges Spring skipping Fall payers and marks selected members paid externally", async () => {
     const calls = stub((path) => {
       if (path === "/admin/club-fees/charge") {
         return json(200, { chargedCount: 1, skippedCount: 3, chargedMemberIds: ["m4"] });
@@ -587,9 +589,13 @@ describe("club fees page", () => {
     renderWith(<AdminClubFees />);
     await screen.findByRole("list", { name: /club fee members/i });
 
-    // Select not charged -> selects Di Uncharged (m4), then mark paid in Fall (outside app).
-    fireEvent.click(screen.getByRole("button", { name: "Select Not Charged" }));
-    fireEvent.click(screen.getByRole("button", { name: "Mark Paid in Fall (Outside App)" }));
+    // Select not charged -> selects Di Uncharged (m4), then open Bulk Actions -> Mark Paid Externally.
+    fireEvent.click(screen.getByRole("button", { name: /Select Not Charged/ }));
+    fireEvent.click(screen.getByRole("button", { name: "Bulk Actions" }));
+    const bulkSheet = await screen.findByRole("dialog", { name: /Selected \(1 Member\)/ });
+    fireEvent.click(
+      within(bulkSheet).getByRole("button", { name: "Mark Paid in Fall (Outside App)" }),
+    );
 
     await waitFor(() => {
       expect(calls.some((c) => c.path === "/admin/club-fees/mark-external-fall")).toBe(true);
@@ -599,18 +605,18 @@ describe("club fees page", () => {
       body: { clubYear: 2026, memberIds: ["m4"] },
     });
 
-    // Clear selection implicitly happened on reload; batch charge Spring (85 kr) confirms and posts without memberIds.
+    // Clear selection happened on reload; use Charge All sheet for year-wide Spring charge.
     await waitFor(() => {
-      expect(
-        screen.getByRole<HTMLButtonElement>("button", {
-          name: "Mark Paid in Fall (Outside App)",
-        }).disabled,
-      ).toBe(true);
+      expect(screen.queryByRole("region", { name: "Selected actions" })).toBeNull();
     });
-    fireEvent.click(screen.getByRole("button", { name: "Charge Spring Fee (85 kr)" }));
-    const dialog = await screen.findByRole("dialog");
-    expect(within(dialog).getByText(/skipped automatically/i)).toBeTruthy();
-    fireEvent.click(within(dialog).getByRole("button", { name: "Confirm charge" }));
+    fireEvent.click(screen.getByRole("button", { name: "Charge All" }));
+    const batchSheet = await screen.findByRole("dialog", { name: /Charge All Eligible/ });
+    fireEvent.click(within(batchSheet).getByRole("button", { name: "Charge Spring Fee (85 kr)" }));
+    const confirm = await screen.findByRole("dialog", {
+      name: /Charge Spring Fee \(85 kr\)/,
+    });
+    expect(within(confirm).getByText(/skipped automatically/i)).toBeTruthy();
+    fireEvent.click(within(confirm).getByRole("button", { name: "Charge Spring" }));
 
     await waitFor(() => {
       expect(calls.some((c) => c.path === "/admin/club-fees/charge")).toBe(true);
@@ -618,6 +624,20 @@ describe("club fees page", () => {
     expect(calls.find((c) => c.path === "/admin/club-fees/charge")).toMatchObject({
       method: "POST",
       body: { clubYear: 2026, season: "spring" },
+    });
+  });
+
+  it("confirms before clearing external mark", async () => {
+    const calls = stub(() => json(200, {}));
+    renderWith(<AdminClubFees />);
+    const list = await screen.findByRole("list", { name: /club fee members/i });
+    const clearBtns = within(list).getAllByRole("button", { name: "Clear External Mark" });
+    fireEvent.click(clearBtns[0]!);
+    const confirm = await screen.findByRole("dialog", { name: "Clear External Mark?" });
+    fireEvent.click(within(confirm).getByRole("button", { name: "Clear Mark" }));
+
+    await waitFor(() => {
+      expect(calls.some((c) => c.method === "POST" && c.path.endsWith("/clear"))).toBe(true);
     });
   });
 });

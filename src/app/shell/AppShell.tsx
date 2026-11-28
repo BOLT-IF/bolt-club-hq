@@ -159,7 +159,7 @@ export function AppShell({
         </header>
 
         <main id="main" className="bcq-main" tabIndex={-1}>
-          {path === "/install" ? null : <InstallPrompt />}
+          {path === "/install" ? null : <InstallPrompt isSignedIn={isSignedIn} />}
           {children}
         </main>
 

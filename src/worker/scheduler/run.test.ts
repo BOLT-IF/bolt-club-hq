@@ -301,3 +301,66 @@ describe("scheduled(): stale tick alert", () => {
     await expect(tick(h)).resolves.toMatchObject({ outcome: "idle" });
   });
 });
+
+describe("scheduled(): db lifecycle and cleanup", () => {
+  it("opens the database only once when multiple tick hooks run concurrently", async () => {
+    const h = harness();
+    let dbCloses = 0;
+    h.deps.openDb = async () => {
+      h.dbOpens++;
+      await Promise.resolve();
+      return {} as unknown as Db;
+    };
+    h.deps.closeDb = () => {
+      dbCloses++;
+      return Promise.resolve();
+    };
+    await seedIdle(h);
+    registerTickHook("hook-a", () => Promise.resolve());
+    registerTickHook("hook-b", () => Promise.resolve());
+    registerTickHook("hook-c", () => Promise.resolve());
+    await env.KV.put(NEXT_DUE_KEY, String(NOON.getTime() - MINUTE));
+
+    const summary = await tick(h);
+
+    expect(summary.outcome).toBe("ran");
+    expect(h.dbOpens).toBe(1);
+    expect(dbCloses).toBe(1);
+  });
+
+  it("still calls closeDb if KV lock cleanup throws in finally", async () => {
+    const h = harness();
+    let dbCloses = 0;
+    h.deps.closeDb = () => {
+      dbCloses++;
+      return Promise.resolve();
+    };
+    await seedIdle(h);
+    registerTickHook("hook-a", () => Promise.resolve());
+    await env.KV.put(NEXT_DUE_KEY, String(NOON.getTime() - MINUTE));
+
+    let getCount = 0;
+    const kvWithFailingFinally = {
+      get: async (key: string) => {
+        if (key === LOCK_KEY) {
+          getCount++;
+          // 1st get: initial lock check; 2nd get: lock ownership check; 3rd get: finally cleanup -> throw.
+          if (getCount >= 3) throw new Error("kv_finally_boom");
+        }
+        return env.KV.get(key);
+      },
+      put: (key: string, value: string, opts?: KVNamespacePutOptions) =>
+        env.KV.put(key, value, opts),
+      delete: (key: string) => env.KV.delete(key),
+    } as unknown as KVNamespace;
+
+    const summary = await runTick(
+      { cron: CRON_FREQUENT, scheduledTime: h.clock.now().getTime() },
+      { ...env, KV: kvWithFailingFinally },
+      h.deps,
+    );
+
+    expect(summary.outcome).toBe("ran");
+    expect(dbCloses).toBe(1);
+  });
+});

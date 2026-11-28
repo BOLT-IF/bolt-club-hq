@@ -130,8 +130,14 @@ export async function runTick(
     return { outcome: "overlap", failures: [] };
   }
 
-  const opened: { db?: Db } = {};
-  const getDb = async (): Promise<Db> => (opened.db ??= await deps.openDb(env));
+  const opened: { db?: Db; promise?: Promise<Db> } = {};
+  const getDb = (): Promise<Db> => {
+    opened.promise ??= deps.openDb(env).then((db) => {
+      opened.db = db;
+      return db;
+    });
+    return opened.promise;
+  };
   const startedAt = clock.now();
 
   try {
@@ -210,7 +216,11 @@ export async function runTick(
     await deps.ping(env, failures.length === 0 ? "success" : "fail");
     return { outcome: "ran", failures, firstError };
   } finally {
-    if ((await env.KV.get(LOCK_KEY)) === runId) await env.KV.delete(LOCK_KEY);
+    try {
+      if ((await env.KV.get(LOCK_KEY)) === runId) await env.KV.delete(LOCK_KEY);
+    } catch {
+      // Lock has a short TTL; never skip closeDb if KV cleanup fails.
+    }
     if (opened.db) {
       try {
         await deps.closeDb(opened.db);

@@ -137,6 +137,7 @@ describe("RsvpPanel (S4.2)", () => {
     render(<RsvpPanel event={event()} viewer={viewer} />);
     expect(await screen.findByText("Confirmed")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Cancel RSVP" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Confirm Cancel" }));
     expect(await screen.findByRole("button", { name: "Going" })).toBeTruthy();
     const del = calls.find((c) => c.method === "DELETE")!;
     expect(del.key).toBeTruthy();

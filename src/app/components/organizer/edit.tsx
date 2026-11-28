@@ -5,6 +5,27 @@ import type { SlotProps } from "../../routes/events/slots";
 import { Button, ConfirmDialog, StatusChip } from "../ui";
 import "./edit.css";
 
+function CalendarIcon() {
+  return (
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <rect width="18" height="18" x="3" y="4" rx="2" ry="2" />
+      <line x1="16" x2="16" y1="2" y2="6" />
+      <line x1="8" x2="8" y1="2" y2="6" />
+      <line x1="3" x2="21" y1="10" y2="10" />
+    </svg>
+  );
+}
+
 function toLocalInput(iso: string): string {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return "";
@@ -198,32 +219,42 @@ export function EventEditPanel({ event, viewer }: SlotProps) {
           <label className="bcq-event-edit__label" htmlFor="edit-event-starts">
             Starts
           </label>
-          <input
-            id="edit-event-starts"
-            className="bcq-event-edit__input"
-            type="datetime-local"
-            value={startsLocal}
-            onChange={(e) => {
-              setStartsLocal(e.target.value);
-            }}
-            required
-          />
+          <div className="bcq-event-edit__picker-wrap">
+            <span className="bcq-event-edit__picker-icon" aria-hidden="true">
+              <CalendarIcon />
+            </span>
+            <input
+              id="edit-event-starts"
+              className="bcq-event-edit__input bcq-event-edit__picker-input"
+              type="datetime-local"
+              value={startsLocal}
+              onChange={(e) => {
+                setStartsLocal(e.target.value);
+              }}
+              required
+            />
+          </div>
         </div>
 
         <div className="bcq-event-edit__field">
           <label className="bcq-event-edit__label" htmlFor="edit-event-ends">
             Ends
           </label>
-          <input
-            id="edit-event-ends"
-            className="bcq-event-edit__input"
-            type="datetime-local"
-            value={endsLocal}
-            onChange={(e) => {
-              setEndsLocal(e.target.value);
-            }}
-            required
-          />
+          <div className="bcq-event-edit__picker-wrap">
+            <span className="bcq-event-edit__picker-icon" aria-hidden="true">
+              <CalendarIcon />
+            </span>
+            <input
+              id="edit-event-ends"
+              className="bcq-event-edit__input bcq-event-edit__picker-input"
+              type="datetime-local"
+              value={endsLocal}
+              onChange={(e) => {
+                setEndsLocal(e.target.value);
+              }}
+              required
+            />
+          </div>
         </div>
 
         <div className="bcq-event-edit__field">
@@ -232,7 +263,7 @@ export function EventEditPanel({ event, viewer }: SlotProps) {
           </label>
           <input
             id="edit-event-fee"
-            className="bcq-event-edit__input"
+            className="bcq-event-edit__input bcq-tabular-nums"
             type="number"
             inputMode="numeric"
             min={0}
@@ -263,12 +294,13 @@ export function EventEditPanel({ event, viewer }: SlotProps) {
         ) : null}
 
         <div className="bcq-event-edit__actions">
-          <Button type="submit" disabled={saving || cancelling}>
+          <Button type="submit" block disabled={saving || cancelling}>
             {saving ? "Saving…" : "Save Changes"}
           </Button>
           <Button
             type="button"
             variant="destructive-tonal"
+            block
             disabled={saving || cancelling}
             onClick={() => {
               setConfirmCancel(true);

@@ -688,7 +688,11 @@ describe("member ledger page", () => {
     ).toBeTruthy();
 
     expect(screen.getByText("Club Fee · 85 kr")).toBeTruthy();
-    expect(screen.getByText("Club Fee · -160 kr")).toBeTruthy();
+    const reversalHeading = screen.getByText("Club Fee · -160 kr");
+    const reversedHeading = screen.getByText("Club Fee · 160 kr");
+    expect(
+      reversalHeading.compareDocumentPosition(reversedHeading) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
     expect(screen.getByText("28 Nov 2026 · 85 kr left · Spring 2026/2027")).toBeTruthy();
 
     fireEvent.click(screen.getByRole("button", { name: "Copy payment reference BC-BO" }));

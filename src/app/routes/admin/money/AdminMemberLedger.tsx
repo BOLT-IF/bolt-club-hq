@@ -348,7 +348,7 @@ export function AdminMemberLedger() {
   };
 
   const unpaidItems = ledger.items.filter(isUnpaidEntry);
-  const historyItems = ledger.items.filter((item) => !isUnpaidEntry(item));
+  const historyItems = ledger.items.filter((item) => !isUnpaidEntry(item)).reverse();
 
   const copyRef = () => {
     const clipboard = navigator.clipboard as Clipboard | undefined;

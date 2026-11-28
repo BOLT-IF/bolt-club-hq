@@ -128,7 +128,7 @@ describe("one-off events (S3.3)", () => {
       allocationMode: "tiered",
       maxGuestsPerMember: 2,
       rsvpCloseAt: at(40),
-      format: "XD",
+      format: "Mixed Doubles",
     });
     expect(res.status).toBe(201);
     expect(await row(body.event!.id)).toMatchObject({
@@ -136,7 +136,7 @@ describe("one-off events (S3.3)", () => {
       adhocFee: 150,
       allocationMode: "tiered",
       maxGuestsPerMember: 2,
-      format: "XD",
+      format: "Mixed Doubles",
     });
   });
 
@@ -180,7 +180,7 @@ describe("one-off events (S3.3)", () => {
       id: "ser_1",
       termId: "t1",
       name: "Thu",
-      format: "open",
+      format: "Open",
       weekday: 4,
       startTime: "19:00",
       durationMin: 90,
@@ -261,7 +261,7 @@ describe("one-off events (S3.3)", () => {
       id: "ser_grp",
       termId: "t_grp",
       name: "Sunday",
-      format: "open",
+      format: "Open",
       weekday: 7,
       startTime: "18:00",
       durationMin: 120,

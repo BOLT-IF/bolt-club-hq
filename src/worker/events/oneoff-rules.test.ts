@@ -27,7 +27,7 @@ describe("planOneoff", () => {
     expect(r.value).toMatchObject({
       kind: "member_oneoff",
       title: "Friday hit",
-      format: "open",
+      format: "Open",
       location: null,
       capacity: 8,
       maxGuestsPerMember: 1,
@@ -134,7 +134,7 @@ describe("planOneoff", () => {
     ["fractional fee", { adhocFee: 12.5 }],
     ["negative fee", { adhocFee: -1 }],
     ["negative guests", { maxGuestsPerMember: -1 }],
-    ["unknown format", { format: "singles" }],
+    ["unknown format", { format: "invalid" }],
     ["unknown allocation", { allocationMode: "lottery" }],
     ["close after start", { rsvpCloseAt: at(49) }],
     ["close in the past", { rsvpCloseAt: at(-1) }],

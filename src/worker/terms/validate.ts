@@ -44,7 +44,14 @@ const isoDate: Field<string> = (v) => {
 const clockTime: Field<string> = (v) =>
   typeof v === "string" && /^([01]\d|2[0-3]):[0-5]\d$/.test(v) ? v : undefined;
 
-const FORMATS = ["MD", "WD", "XD", "mixed", "open"] as const;
+const FORMATS = [
+  "Men's Doubles",
+  "Mixed Doubles",
+  "Women's Doubles",
+  "Singles",
+  "Training",
+  "Open",
+] as const;
 export type SeriesFormat = (typeof FORMATS)[number];
 const format: Field<SeriesFormat> = (v) => FORMATS.find((f) => f === v);
 

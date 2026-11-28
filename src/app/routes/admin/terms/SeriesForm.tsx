@@ -44,7 +44,7 @@ interface FormState {
 
 const EMPTY: FormState = {
   name: "",
-  format: "open",
+  format: "Open",
   weekday: "1",
   startTime: "",
   durationMin: "",

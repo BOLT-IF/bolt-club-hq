@@ -13,7 +13,7 @@ import {
 const validSeries = {
   termId: "t1",
   name: "Thursday XD",
-  format: "XD",
+  format: "Mixed Doubles",
   weekday: 4,
   startTime: "19:00",
   durationMin: 90,
@@ -76,7 +76,7 @@ describe("series input", () => {
   });
 
   it("rejects an unknown format and a zero capacity", () => {
-    expect(parseSeriesCreate({ ...validSeries, format: "singles" }).ok).toBe(false);
+    expect(parseSeriesCreate({ ...validSeries, format: "invalid" }).ok).toBe(false);
     expect(parseSeriesCreate({ ...validSeries, capacity: 0 }).ok).toBe(false);
   });
 

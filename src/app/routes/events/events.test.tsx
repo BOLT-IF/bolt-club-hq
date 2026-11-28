@@ -14,7 +14,7 @@ const detail = (over: Partial<EventDetail> = {}): EventDetail => ({
   seriesId: "ser_1",
   kind: "series",
   title: "Thu Mixed Doubles",
-  format: "XD",
+  format: "Mixed Doubles",
   startsAt: "2027-03-11T18:00:00.000Z",
   endsAt: "2027-03-11T19:30:00.000Z",
   location: "Hall X",

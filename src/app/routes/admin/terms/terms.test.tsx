@@ -53,7 +53,7 @@ const seriesRow = (over: Record<string, unknown> = {}) => ({
   id: "s1",
   termId: "t1",
   name: "Thursday XD",
-  format: "XD",
+  format: "Mixed Doubles",
   level: null,
   weekday: 4,
   startTime: "19:00",
@@ -290,7 +290,7 @@ describe("TermPage", () => {
     const dialog = await screen.findByRole("dialog", { name: "Add Series" });
 
     await user.type(within(dialog).getByLabelText("Name"), "Thursday XD");
-    await user.selectOptions(within(dialog).getByLabelText("Format"), "XD");
+    await user.selectOptions(within(dialog).getByLabelText("Format"), "Mixed Doubles");
     await user.selectOptions(within(dialog).getByLabelText("Weekday"), "4");
     await user.type(within(dialog).getByLabelText("Start Time"), "19:00");
     await user.type(within(dialog).getByLabelText("Duration (Minutes)"), "90");
@@ -305,7 +305,7 @@ describe("TermPage", () => {
     expect(calls.find((c) => c.method === "POST")!.body).toMatchObject({
       termId: "t1",
       name: "Thursday XD",
-      format: "XD",
+      format: "Mixed Doubles",
       weekday: 4,
       startTime: "19:00",
       durationMin: 90,

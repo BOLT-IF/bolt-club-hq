@@ -52,7 +52,7 @@ async function mockClubWeekApi(page: Page, unmocked: string[]) {
             kind: "series",
             seriesId: "ser_1",
             title: "Thursday Mixed",
-            format: "mixed",
+            format: "Mixed Doubles",
             startsAt: "2027-03-04T18:00:00.000Z",
             endsAt: "2027-03-04T19:30:00.000Z",
             rsvpCloseAt: "2027-03-03T18:00:00.000Z",

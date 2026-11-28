@@ -85,7 +85,7 @@ describe("reminders engine (S6.5a)", () => {
       kind: "admin_oneoff",
       createdBy,
       title: "Thursday doubles",
-      format: "open",
+      format: "Open",
       startsAt: new Date(rsvpCloseAt.getTime() + DAY_MS),
       endsAt: new Date(rsvpCloseAt.getTime() + DAY_MS + 5_400_000),
       capacity: 12,

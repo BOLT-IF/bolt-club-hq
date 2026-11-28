@@ -7,11 +7,12 @@ import { stockholmToUtc } from "./stockholm";
 import "./new.css";
 
 const FORMATS = [
-  ["open", "Open Play"],
-  ["mixed", "Mixed"],
-  ["MD", "Men's Doubles"],
-  ["WD", "Women's Doubles"],
-  ["XD", "Mixed Doubles"],
+  "Men's Doubles",
+  "Mixed Doubles",
+  "Women's Doubles",
+  "Singles",
+  "Training",
+  "Open",
 ] as const;
 
 function CalendarIcon() {
@@ -233,9 +234,9 @@ export function NewEventPage() {
             </label>
             <label className="bcq-form__field">
               Format
-              <select name="format" defaultValue="open">
-                {FORMATS.map(([value, label]) => (
-                  <option key={value} value={value}>
+              <select name="format" defaultValue="Open">
+                {FORMATS.map((label) => (
+                  <option key={label} value={label}>
                     {label}
                   </option>
                 ))}

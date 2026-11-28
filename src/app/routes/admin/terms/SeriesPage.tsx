@@ -276,40 +276,39 @@ function SeriesDetail() {
                 </dl>
               </div>
 
-              <div className="bcq-terms-card">
-                <div className="bcq-terms-card__head">
-                  <h2 className="bcq-section-title">Pass Holders</h2>
+              <div className="bcq-card bcq-pass-holders-card">
+                <div className="bcq-card__row">
+                  <h2 className="bcq-card__title">Pass Holders</h2>
                   <StatusChip tone="neutral">
-                    <span className="tabular-nums">
+                    <span className="bcq-tabular-nums">
                       {(series.passHolders ?? []).length} / {series.passCap}
                     </span>
                   </StatusChip>
                 </div>
                 {(series.passHolders ?? []).length === 0 ? (
-                  <p className="bcq-muted">No active passes sold yet.</p>
+                  <p className="bcq-card__meta">No active passes sold yet.</p>
                 ) : (
-                  <ul className="bcq-member-picker__list" aria-label="Pass Holders">
+                  <ul className="bcq-pass-holders-list" aria-label="Pass Holders">
                     {(series.passHolders ?? []).map((holder) => (
-                      <li key={holder.id} className="bcq-member-picker__row">
+                      <li key={holder.id} className="bcq-pass-holders-item">
                         <a
                           href={`/admin/money/members/${holder.memberId}`}
-                          className="flex w-full min-h-[44px] items-center justify-between gap-3 py-1.5 text-left"
-                          style={{ textDecoration: "none", color: "inherit" }}
+                          className="bcq-pass-holders-row"
                           onClick={(e) => {
                             e.preventDefault();
                             navigate(`/admin/money/members/${holder.memberId}`);
                           }}
                         >
-                          <div className="min-w-0 flex-1">
-                            <div className="text-sm font-semibold text-slate-900 truncate">
-                              {holder.displayName}
-                            </div>
-                            <div className="text-xs text-slate-500">
+                          <span className="bcq-pass-holders-row__main">
+                            <span className="bcq-pass-holders-row__name">{holder.displayName}</span>
+                            <span className="bcq-pass-holders-row__meta">
                               Ref <span className="bcq-mono-code">{holder.paymentRef}</span> ·{" "}
-                              <span className="tabular-nums">{holder.priceCharged} kr</span>
-                            </div>
-                          </div>
-                          <ChevronRightIcon />
+                              <span className="bcq-tabular-nums">{holder.priceCharged} kr</span>
+                            </span>
+                          </span>
+                          <span className="bcq-series-row__chevron" aria-hidden="true">
+                            <ChevronRightIcon />
+                          </span>
                         </a>
                       </li>
                     ))}

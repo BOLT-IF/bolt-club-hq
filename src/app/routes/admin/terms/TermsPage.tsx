@@ -492,21 +492,7 @@ function TermsList() {
         {({ terms }) => {
           if (terms.length === 0) {
             return (
-              <CompactEmptyState
-                title="No Terms Yet"
-                icon={<CalendarIcon size={18} />}
-                action={
-                  <Button
-                    variant="tonal"
-                    onClick={() => {
-                      setCreateOpen(true);
-                    }}
-                  >
-                    <PlusIcon />
-                    <span>New Term</span>
-                  </Button>
-                }
-              >
+              <CompactEmptyState title="No Terms Yet" icon={<CalendarIcon size={18} />}>
                 Create your first term to schedule series and passes
               </CompactEmptyState>
             );

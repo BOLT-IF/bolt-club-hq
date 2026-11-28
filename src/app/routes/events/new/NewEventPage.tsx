@@ -234,7 +234,7 @@ export function NewEventPage() {
             </label>
             <label className="bcq-form__field">
               Format
-              <select name="format" defaultValue="Open">
+              <select name="format" defaultValue="Men's Doubles">
                 {FORMATS.map((label) => (
                   <option key={label} value={label}>
                     {label}

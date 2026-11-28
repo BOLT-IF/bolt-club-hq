@@ -323,7 +323,19 @@ describe("SeriesPage", () => {
 
   const base = {
     "GET /series/s1": {
-      series: seriesRow({ captains: [{ id: "m1", displayName: "Ada Captain" }] }),
+      series: seriesRow({
+        captains: [{ id: "m1", displayName: "Ada Captain" }],
+        passHolders: [
+          {
+            id: "pas_1",
+            memberId: "m2",
+            displayName: "Bo Player",
+            paymentRef: "BC-BO",
+            priceCharged: 1400,
+            purchasedAt: "2027-01-02T10:00:00.000Z",
+          },
+        ],
+      }),
     },
     "GET /series/captain-candidates": {
       members: [
@@ -343,6 +355,9 @@ describe("SeriesPage", () => {
       "/admin/terms/series/s1/schedule",
     );
     expect(screen.getByText("Ada Captain")).toBeTruthy();
+    const holdersList = screen.getByRole("list", { name: "Pass Holders" });
+    expect(within(holdersList).getByText("Bo Player")).toBeTruthy();
+    expect(within(holdersList).getByText("1400 kr")).toBeTruthy();
 
     await user.click(await screen.findByRole("button", { name: "Manage Captains" }));
     const dialog = await screen.findByRole("dialog", { name: "Manage Captains" });

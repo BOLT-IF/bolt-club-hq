@@ -270,7 +270,7 @@ async function processRefills(tx: Tx, clock: Clock, e: EventRow): Promise<void> 
       kind: "guest" as const,
       id: g.id,
       memberId,
-      at: (hostCancelledAt ?? g.requestedAt).getTime(),
+      at: (g.cancelledAt ?? hostCancelledAt ?? g.requestedAt).getTime(),
     })),
   ].sort((a, b) => {
     if (a.at !== b.at) return a.at - b.at;
@@ -535,11 +535,19 @@ export async function putLateRsvp(
 
     // Guests: keep active ones in order (name edits are free), cancel/late_cancel extras, add new as tier 3 waitlisted.
     const active = reopening ? [] : (await guestsOf(tx, row.id)).filter((g) => isActive(g.status));
+    const freeWindow = isInMaterialChangeWindow(e, now);
     for (const [i, g] of active.entries()) {
       const name = input.guests[i];
       if (name === undefined) {
-        const nextStatus: RsvpStatus = g.status === "confirmed" ? "late_cancelled" : "cancelled";
-        await tx.update(guest).set({ status: nextStatus }).where(eq(guest.id, g.id));
+        const wasConfirmed = await cancelGuestRow(tx, g, now, freeWindow);
+        if (wasConfirmed && freeWindow) {
+          await reverseMemberEventCharges(tx, clock, {
+            eventId: e.id,
+            memberId: input.memberId,
+            guestId: g.id,
+            keyPrefix: "free-cancel",
+          });
+        }
       } else if (name !== g.name) {
         await tx.update(guest).set({ name }).where(eq(guest.id, g.id));
       }
@@ -568,6 +576,23 @@ export async function putLateRsvp(
     }
     return { ok: true, rsvp: after } as const;
   });
+}
+
+async function cancelGuestRow(
+  tx: Tx,
+  g: GuestRow,
+  now: Date,
+  freeWindow: boolean,
+): Promise<boolean> {
+  const wasConfirmed = g.status === "confirmed";
+  await tx
+    .update(guest)
+    .set({
+      status: wasConfirmed && !freeWindow ? "late_cancelled" : "cancelled",
+      cancelledAt: now,
+    })
+    .where(eq(guest.id, g.id));
+  return wasConfirmed;
 }
 
 export async function lateCancelRsvp(
@@ -599,11 +624,7 @@ export async function lateCancelRsvp(
     if (input.guestId) {
       const target = currentGuests.find((g) => g.id === input.guestId && isActive(g.status));
       if (!target) return { ok: false, error: "not_found" } as const;
-      const wasConfirmed = target.status === "confirmed";
-      await tx
-        .update(guest)
-        .set({ status: wasConfirmed && !freeWindow ? "late_cancelled" : "cancelled" })
-        .where(eq(guest.id, target.id));
+      const wasConfirmed = await cancelGuestRow(tx, target, now, freeWindow);
 
       if (wasConfirmed) {
         if (freeWindow) {
@@ -637,11 +658,7 @@ export async function lateCancelRsvp(
     let freedSpot = hostWasConfirmed;
     for (const g of currentGuests) {
       if (!isActive(g.status)) continue;
-      if (g.status === "confirmed") freedSpot = true;
-      await tx
-        .update(guest)
-        .set({ status: g.status === "confirmed" && !freeWindow ? "late_cancelled" : "cancelled" })
-        .where(eq(guest.id, g.id));
+      if (await cancelGuestRow(tx, g, now, freeWindow)) freedSpot = true;
     }
 
     if (freeWindow) {

@@ -201,6 +201,7 @@ export const guest = pgTable("guest", {
   status: rsvpStatus("status").notNull(),
   tier: integer("tier").notNull().default(3),
   requestedAt: timestamp("requested_at", { withTimezone: true }).notNull(),
+  cancelledAt: timestamp("cancelled_at", { withTimezone: true }),
   refilled: boolean("refilled").notNull().default(false),
   attendance: attendance("attendance").notNull().default("unknown"),
 });

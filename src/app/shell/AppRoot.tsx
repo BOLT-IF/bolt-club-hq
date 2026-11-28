@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 
 import { apiFetch } from "../api/client";
-import { fetchNotifications } from "../api/notifications";
+import { fetchNotifications, subscribeInboxUnread } from "../api/notifications";
 import { resolveRoute } from "../routes/registry";
 import { completeJoinRsvpIntent, peekJoinRsvpIntent } from "../routes/join/joinIntent";
 import { EmptyState, Skeleton } from "../components/ui/States";
@@ -113,6 +113,10 @@ export function AppRoot() {
     if (peekJoinRsvpIntent()) {
       void completeJoinRsvpIntent();
     }
+  }, []);
+
+  useEffect(() => {
+    return subscribeInboxUnread(setInboxUnread);
   }, []);
 
   useEffect(() => {

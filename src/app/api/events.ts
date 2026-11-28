@@ -38,8 +38,11 @@ export async function listEvents(scope: "upcoming" | "past" = "upcoming"): Promi
   return (await apiFetch<{ events: EventDetail[] }>(path)).events;
 }
 
-export function getEventBySlug(slug: string): Promise<EventWithViewer> {
-  return apiFetch<EventWithViewer>(`/events/by-slug/${encodeURIComponent(slug)}`);
+export function getEventBySlug(slug: string, signal?: AbortSignal): Promise<EventWithViewer> {
+  return apiFetch<EventWithViewer>(
+    `/events/by-slug/${encodeURIComponent(slug)}`,
+    signal ? { signal } : {},
+  );
 }
 
 export function getSeriesNext(seriesSlug: string): Promise<EventWithViewer> {

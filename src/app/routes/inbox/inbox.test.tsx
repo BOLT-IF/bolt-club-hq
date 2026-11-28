@@ -333,4 +333,121 @@ describe("inbox screen", () => {
     expect(await screen.findByText("Attendance Unmarked")).toBeTruthy();
     expect(container.querySelectorAll(".bcq-inbox__chevron")).toHaveLength(1);
   });
+
+  it("does not attach unrelated pending join-request actions when applicant names do not match", async () => {
+    configureApiClient({
+      fetch: vi.fn((input: string) => {
+        if (input === "/api/v1/notifications") {
+          return Promise.resolve(
+            json({
+              items: [
+                item({
+                  id: "jr_old",
+                  category: "admin_tasks",
+                  title: "New join request",
+                  body: "Alice Old asked to join the club.",
+                  link: "/admin/approvals",
+                }),
+              ],
+              unreadCount: 1,
+            }),
+          );
+        }
+        if (input === "/api/v1/admin/join-requests") {
+          return Promise.resolve(
+            json({
+              requests: [{ id: "jr_new", displayName: "Bob New" }],
+            }),
+          );
+        }
+        return Promise.resolve(json({ error: "unexpected" }, 500));
+      }),
+    });
+
+    renderInbox();
+    expect(await screen.findByText("Alice Old asked to join the club.")).toBeTruthy();
+    await waitFor(() => {
+      expect(screen.queryByRole("button", { name: "Approve" })).toBeNull();
+      expect(screen.queryByRole("button", { name: "Decline" })).toBeNull();
+    });
+  });
+
+  it("hides RSVP buttons when the linked event lookup fails (404)", async () => {
+    configureApiClient({
+      fetch: vi.fn((input: string) => {
+        if (input === "/api/v1/notifications") {
+          return Promise.resolve(
+            json({
+              items: [
+                item({
+                  id: "ev_missing",
+                  category: "new_events",
+                  title: "Deleted event",
+                  body: "This event was deleted.",
+                  link: "/events/missing-evt",
+                }),
+              ],
+              unreadCount: 1,
+            }),
+          );
+        }
+        if (input === "/api/v1/events/by-slug/missing-evt") {
+          return Promise.resolve(json({ error: "not_found" }, 404));
+        }
+        return Promise.resolve(json({ error: "unexpected" }, 500));
+      }),
+    });
+
+    renderInbox();
+    expect(await screen.findByText("This event was deleted.")).toBeTruthy();
+    await waitFor(() => {
+      expect(screen.queryByRole("button", { name: "Going" })).toBeNull();
+      expect(screen.queryByRole("button", { name: "Not Going" })).toBeNull();
+    });
+  });
+
+  it("resets to loading state on retry and broadcasts unread count updates", async () => {
+    let attempt = 0;
+    let resolveSecond!: (res: Response) => void;
+    configureApiClient({
+      fetch: vi.fn((input: string) => {
+        if (input === "/api/v1/notifications") {
+          attempt += 1;
+          if (attempt === 1) return Promise.resolve(json({ error: "boom" }, 500));
+          return new Promise<Response>((resolve) => {
+            resolveSecond = resolve;
+          });
+        }
+        if (input === "/api/v1/notifications/read") return Promise.resolve(json({ updated: 1 }));
+        return Promise.resolve(json({ error: "unexpected" }, 500));
+      }),
+    });
+
+    const unreadEvents: number[] = [];
+    const onUnread = (e: Event) => {
+      unreadEvents.push((e as CustomEvent<number>).detail);
+    };
+    window.addEventListener("bcq:inbox-unread", onUnread);
+
+    try {
+      renderInbox();
+      const retryBtn = await screen.findByRole("button", { name: "Try Again" });
+      fireEvent.click(retryBtn);
+
+      expect(screen.getByLabelText("Loading notifications")).toBeTruthy();
+      await waitFor(() => {
+        expect(attempt).toBe(2);
+      });
+
+      resolveSecond(json({ items: [item({ id: "a" })], unreadCount: 1 }));
+      expect(await screen.findByText("Title a")).toBeTruthy();
+
+      fireEvent.click(screen.getByRole("button", { name: "Mark All Read" }));
+      await waitFor(() => {
+        expect(unreadEvents).toContain(0);
+      });
+    } finally {
+      window.removeEventListener("bcq:inbox-unread", onUnread);
+    }
+  });
 });

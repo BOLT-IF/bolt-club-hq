@@ -34,8 +34,8 @@ export interface RsvpView {
 
 const path = (eventId: string) => `/events/${encodeURIComponent(eventId)}/rsvp`;
 
-export async function getMyRsvp(eventId: string): Promise<RsvpView | null> {
-  return (await apiFetch<{ rsvp: RsvpView | null }>(path(eventId))).rsvp;
+export async function getMyRsvp(eventId: string, signal?: AbortSignal): Promise<RsvpView | null> {
+  return (await apiFetch<{ rsvp: RsvpView | null }>(path(eventId), signal ? { signal } : {})).rsvp;
 }
 
 /** `key` is created once per user action, so a retry of the same tap replays instead of repeating. */

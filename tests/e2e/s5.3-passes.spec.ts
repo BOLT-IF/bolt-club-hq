@@ -10,7 +10,7 @@ const offersResponse = {
       seriesName: "Thursday XD",
       termId: "t1",
       termName: "Spring 2027",
-      format: "XD",
+      format: "Mixed Doubles",
       weekday: 4,
       startTime: "19:00",
       durationMin: 90,

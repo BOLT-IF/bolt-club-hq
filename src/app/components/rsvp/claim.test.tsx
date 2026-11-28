@@ -14,7 +14,7 @@ const closedEvent = (over: Partial<EventDetail> = {}): EventDetail => ({
   seriesId: "ser_1",
   kind: "series",
   title: "Thu",
-  format: "XD",
+  format: "Mixed Doubles",
   startsAt: "2099-03-11T18:00:00.000Z",
   endsAt: "2099-03-11T19:30:00.000Z",
   location: "Hall X",

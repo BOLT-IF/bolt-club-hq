@@ -57,7 +57,7 @@ describe("recurrence, skip-dates, occurrence edits (S3.2)", () => {
       id: "s1",
       termId: "t1",
       name: "Sunday XD",
-      format: "XD",
+      format: "Mixed Doubles",
       weekday: 7,
       startTime: "19:00",
       durationMin: 90,

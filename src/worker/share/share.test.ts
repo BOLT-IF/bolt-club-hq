@@ -31,7 +31,7 @@ describe("share OG and edge routes (S7.1)", () => {
       ogSnapshot({
         shareSlug: "evilslug",
         title: maliciousTitle,
-        format: "XD",
+        format: "Mixed Doubles",
         location: maliciousLocation,
         startsAt: new Date("2027-03-11T18:00:00.000Z"),
         endsAt: new Date("2027-03-11T19:30:00.000Z"),
@@ -66,7 +66,7 @@ describe("share OG and edge routes (S7.1)", () => {
       ogSnapshot({
         shareSlug: "club1234",
         title: "Thu Mixed Doubles",
-        format: "XD",
+        format: "Mixed Doubles",
         location: "Hall X",
         startsAt: new Date("2027-03-11T18:00:00.000Z"),
         endsAt: new Date("2027-03-11T19:30:00.000Z"),
@@ -97,7 +97,7 @@ describe("share OG and edge routes (S7.1)", () => {
         return Promise.resolve({
           shareSlug: "fromneon1",
           title: "Neon Fallback Event",
-          format: "XD",
+          format: "Mixed Doubles",
           location: "Hall N",
           startsAt: new Date("2027-03-12T18:00:00.000Z"),
           endsAt: new Date("2027-03-12T19:30:00.000Z"),
@@ -168,7 +168,7 @@ describe("share OG and edge routes (S7.1)", () => {
     const snapshot = ogSnapshot({
       shareSlug: "real1234",
       title: "Real KV Event",
-      format: "MD",
+      format: "Men's Doubles",
       location: "Hall R",
       startsAt: new Date("2027-03-11T18:00:00.000Z"),
       endsAt: new Date("2027-03-11T19:30:00.000Z"),

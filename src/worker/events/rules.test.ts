@@ -105,7 +105,7 @@ describe("OG publishing contract", () => {
       ogSnapshot({
         shareSlug: "k3f9xq2m",
         title: "Thu Mixed Doubles",
-        format: "XD",
+        format: "Mixed Doubles",
         location: "Hall X",
         startsAt: new Date("2027-03-11T18:00:00Z"),
         endsAt: new Date("2027-03-11T19:30:00Z"),
@@ -115,7 +115,7 @@ describe("OG publishing contract", () => {
     expect(snapshot).toEqual({
       slug: "k3f9xq2m",
       title: "Thu Mixed Doubles",
-      format: "XD",
+      format: "Mixed Doubles",
       location: "Hall X",
       startsAt: "2027-03-11T18:00:00.000Z",
       endsAt: "2027-03-11T19:30:00.000Z",

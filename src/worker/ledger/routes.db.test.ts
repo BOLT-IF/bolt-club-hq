@@ -69,7 +69,7 @@ describe("GET /me/ledger", () => {
       kind: "admin_oneoff",
       createdBy: admin.id,
       title: "Thursday XD",
-      format: "XD",
+      format: "Mixed Doubles",
       startsAt: new Date("2027-01-14T18:00:00Z"),
       endsAt: new Date("2027-01-14T19:30:00Z"),
       capacity: 12,

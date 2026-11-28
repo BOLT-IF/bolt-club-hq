@@ -11,7 +11,7 @@ const closedEvent: EventDetail = {
   seriesId: "ser_1",
   kind: "series",
   title: "Thursday Mixed #1",
-  format: "XD",
+  format: "Mixed Doubles",
   startsAt: "2027-04-01T18:00:00.000Z",
   endsAt: "2027-04-01T19:30:00.000Z",
   location: "Hall X",

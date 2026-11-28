@@ -50,6 +50,13 @@
       "when": 1795853093635,
       "tag": "0006_drop_pass_revoke_days",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1795863808289,
+      "tag": "0007_event_formats",
+      "breakpoints": true
     }
   ]
 }

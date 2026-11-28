@@ -1,7 +1,14 @@
 import type { CurrentMember } from "../core/ports";
 import type { EventAudienceKind } from "./audience";
 
-const FORMATS = ["MD", "WD", "XD", "mixed", "open"] as const;
+const FORMATS = [
+  "Men's Doubles",
+  "Mixed Doubles",
+  "Women's Doubles",
+  "Singles",
+  "Training",
+  "Open",
+] as const;
 const MODES = ["tiered", "instant"] as const;
 const SCOPES = ["club", "member"] as const;
 const AUDIENCE_KINDS = ["all", "series", "members"] as const;
@@ -99,7 +106,7 @@ export function planOneoff(actor: CurrentMember, body: unknown, now: Date): Plan
   ) {
     return bad(`Location may be at most ${String(MAX_LOCATION)} characters`);
   }
-  const format = b.format ?? "open";
+  const format = b.format ?? "Open";
   if (typeof format !== "string" || !(FORMATS as readonly string[]).includes(format)) {
     return bad("Unknown format");
   }

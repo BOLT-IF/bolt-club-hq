@@ -130,7 +130,7 @@ describe("roster-link domain (S8.3)", () => {
 
   it("short uses roster_name, falling back to the first name", () => {
     const payload = buildRosterImportPayload(
-      { title: "Session", startsAt: new Date("2027-02-01T18:00:00Z"), format: "XD" },
+      { title: "Session", startsAt: new Date("2027-02-01T18:00:00Z"), format: "Mixed Doubles" },
       [
         {
           name: "Ashok Bommisetti",
@@ -182,7 +182,11 @@ describe("roster-link domain (S8.3)", () => {
 
   it("orders players by tier, then confirmation time", () => {
     const payload = buildRosterImportPayload(
-      { title: "Tiered Session", startsAt: new Date("2027-02-01T18:00:00Z"), format: "XD" },
+      {
+        title: "Tiered Session",
+        startsAt: new Date("2027-02-01T18:00:00Z"),
+        format: "Mixed Doubles",
+      },
       [
         {
           name: "Guest One",
@@ -235,7 +239,7 @@ describe("roster-link domain (S8.3)", () => {
       confirmedAt: new Date(Date.UTC(2027, 0, 10, 10, i)),
     }));
     const payload = buildRosterImportPayload(
-      { title: "Thu Mixed", startsAt: new Date("2027-01-14T18:00:00Z"), format: "XD" },
+      { title: "Thu Mixed", startsAt: new Date("2027-01-14T18:00:00Z"), format: "Mixed Doubles" },
       players,
     );
     const fragment = encodeRosterImportPayload(payload);

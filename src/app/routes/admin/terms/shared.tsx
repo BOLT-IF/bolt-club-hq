@@ -160,14 +160,22 @@ export const WEEKDAYS = [
   "Sunday",
 ] as const;
 
-export const FORMATS = ["MD", "WD", "XD", "mixed", "open"] as const;
+export const FORMATS = [
+  "Men's Doubles",
+  "Mixed Doubles",
+  "Women's Doubles",
+  "Singles",
+  "Training",
+  "Open",
+] as const;
 
 export const FORMAT_LABEL: Record<string, string> = {
-  MD: "MD",
-  WD: "WD",
-  XD: "XD",
-  mixed: "Mixed",
-  open: "Open",
+  "Men's Doubles": "Men's Doubles",
+  "Mixed Doubles": "Mixed Doubles",
+  "Women's Doubles": "Women's Doubles",
+  Singles: "Singles",
+  Training: "Training",
+  Open: "Open",
 };
 
 const MESSAGES: Record<string, string> = {

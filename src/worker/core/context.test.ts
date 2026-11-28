@@ -44,7 +44,7 @@ describe("request context (W2 contract)", () => {
       id: "s1",
       termId: "t1",
       name: "Mon",
-      format: "open",
+      format: "Open",
       weekday: 1,
       startTime: "19:00",
       durationMin: 90,

@@ -83,7 +83,7 @@ const offerRegular = {
   seriesName: "Thursday XD",
   termId: "term_1",
   termName: "Spring 2027",
-  format: "XD",
+  format: "Mixed Doubles",
   weekday: 4,
   startTime: "19:00",
   durationMin: 90,

@@ -17,7 +17,7 @@ type Member = Awaited<ReturnType<typeof makeMember>>;
 const seriesBody = {
   termId: "t1",
   name: "Thursday XD",
-  format: "XD",
+  format: "Mixed Doubles",
   weekday: 4,
   startTime: "19:00",
   durationMin: 90,
@@ -85,7 +85,7 @@ describe("terms, series, captains, clone (S3.1)", () => {
       id,
       termId,
       name: `Series ${id}`,
-      format: "XD",
+      format: "Mixed Doubles",
       weekday: 4,
       startTime: "19:00",
       durationMin: 90,
@@ -110,7 +110,7 @@ describe("terms, series, captains, clone (S3.1)", () => {
       kind: "series",
       createdBy: admin.id,
       title: id,
-      format: "XD",
+      format: "Mixed Doubles",
       startsAt: new Date("2027-02-04T18:00:00Z"),
       endsAt: new Date("2027-02-04T19:30:00Z"),
       capacity,
@@ -509,7 +509,7 @@ describe("terms, series, captains, clone (S3.1)", () => {
       expect(copied).toHaveLength(2);
       const copyOfS1 = copied.find((s) => s.name === "Series s1");
       expect(copyOfS1).toMatchObject({
-        format: "XD",
+        format: "Mixed Doubles",
         weekday: 4,
         startTime: "19:00",
         durationMin: 90,
@@ -632,7 +632,7 @@ describe("terms, series, captains, clone (S3.1)", () => {
       const tooHigh = await call(admin, "POST", "/series", {
         termId,
         name: "Sunday",
-        format: "open",
+        format: "Open",
         weekday: 7,
         startTime: "18:00",
         durationMin: 120,
@@ -646,7 +646,7 @@ describe("terms, series, captains, clone (S3.1)", () => {
       const created = await call(admin, "POST", "/series", {
         termId,
         name: "Sunday",
-        format: "open",
+        format: "Open",
         weekday: 7,
         startTime: "18:00",
         durationMin: 120,

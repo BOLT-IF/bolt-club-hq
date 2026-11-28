@@ -134,7 +134,7 @@ describe("S11.1 club-week full term scenario", () => {
       body: {
         termId,
         name: "Thursday Mixed",
-        format: "mixed",
+        format: "Mixed Doubles",
         weekday: 4,
         startTime: "19:00",
         durationMin: 90,
@@ -191,7 +191,7 @@ describe("S11.1 club-week full term scenario", () => {
     const clinicRes = await api(admin, "POST", "/events", {
       body: {
         title: "Sunday Clinic",
-        format: "open",
+        format: "Open",
         startsAt: "2027-03-07T14:00:00Z",
         endsAt: "2027-03-07T16:00:00Z",
         rsvpCloseAt: "2027-03-06T14:00:00Z",
@@ -208,7 +208,7 @@ describe("S11.1 club-week full term scenario", () => {
     const casualRes = await api(dana, "POST", "/events", {
       body: {
         title: "Friday Casual",
-        format: "open",
+        format: "Open",
         startsAt: "2027-03-05T18:00:00Z",
         endsAt: "2027-03-05T19:30:00Z",
         rsvpCloseAt: "2027-03-05T17:00:00Z",

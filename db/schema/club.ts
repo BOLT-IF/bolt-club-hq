@@ -14,7 +14,14 @@ import { member } from "./identity";
 
 export const termStatus = pgEnum("term_status", ["draft", "open_for_passes", "active", "closed"]);
 export const termSeason = pgEnum("term_season", ["fall", "spring"]);
-export const seriesFormat = pgEnum("series_format", ["MD", "WD", "XD", "mixed", "open"]);
+export const seriesFormat = pgEnum("series_format", [
+  "Men's Doubles",
+  "Mixed Doubles",
+  "Women's Doubles",
+  "Singles",
+  "Training",
+  "Open",
+]);
 
 export const clubSettings = pgTable("club_settings", {
   /** Singleton row: id is always 1. */

@@ -215,6 +215,13 @@ describe("share OG and edge routes (S7.1)", () => {
 
     try {
       const app = createApp();
+      const cleanRes = await app.request("https://club.example/e/nonexistent", undefined, {
+        ...env,
+        KV: kv,
+      });
+      const cleanHtml = await cleanRes.text();
+      const cleanScriptCount = cleanHtml.match(/<script type="module"/gi)?.length ?? 0;
+
       const resEvent = await app.request(
         "https://club.example/e/nonexistent?x=$'&utm=1",
         undefined,
@@ -229,8 +236,10 @@ describe("share OG and edge routes (S7.1)", () => {
         '<meta property="og:url" content="https://club.example/e/nonexistent" />',
       );
       expect(eventHtml).not.toContain("?x=");
+      expect(eventHtml.match(/<\/head>/gi)?.length).toBe(1);
       expect(eventHtml.match(/<body>/gi)?.length).toBe(1);
-      expect(eventHtml.match(/<script type="module"/gi)?.length).toBe(1);
+      expect(eventHtml.slice(0, eventHtml.indexOf("</head>"))).not.toContain("<body>");
+      expect(eventHtml.match(/<script type="module"/gi)?.length).toBe(cleanScriptCount);
 
       const resSeries = await app.request(
         "https://club.example/s/nonexistent?x=$'&foo=bar",
@@ -246,7 +255,10 @@ describe("share OG and edge routes (S7.1)", () => {
         '<meta property="og:url" content="https://club.example/s/nonexistent" />',
       );
       expect(seriesHtml).not.toContain("?x=");
+      expect(seriesHtml.match(/<\/head>/gi)?.length).toBe(1);
       expect(seriesHtml.match(/<body>/gi)?.length).toBe(1);
+      expect(seriesHtml.slice(0, seriesHtml.indexOf("</head>"))).not.toContain("<body>");
+      expect(seriesHtml.match(/<script type="module"/gi)?.length).toBe(cleanScriptCount);
     } finally {
       configureShareDeps({});
     }

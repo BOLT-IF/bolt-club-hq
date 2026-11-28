@@ -11,8 +11,9 @@ import type { PrepaidPort } from "../core/ports";
  */
 export function createPrepaidPort(db: Db): PrepaidPort {
   return {
-    async isPrepaid({ memberId, eventId }) {
-      const [row] = await db
+    async isPrepaid({ memberId, eventId, tx }) {
+      const runner = tx ?? db;
+      const [row] = await runner
         .select({ kind: event.kind, memberStatus: member.status })
         .from(event)
         .innerJoin(

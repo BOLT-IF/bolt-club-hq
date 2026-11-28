@@ -496,5 +496,24 @@ describe("rsvp routes (S4.2)", () => {
       const bRes = await send("GET", e.id, b.clerkUserId);
       expect((await json(bRes)).rsvp?.status).toBe("confirmed");
     });
+
+    it("putRsvp checks prepaid pass inside the event transaction lock (passes tx)", async () => {
+      const e = await addEvent({ capacity: 4 });
+      const m = await makeMember(t.db);
+      let seenTx: unknown;
+      configureRsvpDeps({
+        prepaid: () => ({
+          isPrepaid(input) {
+            seenTx = input.tx;
+            return Promise.resolve(true);
+          },
+        }),
+      });
+
+      const res = await put(e.id, m.clerkUserId);
+      expect(res.status).toBe(200);
+      expect(seenTx).toBeDefined();
+      expect((await json(res)).rsvp).toMatchObject({ tier: 1, status: "confirmed" });
+    });
   });
 });

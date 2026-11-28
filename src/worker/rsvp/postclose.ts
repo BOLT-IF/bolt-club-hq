@@ -455,14 +455,6 @@ export async function putLateRsvp(
   await closeDueEvents(db, clock, { targetEventId: input.eventId });
   const now = clock.now();
 
-  const [peek] = await db.select().from(event).where(eq(event.id, input.eventId));
-  if (!peek) return { ok: false, error: "not_found" };
-  const isPrepaid =
-    peek.kind === "series"
-      ? await prepaid.isPrepaid({ memberId: input.memberId, eventId: input.eventId })
-      : false;
-  const tier = rsvpTier(peek, isPrepaid);
-
   return db.transaction(async (tx) => {
     const [e] = await tx.select().from(event).where(eq(event.id, input.eventId)).for("update");
     if (!e) return { ok: false, error: "not_found" } as const;
@@ -475,6 +467,12 @@ export async function putLateRsvp(
     if (input.guests.length > e.maxGuestsPerMember) {
       return { ok: false, error: "guest_limit", max: e.maxGuestsPerMember } as const;
     }
+
+    const isPrepaid =
+      e.kind === "series"
+        ? await prepaid.isPrepaid({ memberId: input.memberId, eventId: e.id, tx })
+        : false;
+    const tier = rsvpTier(e, isPrepaid);
 
     const { roster: initialRoster } = await loadRoster(tx, e);
     const existing = await findRsvp(tx, e.id, input.memberId);

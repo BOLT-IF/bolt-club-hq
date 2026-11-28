@@ -483,6 +483,7 @@ describe("terms, series, captains, clone (S3.1)", () => {
         location: "Hall A",
         passCap: 9,
         level: "intermediate",
+        discountedPassPrice: 1400,
       });
       await seedSeries("s2", "t1");
       await seedEvent("s1", "e1", 9);
@@ -517,6 +518,7 @@ describe("terms, series, captains, clone (S3.1)", () => {
         level: "intermediate",
         capacity: 16,
         passPrice: 1800,
+        discountedPassPrice: 1400,
         adhocFee: 120,
         skipDates: [],
         skipDatesLocked: false,

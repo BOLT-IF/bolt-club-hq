@@ -304,6 +304,7 @@ export default new Hono<AppEnv>()
           location: s.location,
           capacity: s.capacity,
           passPrice: s.passPrice,
+          discountedPassPrice: s.discountedPassPrice,
           adhocFee: s.adhocFee,
           maxGuestsDefault: s.maxGuestsDefault,
           rsvpCloseOffsetMin: s.rsvpCloseOffsetMin,

@@ -11,6 +11,7 @@ import "./install.css";
 export interface InstallPromptProps {
   readonly context?: InstallContext;
   readonly push?: PushPort;
+  readonly isSignedIn?: boolean;
 }
 
 /**
@@ -19,7 +20,11 @@ export interface InstallPromptProps {
  * or a declined browser prompt is remembered and never re-asked. Also re-subscribes on every
  * open when permission is already granted (PLAN §10).
  */
-export function InstallPrompt({ context, push = browserPush }: InstallPromptProps) {
+export function InstallPrompt({
+  context,
+  push = browserPush,
+  isSignedIn = false,
+}: InstallPromptProps) {
   const [ctx] = useState(() => context ?? detectInstallContext());
   const flags = useFlags();
   const { permission, enable } = usePush(push);
@@ -27,8 +32,8 @@ export function InstallPrompt({ context, push = browserPush }: InstallPromptProp
   const [justEnabled, setJustEnabled] = useState(false);
 
   useEffect(() => {
-    if (push.permission() === "granted") void push.resubscribe();
-  }, [push]);
+    if (isSignedIn && push.permission() === "granted") void push.resubscribe();
+  }, [isSignedIn, push]);
 
   if (justEnabled) {
     return (

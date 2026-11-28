@@ -53,7 +53,9 @@ export async function resubscribePush(env: PushEnv = browserEnv()): Promise<Resu
     const { pushManager } = await env.registration();
     let subscription = await pushManager.getSubscription();
     if (!subscription) {
-      const { publicKey } = await apiFetch<{ publicKey: string }>("/push/vapid-public-key");
+      const { publicKey } = await apiFetch<{ publicKey: string }>("/push/vapid-public-key", {
+        redirectOnUnauthorized: false,
+      });
       subscription = await pushManager.subscribe({
         userVisibleOnly: true,
         applicationServerKey: keyBytes(publicKey),
@@ -63,6 +65,7 @@ export async function resubscribePush(env: PushEnv = browserEnv()): Promise<Resu
     await apiFetch("/push/subscriptions", {
       method: "POST",
       body: { endpoint, keys, userAgent: env.userAgent },
+      redirectOnUnauthorized: false,
     });
     return "subscribed";
   } catch {

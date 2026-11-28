@@ -168,14 +168,22 @@ describe("InstallPrompt", () => {
     expect(push.request).toHaveBeenCalledOnce();
   });
 
-  it("re-subscribes on every open when permission is already granted, without asking", async () => {
+  it("re-subscribes on every open when signed in and permission is already granted, without asking", async () => {
     const push = fakePush("granted");
-    const { container } = render(<InstallPrompt context={IOS_APP} push={push} />);
+    const { container } = render(<InstallPrompt context={IOS_APP} push={push} isSignedIn />);
     await waitFor(() => {
       expect(push.resubscribe).toHaveBeenCalledOnce();
     });
     expect(push.request).not.toHaveBeenCalled();
     expect(container.textContent).toBe("");
+  });
+
+  it("does not re-subscribe when signed out even if permission is granted", async () => {
+    const push = fakePush("granted");
+    render(<InstallPrompt context={IOS_APP} push={push} isSignedIn={false} />);
+    await Promise.resolve();
+    expect(push.resubscribe).not.toHaveBeenCalled();
+    expect(push.request).not.toHaveBeenCalled();
   });
 });
 

@@ -99,6 +99,17 @@ describe("resubscribePush (called on every app open)", () => {
     const { e } = env();
     expect(await resubscribePush(e)).toBe("failed");
   });
+
+  it("does not trigger onUnauthorized redirect when /push/vapid-public-key returns 401", async () => {
+    const onUnauthorized = vi.fn();
+    configureApiClient({
+      fetch: () => Promise.resolve(json({ error: "unauthorized" }, 401)),
+      onUnauthorized,
+    });
+    const { e } = env();
+    expect(await resubscribePush(e)).toBe("failed");
+    expect(onUnauthorized).not.toHaveBeenCalled();
+  });
 });
 
 describe("unsubscribePush", () => {
